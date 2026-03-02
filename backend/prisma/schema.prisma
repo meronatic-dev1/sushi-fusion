@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  BRANCH_MANAGER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  phone     String?
+  role      Role     @default(CUSTOMER)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Location {
+  id         String   @id @default(uuid())
+  name       String   @unique
+  address    String
+  latitude   Float
+  longitude  Float
+  isActive   Boolean  @default(true)
+  isClosed   Boolean  @default(false)
+  openTime   String? // e.g. "10:00"
+  closeTime  String? // e.g. "22:00"
+  orders     Order[]  @relation("BranchOrders")
+  origOrders Order[]  @relation("OriginalBranchOrders")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  imageUrl    String?
+  menuItems   MenuItem[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model MenuItem {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  isAvailable Boolean     @default(true)
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+enum OrderStatus {
+  ROUTING
+  PENDING
+  ESCALATED
+  REASSIGNING
+  SCHEDULED
+  LONG_DISTANCE
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderMode {
+  PICKUP
+  DELIVERY
+  DINE_IN
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String? // Guest if null
+  user        User?       @relation(fields: [userId], references: [id])
+  status      OrderStatus @default(ROUTING)
+  mode        OrderMode   @default(DELIVERY)
+  totalAmount Float
+
+  // --- No-Fault Routing Specific Fields ---
+  branchId String
+  branch   Location @relation("BranchOrders", fields: [branchId], references: [id])
+
+  branchIdOriginal String
+  originalBranch   Location @relation("OriginalBranchOrders", fields: [branchIdOriginal], references: [id])
+
+  routingAttempts Int       @default(0)
+  radiusUsedKm    Float
+  customerLat     Float
+  customerLng     Float
+  customerAddress String?
+  geocodeFallback Boolean   @default(false)
+  isLongDistance  Boolean   @default(false)
+  isReassigned    Boolean   @default(false)
+  scheduledFor    DateTime?
+  routingLog      Json      @default("[]") // Audit trail
+
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
