@@ -1,7 +1,7 @@
-import { PrismaService } from '../prisma/prisma.service';
-export declare class UsersService {
-    private prisma;
-    constructor(prisma: PrismaService);
+import { UsersService } from './users.service';
+export declare class UsersController {
+    private readonly usersService;
+    constructor(usersService: UsersService);
     findAll(): Promise<{
         id: string;
         email: string;
@@ -14,7 +14,7 @@ export declare class UsersService {
             name: string;
         } | null;
     }[]>;
-    findByEmail(email: string): Promise<{
+    findOne(id: string): Promise<{
         id: string;
         email: string;
         name: string;
@@ -25,18 +25,7 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
     } | null>;
-    findById(id: string): Promise<{
-        id: string;
-        email: string;
-        name: string;
-        password: string;
-        phone: string | null;
-        role: import("@prisma/client").$Enums.Role;
-        branchId: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-    } | null>;
-    create(data: any): Promise<{
+    create(createUserDto: any): Promise<{
         id: string;
         email: string;
         name: string;
@@ -47,7 +36,7 @@ export declare class UsersService {
         createdAt: Date;
         updatedAt: Date;
     }>;
-    update(id: string, data: any): Promise<{
+    update(id: string, updateUserDto: any): Promise<{
         id: string;
         email: string;
         name: string;

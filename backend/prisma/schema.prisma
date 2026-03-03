@@ -18,10 +18,12 @@ model User {
   name      String
   password  String
   phone     String?
-  role      Role     @default(CUSTOMER)
+  role      Role      @default(CUSTOMER)
+  branchId  String?
+  branch    Location? @relation("LocationUsers", fields: [branchId], references: [id])
   orders    Order[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Location {
@@ -36,6 +38,7 @@ model Location {
   closeTime  String? // e.g. "22:00"
   orders     Order[]  @relation("BranchOrders")
   origOrders Order[]  @relation("OriginalBranchOrders")
+  users      User[]   @relation("LocationUsers")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -128,4 +131,11 @@ model OrderItem {
   totalPrice Float
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model StoreSettings {
+  id        String   @id @default("singleton")
+  logoUrl   String?
+  bannerUrl String?
+  updatedAt DateTime @updatedAt
 }

@@ -22,6 +22,7 @@ const routing_module_1 = require("./routing/routing.module");
 const stripe_module_1 = require("./stripe/stripe.module");
 const resend_module_1 = require("./resend/resend.module");
 const cloudinary_module_1 = require("./cloudinary/cloudinary.module");
+const settings_module_1 = require("./settings/settings.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -52,6 +53,7 @@ exports.AppModule = AppModule = __decorate([
             stripe_module_1.StripeModule,
             resend_module_1.ResendModule,
             cloudinary_module_1.CloudinaryModule,
+            settings_module_1.SettingsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

@@ -6,6 +6,23 @@ import * as bcrypt from 'bcryptjs';
 export class UsersService {
     constructor(private prisma: PrismaService) { }
 
+    async findAll() {
+        return this.prisma.user.findMany({
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                phone: true,
+                role: true,
+                branchId: true,
+                branch: {
+                    select: { name: true }
+                },
+                createdAt: true,
+            }
+        });
+    }
+
     async findByEmail(email: string) {
         return this.prisma.user.findUnique({
             where: { email },
@@ -31,6 +48,22 @@ export class UsersService {
                 ...data,
                 password: hashedPassword,
             },
+        });
+    }
+
+    async update(id: string, data: any) {
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
+        }
+        return this.prisma.user.update({
+            where: { id },
+            data,
+        });
+    }
+
+    async remove(id: string) {
+        return this.prisma.user.delete({
+            where: { id },
         });
     }
 }

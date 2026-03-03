@@ -1981,3 +1981,487 @@ body {
   line-height: 1.5;
   text-align: center;
 }
+
+/* ================================================================
+   RESPONSIVE LAYOUT PATCH
+   Append this entire block to the END of your globals.css.
+   It uses .topbar--desktop / .topbar--mobile / .catbar--desktop /
+   .catbar--mobile class names that live ONLY in the new components,
+   so there is zero conflict with existing styles.
+   ================================================================ */
+
+/* ── Base rules (apply at ALL widths) ─────────────────────────── */
+
+/* The two headers sit in the DOM simultaneously;
+   we control which one is visible purely with display. */
+.topbar--mobile {
+  display: none;
+}
+
+.topbar--desktop {
+  display: flex;
+}
+
+/* inherits all .topbar styles */
+
+/* The two category bars work the same way */
+.catbar--mobile {
+  display: none;
+}
+
+.catbar--desktop {
+  display: block;
+}
+
+/* inherits all .catbar styles */
+
+/* Bottom nav is mobile-only */
+.bottom-nav {
+  display: none;
+}
+
+
+/* ================================================================
+   MOBILE  ≤ 768 px
+   ================================================================ */
+@media (max-width: 768px) {
+
+  /* ── Swap header ───────────────────────────────────────────── */
+  .topbar--desktop {
+    display: none !important;
+  }
+
+  .topbar--mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    height: auto;
+    padding: 10px 14px 0;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    background: var(--w);
+    border-bottom: 1px solid var(--b);
+    box-shadow: 0 1px 6px rgba(0, 0, 0, .07);
+  }
+
+  /* ── Mobile row 1: hamburger · location · lang ─────────────── */
+  .mob-row1 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    width: 100%;
+  }
+
+  .mob-hamburger {
+    width: 34px;
+    height: 34px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .mob-hamburger span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background: #1c1c1c;
+    border-radius: 2px;
+  }
+
+  .mob-location {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--o);
+    overflow: hidden;
+  }
+
+  .mob-location-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mob-location-arrow {
+    color: #888;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .mob-lang {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--o);
+    background: none;
+    color: var(--o);
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-family: inherit;
+  }
+
+  /* ── Mobile row 2: circular mode tabs ──────────────────────── */
+  .mob-row2 {
+    display: flex;
+    width: 100%;
+    border-top: 1px solid var(--b);
+  }
+
+  .mob-mode-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 4px 10px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .2s;
+  }
+
+  .mob-mode-tab.active {
+    border-bottom-color: var(--o);
+  }
+
+  .mob-mode-circle {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .2s;
+  }
+
+  .mob-mode-tab.active .mob-mode-circle {
+    background: #fff0ef;
+    border-color: var(--o);
+  }
+
+  .mob-mode-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    transition: color .2s;
+  }
+
+  .mob-mode-tab.active .mob-mode-label {
+    color: var(--o);
+  }
+
+  .mob-check {
+    font-size: 10px;
+  }
+
+  /* ── Swap category bar ─────────────────────────────────────── */
+  .catbar--desktop {
+    display: none !important;
+  }
+
+  .catbar--mobile {
+    display: block;
+    padding: 14px 14px 4px;
+    background: var(--bg);
+  }
+
+  .mob-explore-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .mob-explore-title {
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--d);
+  }
+
+  .mob-explore-viewall {
+    font-size: 13px;
+    font-weight: 700;
+    color: #666;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* 3-column grid */
+  .mob-cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .mob-cat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 6px 10px;
+    background: #fff;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+    transition: all .2s;
+    position: relative;
+  }
+
+  .mob-cat-card.active {
+    border-color: var(--o);
+    background: #fff5ef;
+    box-shadow: 0 2px 12px rgba(255, 106, 12, .15);
+  }
+
+  .mob-cat-circle {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #fff0ef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--b);
+    transition: border-color .2s;
+  }
+
+  .mob-cat-card.active .mob-cat-circle {
+    border-color: var(--o);
+  }
+
+  .mob-cat-circle-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .mob-cat-emoji {
+    font-size: 28px;
+  }
+
+  .mob-cat-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #1c1c1c;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .mob-cat-card.active .mob-cat-label {
+    color: var(--o);
+  }
+
+  .mob-cat-underline {
+    width: 20px;
+    height: 3px;
+    background: var(--o);
+    border-radius: 2px;
+    position: absolute;
+    bottom: 5px;
+  }
+
+  /* ── Layout adjustments ────────────────────────────────────── */
+  .page-body {
+    flex-direction: column;
+    padding-bottom: 68px;
+  }
+
+  .main-content {
+    padding: 12px 14px 20px;
+  }
+
+  .section-title {
+    font-size: 18px;
+    margin-bottom: 14px;
+  }
+
+  .product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .banner {
+    padding: 10px 14px 0;
+  }
+
+  .banner-inner {
+    height: 190px;
+    border-radius: 14px;
+  }
+
+  /* Cart sidebar becomes a right-side drawer */
+  .cart-sidebar {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 85%;
+    max-width: 350px;
+    z-index: 1000;
+    border-left: 1px solid var(--b);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, .15);
+  }
+
+  .cart-sidebar.mobile-open {
+    display: block;
+  }
+
+  .cart-close-btn {
+    display: block;
+  }
+
+  /* ── Bottom navigation ─────────────────────────────────────── */
+  .bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 62px;
+    background: #fff;
+    border-top: 1px solid var(--b);
+    z-index: 800;
+    align-items: stretch;
+  }
+
+  .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    position: relative;
+    color: #888;
+    text-decoration: none;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--o);
+  }
+
+  /* Active top-edge indicator */
+  .bottom-nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    background: var(--o);
+    border-radius: 0 0 3px 3px;
+  }
+
+  .bottom-nav-label {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  /* Cart badge */
+  .bottom-nav-badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 20px);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--o);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+
+  /* Centre Offers button — elevated pill */
+  .bottom-nav-center {
+    position: relative;
+    overflow: visible;
+    justify-content: flex-end;
+    padding-bottom: 6px;
+  }
+
+  .bottom-nav-center::before {
+    display: none;
+  }
+
+  /* no top bar for center */
+
+  .bottom-nav-offers-pill {
+    position: absolute;
+    top: -16px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--o);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(255, 106, 12, .45);
+  }
+
+  .bottom-nav-center .bottom-nav-label {
+    margin-top: 20px;
+    color: var(--o);
+  }
+}
+
+/* ── Very small screens ──────────────────────────────────────── */
+@media (max-width: 380px) {
+  .mob-mode-circle {
+    width: 50px;
+    height: 50px;
+  }
+
+  .mob-cat-circle {
+    width: 52px;
+    height: 52px;
+  }
+
+  .mob-cat-grid {
+    gap: 7px;
+  }
+
+  .mob-cat-card {
+    padding: 10px 4px 8px;
+  }
+}

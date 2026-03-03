@@ -6,15 +6,18 @@ import Image from 'next/image';
 import {
     LayoutDashboard, ShoppingBag, Package,
     MapPin, Users, BarChart2, LogOut, Bell, ChevronDown,
+    Settings,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-    { label: 'Overview',   href: '/admin',              icon: LayoutDashboard },
-    { label: 'Orders',     href: '/admin/orders',        icon: ShoppingBag },
-    { label: 'Products',   href: '/admin/products',      icon: Package },
-    { label: 'Analytics',  href: '/admin/analytics',     icon: BarChart2 },
-    { label: 'Locations',  href: '/admin/locations',     icon: MapPin },
-    { label: 'Customers',  href: '/admin/customers',     icon: Users },
+    { label: 'Overview', href: '/admin', icon: LayoutDashboard },
+    { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
+    { label: 'Products', href: '/admin/products', icon: Package },
+    { label: 'Analytics', href: '/admin/analytics', icon: BarChart2 },
+    { label: 'Locations', href: '/admin/locations', icon: MapPin },
+    { label: 'Customers', href: '/admin/customers', icon: Users },
+    { label: 'Users', href: '/admin/users', icon: Users },
+    { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

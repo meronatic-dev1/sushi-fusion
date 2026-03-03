@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/data';
 
 interface ProductCardProps {
@@ -10,6 +11,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, onAdd }: ProductCardProps) {
+    const router = useRouter();
     const [isAdded, setIsAdded] = useState(false);
     const [isWishlisted, setIsWishlisted] = useState(false);
 
@@ -21,7 +23,7 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
     };
 
     return (
-        <div className="pcard">
+        <div className="pcard" style={{ cursor: 'pointer' }} onClick={() => router.push(`/product/${encodeURIComponent(product.name)}`)}>
             <div className="pcard-header">
                 <div className="pcard-name">{product.name}</div>
                 <div className="pcard-desc">{product.desc}</div>

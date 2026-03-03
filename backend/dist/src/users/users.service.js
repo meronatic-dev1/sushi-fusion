@@ -51,6 +51,22 @@ let UsersService = class UsersService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async findAll() {
+        return this.prisma.user.findMany({
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                phone: true,
+                role: true,
+                branchId: true,
+                branch: {
+                    select: { name: true }
+                },
+                createdAt: true,
+            }
+        });
+    }
     async findByEmail(email) {
         return this.prisma.user.findUnique({
             where: { email },
@@ -72,6 +88,20 @@ let UsersService = class UsersService {
                 ...data,
                 password: hashedPassword,
             },
+        });
+    }
+    async update(id, data) {
+        if (data.password) {
+            data.password = await bcrypt.hash(data.password, 10);
+        }
+        return this.prisma.user.update({
+            where: { id },
+            data,
+        });
+    }
+    async remove(id) {
+        return this.prisma.user.delete({
+            where: { id },
         });
     }
 };
