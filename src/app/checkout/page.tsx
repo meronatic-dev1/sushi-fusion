@@ -17,7 +17,7 @@ const STEPS = [
 ];
 
 /* ─── Reusable field wrapper ─── */
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -66,6 +66,15 @@ export default function CheckoutPage() {
     const [promoApplied, setPromoApplied] = useState(false);
     const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 
+    // Form states
+    const [guestName, setGuestName] = useState('');
+    const [guestPhone, setGuestPhone] = useState('');
+    const [guestEmail, setGuestEmail] = useState('');
+    const [street, setStreet] = useState('');
+    const [city, setCity] = useState('');
+    const [postcode, setPostcode] = useState('');
+    const [instructions, setInstructions] = useState('');
+
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
     const DELIVERY = 15;
@@ -79,9 +88,23 @@ export default function CheckoutPage() {
     const handlePay = async () => {
         if (cartItems.length === 0) return alert('Your cart is empty');
         setIsProcessing(true);
+
+        const addressParts = [street, city, postcode].filter(Boolean);
+        const customerAddress = addressParts.length > 0
+            ? `${addressParts.join(', ')}${instructions ? ` (Notes: ${instructions})` : ''}`
+            : undefined;
+
         try {
             const res = await apiCreateOrder({
                 userId: null,
+                customerName: guestName,
+                customerPhone: guestPhone,
+                customerEmail: guestEmail,
+                customerStreet: street,
+                customerCity: city,
+                customerPostcode: postcode,
+                deliveryInstructions: instructions,
+                customerAddress,
                 mode: 'DELIVERY',
                 totalAmount: TOTAL,
                 customerLat: 25.2048,
@@ -227,14 +250,27 @@ export default function CheckoutPage() {
                                         </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                                             <Field label="Full Name">
-                                                <FInput placeholder="Ahmed Al Rashidi" />
+                                                <FInput
+                                                    placeholder="Ahmed Al Rashidi"
+                                                    value={guestName}
+                                                    onChange={e => setGuestName(e.target.value)}
+                                                />
                                             </Field>
                                             <Field label="Phone Number">
-                                                <FInput placeholder="+971 50 000 0000" />
+                                                <FInput
+                                                    placeholder="+971 50 000 0000"
+                                                    value={guestPhone}
+                                                    onChange={e => setGuestPhone(e.target.value)}
+                                                />
                                             </Field>
                                         </div>
                                         <Field label="Email Address">
-                                            <FInput type="email" placeholder="you@example.com" />
+                                            <FInput
+                                                type="email"
+                                                placeholder="you@example.com"
+                                                value={guestEmail}
+                                                onChange={e => setGuestEmail(e.target.value)}
+                                            />
                                         </Field>
                                     </div>
                                 ) : (
@@ -265,18 +301,34 @@ export default function CheckoutPage() {
                             >
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                     <Field label="Street Address">
-                                        <FInput placeholder="12 Al Wasl Rd, Apt 4B" />
+                                        <FInput
+                                            placeholder="12 Al Wasl Rd, Apt 4B"
+                                            value={street}
+                                            onChange={e => setStreet(e.target.value)}
+                                        />
                                     </Field>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                                         <Field label="City">
-                                            <FInput placeholder="Dubai" />
+                                            <FInput
+                                                placeholder="Dubai"
+                                                value={city}
+                                                onChange={e => setCity(e.target.value)}
+                                            />
                                         </Field>
                                         <Field label="Postcode">
-                                            <FInput placeholder="00000" />
+                                            <FInput
+                                                placeholder="00000"
+                                                value={postcode}
+                                                onChange={e => setPostcode(e.target.value)}
+                                            />
                                         </Field>
                                     </div>
                                     <Field label="Delivery Instructions" hint="Optional">
-                                        <FInput placeholder="Leave at door, call on arrival…" />
+                                        <FInput
+                                            placeholder="Leave at door, call on arrival…"
+                                            value={instructions}
+                                            onChange={e => setInstructions(e.target.value)}
+                                        />
                                     </Field>
 
                                     {/* ETA pill */}

@@ -147,3 +147,54 @@ export const getSettings = () =>
 
 export const updateSettings = (data: { logoUrl?: string; bannerUrl?: string }) =>
     apiFetch<ApiSettings>('/settings', { method: 'PATCH', body: JSON.stringify(data) });
+
+// ── Analytics ──────────────────────────────────────────────────────────────────
+export interface DashboardData {
+    kpis: { revenue: number; orders: number; customers: number; avgOrder: number };
+    modeSplit: { label: string; count: number; pct: number }[];
+    recentOrders: { id: string; name: string; branch: string; mode: string; total: string; status: string; dot: string }[];
+    topProducts: { name: string; orders: number; pct: number; revenue: string }[];
+    leastProducts: { name: string; orders: number }[];
+    categoryPerformance: { name: string; revenue: number; orders: number }[];
+    customerStats: { newCustomers: number; returningCustomers: number; peakHour: string; topLTV: number; newPct: number; retPct: number };
+    customerList: { name: string; email: string; joined: string; orders: number; spend: string; status: 'Active' | 'Disabled' }[];
+    totalItemsSold: number;
+    peakHoursHeatmap: Record<string, number[]>;
+}
+
+export const getAnalyticsDashboard = () =>
+    apiFetch<DashboardData>('/analytics/dashboard');
+
+// ── Locations ──────────────────────────────────────────────────────────────────
+export interface ApiLocation {
+    id: string;
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    isActive: boolean;
+    isClosed: boolean;
+    openTime: string | null;
+    closeTime: string | null;
+    phone: string;
+    ordersToday: number;
+    revenueToday: number;
+    managersCount: number;
+    createdAt: string;
+}
+
+export const getLocations = () =>
+    apiFetch<ApiLocation[]>('/locations');
+
+export const createLocation = (data: { name: string; address: string; latitude?: number; longitude?: number; openTime?: string; closeTime?: string }) =>
+    apiFetch<any>('/locations', { method: 'POST', body: JSON.stringify(data) });
+
+export const updateLocation = (id: string, data: any) =>
+    apiFetch<any>(`/locations/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
+export const toggleLocation = (id: string) =>
+    apiFetch<any>(`/locations/${id}/toggle`, { method: 'PATCH' });
+
+export const deleteLocation = (id: string) =>
+    apiFetch<void>(`/locations/${id}`, { method: 'DELETE' });
+

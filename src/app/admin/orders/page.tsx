@@ -5,15 +5,15 @@ import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, 
 import { getOrders, updateOrderStatus } from '@/lib/api';
 
 type OrderStatus = 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
-interface Order { id: string; displayId: string; customer: string; email: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; time: string; tableNo?: number; address?: string; }
+interface Order { id: string; displayId: string; customer: string; email: string; userPhone?: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; time: string; tableNo?: number; address?: string; customerStreet?: string; customerCity?: string; customerPostcode?: string; deliveryInstructions?: string; }
 
 const MOCK: Order[] = [
-    { id: '#10482', customer: 'Ahmed Al Rashidi', email: 'ahmed@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Dear Box 16 Pcs', 'San Pellegrino x2'], total: 'AED 113', status: 'Pending', time: '2 min ago', address: '12 Al Wasl Rd, Dubai' },
-    { id: '#10481', customer: 'Sara Nasser', email: 'sara@email.com', branch: 'Marina', mode: 'Pickup', items: ['Fusion VIP Moriwase 32 Pcs'], total: 'AED 199', status: 'Confirmed', time: '8 min ago' },
-    { id: '#10480', customer: 'James Park', email: 'james@email.com', branch: 'Motor City', mode: 'Dine-In', items: ['Fire & Sea Box B 24 Pcs', 'Salmon Sashimi 5 Pcs', 'Red Bull x3'], total: 'AED 220', status: 'Preparing', time: '15 min ago', tableNo: 4 },
-    { id: '#10479', customer: 'Lena Hoffman', email: 'lena@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Salmon Avocado Roll 8 Pcs', 'Water x2'], total: 'AED 63', status: 'Ready', time: '22 min ago', address: 'JBR The Walk' },
-    { id: '#10478', customer: 'Mohammed Sultan', email: 'mo@email.com', branch: 'Marina', mode: 'Delivery', items: ['Happy Box 16 Pcs'], total: 'AED 99', status: 'Completed', time: '35 min ago', address: 'Palm Jumeirah' },
-    { id: '#10477', customer: 'Aisha Khalid', email: 'aisha@email.com', branch: 'Downtown', mode: 'Pickup', items: ['Rainbow Dream Roll 8 Pcs', 'Pepsi x2'], total: 'AED 73', status: 'Cancelled', time: '42 min ago' },
+    { id: '#10482', displayId: '#10482', customer: 'Ahmed Al Rashidi', email: 'ahmed@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Dear Box 16 Pcs', 'San Pellegrino x2'], total: 'AED 113', status: 'Pending', time: '2 min ago', address: '12 Al Wasl Rd, Dubai' },
+    { id: '#10481', displayId: '#10481', customer: 'Sara Nasser', email: 'sara@email.com', branch: 'Marina', mode: 'Pickup', items: ['Fusion VIP Moriwase 32 Pcs'], total: 'AED 199', status: 'Confirmed', time: '8 min ago' },
+    { id: '#10480', displayId: '#10480', customer: 'James Park', email: 'james@email.com', branch: 'Motor City', mode: 'Dine-In', items: ['Fire & Sea Box B 24 Pcs', 'Salmon Sashimi 5 Pcs', 'Red Bull x3'], total: 'AED 220', status: 'Preparing', time: '15 min ago', tableNo: 4 },
+    { id: '#10479', displayId: '#10479', customer: 'Lena Hoffman', email: 'lena@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Salmon Avocado Roll 8 Pcs', 'Water x2'], total: 'AED 63', status: 'Ready', time: '22 min ago', address: 'JBR The Walk' },
+    { id: '#10478', displayId: '#10478', customer: 'Mohammed Sultan', email: 'mo@email.com', branch: 'Marina', mode: 'Delivery', items: ['Happy Box 16 Pcs'], total: 'AED 99', status: 'Completed', time: '35 min ago', address: 'Palm Jumeirah' },
+    { id: '#10477', displayId: '#10477', customer: 'Aisha Khalid', email: 'aisha@email.com', branch: 'Downtown', mode: 'Pickup', items: ['Rainbow Dream Roll 8 Pcs', 'Pepsi x2'], total: 'AED 73', status: 'Cancelled', time: '42 min ago' },
 ];
 
 const PIPELINE: OrderStatus[] = ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
@@ -260,8 +260,9 @@ export default function AdminOrdersPage() {
                 return {
                     id: o.id,
                     displayId: '#' + o.id.split('-')[0].toUpperCase(),
-                    customer: o.user?.name || 'Guest User',
-                    email: o.user?.email || '—',
+                    customer: o.customerName || o.user?.name || 'Guest User',
+                    email: o.customerEmail || o.user?.email || '—',
+                    userPhone: o.customerPhone || o.user?.phone || undefined,
                     branch: o.branch?.name || 'Dubai Branch',
                     mode,
                     items,
@@ -269,6 +270,10 @@ export default function AdminOrdersPage() {
                     status,
                     time: timeStr,
                     address: o.customerAddress || undefined,
+                    customerStreet: o.customerStreet || undefined,
+                    customerCity: o.customerCity || undefined,
+                    customerPostcode: o.customerPostcode || undefined,
+                    deliveryInstructions: o.deliveryInstructions || undefined,
                 };
             });
             setOrders(mapped);
@@ -561,19 +566,91 @@ export default function AdminOrdersPage() {
                                     padding: '0 20px 20px',
                                     borderTop: '1px solid rgba(255,255,255,0.05)',
                                 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: order.address ? '1fr 1fr' : '1fr', gap: 20, paddingTop: 18 }}>
-
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr) minmax(250px, 1.5fr)', gap: 24, paddingTop: 20 }}>
+                                        {/* Customer Info */}
                                         <div>
-                                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>
+                                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>
+                                                Customer Details
+                                            </p>
+                                            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                <div>
+                                                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '0 0 2px', fontWeight: 600 }}>Full Name</p>
+                                                    <p style={{ fontSize: 13, color: '#fff', margin: 0, fontWeight: 600 }}>{order.customer}</p>
+                                                </div>
+                                                <div>
+                                                    <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '0 0 2px', fontWeight: 600 }}>Email</p>
+                                                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', margin: 0 }}>{order.email}</p>
+                                                </div>
+                                                {order.userPhone && (
+                                                    <div>
+                                                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '0 0 2px', fontWeight: 600 }}>Phone Number</p>
+                                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', margin: 0 }}>{order.userPhone}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Delivery / Fulfillment Details */}
+                                        <div>
+                                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>
+                                                {order.mode === 'Delivery' ? 'Delivery Details' : 'Fulfillment Details'}
+                                            </p>
+                                            <div style={{ background: 'rgba(255,106,12,0.03)', border: '1px solid rgba(255,106,12,0.1)', borderRadius: 12, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                                <div>
+                                                    <p style={{ fontSize: 10, color: 'rgba(255,106,12,0.5)', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Mode</p>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#fff', fontWeight: 600 }}>
+                                                        {MODE_ICON[order.mode]} {order.mode}
+                                                    </div>
+                                                </div>
+                                                {order.customerStreet && (
+                                                    <div>
+                                                        <p style={{ fontSize: 10, color: 'rgba(255,106,12,0.5)', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Street Address</p>
+                                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                                            <MapPin size={12} style={{ color: '#FF6A0C', marginTop: 2, flexShrink: 0 }} />
+                                                            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0, lineHeight: 1.5 }}>
+                                                                {order.customerStreet}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {order.customerCity && (
+                                                    <div>
+                                                        <p style={{ fontSize: 10, color: 'rgba(255,106,12,0.5)', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</p>
+                                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{order.customerCity}</p>
+                                                    </div>
+                                                )}
+                                                {order.customerPostcode && (
+                                                    <div>
+                                                        <p style={{ fontSize: 10, color: 'rgba(255,106,12,0.5)', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Postcode</p>
+                                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0 }}>{order.customerPostcode}</p>
+                                                    </div>
+                                                )}
+                                                {order.deliveryInstructions && (
+                                                    <div>
+                                                        <p style={{ fontSize: 10, color: 'rgba(255,106,12,0.5)', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Delivery Instructions</p>
+                                                        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', margin: 0, fontStyle: 'italic' }}>{order.deliveryInstructions}</p>
+                                                    </div>
+                                                )}
+                                                {order.tableNo && (
+                                                    <div>
+                                                        <p style={{ fontSize: 10, color: 'rgba(255,106,12,0.5)', margin: '0 0 2px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Table No</p>
+                                                        <p style={{ fontSize: 14, color: '#fff', margin: 0, fontWeight: 800 }}>{order.tableNo}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Order Items */}
+                                        <div>
+                                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', margin: '0 0 12px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>
                                                 Order Items
                                             </p>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(255,255,255,0.02)', padding: '14px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
                                                 {order.items.map((item, idx) => (
                                                     <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                                         <span style={{
                                                             width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-                                                            background: '#FF6A0C',
-                                                            boxShadow: '0 0 4px rgba(255,106,12,0.6)',
+                                                            background: 'rgba(255,255,255,0.2)',
                                                         }} />
                                                         <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>{item}</span>
                                                     </div>
@@ -581,26 +658,6 @@ export default function AdminOrdersPage() {
                                             </div>
                                         </div>
 
-                                        {order.address && (
-                                            <div>
-                                                <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 800 }}>
-                                                    Delivery Address
-                                                </p>
-                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                                                    <div style={{
-                                                        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
-                                                        background: 'rgba(255,106,12,0.1)',
-                                                        border: '1px solid rgba(255,106,12,0.2)',
-                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                    }}>
-                                                        <MapPin size={13} style={{ color: '#FF6A0C' }} />
-                                                    </div>
-                                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.65)', margin: 0, lineHeight: 1.5 }}>
-                                                        {order.address}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
 
                                     <div style={{ display: 'flex', gap: 8, marginTop: 18, alignItems: 'center' }}>

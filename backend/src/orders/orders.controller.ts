@@ -68,6 +68,27 @@ export class OrdersController {
         const tax = calculatedTotal * 0.05;
         const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax;
 
+        // Ensure we link a User (find existing or create guest)
+        let resolvedUserId = body.userId;
+
+        if (!resolvedUserId && body.customerEmail && body.customerName) {
+            let existingUser = await this.prisma.user.findUnique({
+                where: { email: body.customerEmail }
+            });
+
+            if (!existingUser) {
+                existingUser = await this.prisma.user.create({
+                    data: {
+                        email: body.customerEmail,
+                        name: body.customerName,
+                        phone: body.customerPhone || null,
+                        password: 'guest-placeholder-password', // Required by schema
+                    }
+                });
+            }
+            resolvedUserId = existingUser.id;
+        }
+
         // Resolve or create a valid location to satisfy foreign key constraints
         let fallbackBranch = await this.prisma.location.findFirst();
         if (!fallbackBranch) {
@@ -85,14 +106,24 @@ export class OrdersController {
 
         const order = await this.prisma.order.create({
             data: {
-                userId: body.userId || null,
+                userId: resolvedUserId || null,
                 mode: body.mode || 'DELIVERY',
                 totalAmount: finalTotal,
-                branchId: fallbackBranch.id, // Fixed invalid foreign key
+                // Customer details from checkout form
+                customerName: body.customerName || null,
+                customerEmail: body.customerEmail || null,
+                customerPhone: body.customerPhone || null,
+                customerStreet: body.customerStreet || null,
+                customerCity: body.customerCity || null,
+                customerPostcode: body.customerPostcode || null,
+                deliveryInstructions: body.deliveryInstructions || null,
+                // Routing fields
+                branchId: fallbackBranch.id,
                 branchIdOriginal: fallbackBranch.id,
                 radiusUsedKm: 0,
                 customerLat: body.customerLat || 0,
                 customerLng: body.customerLng || 0,
+                customerAddress: body.customerAddress || null,
                 orderItems: {
                     create: orderItemsData
                 }

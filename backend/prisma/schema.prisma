@@ -98,6 +98,15 @@ model Order {
   mode        OrderMode   @default(DELIVERY)
   totalAmount Float
 
+  // --- Customer details from checkout form ---
+  customerName         String?
+  customerEmail        String?
+  customerPhone        String?
+  customerStreet       String?
+  customerCity         String?
+  customerPostcode     String?
+  deliveryInstructions String?
+
   // --- No-Fault Routing Specific Fields ---
   branchId String
   branch   Location @relation("BranchOrders", fields: [branchId], references: [id])

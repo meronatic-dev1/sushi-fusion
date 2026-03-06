@@ -2,6 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X, User as UserIcon, Shield, MapPin } from 'lucide-react';
+import { getLocations, ApiLocation } from '@/lib/api';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+// Resolve base URL for local testing
+let resolvedApi = API;
+if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (resolvedApi.includes('localhost') && hostname !== 'localhost') {
+        resolvedApi = resolvedApi.replace('localhost', hostname);
+    }
+}
+
+async function apiFetchUser(path: string, options?: RequestInit) {
+    const res = await fetch(`${resolvedApi}${path}`, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...options?.headers },
+    });
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || `Error ${res.status}`);
+    }
+    const txt = await res.text();
+    return txt ? JSON.parse(txt) : {};
+}
 
 interface User {
     id: string;
@@ -13,12 +37,6 @@ interface User {
     branch?: { name: string } | null;
     createdAt: string;
 }
-
-const LOCATIONS = [
-    { id: '1', name: 'Sushi Fusion — Downtown' },
-    { id: '2', name: 'Sushi Fusion — Marina' },
-    { id: '3', name: 'Sushi Fusion — Motor City' },
-];
 
 const inputStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.03)',
@@ -32,18 +50,19 @@ const inputStyle: React.CSSProperties = {
 };
 
 function UserModal({
-    onClose, onSave, initial,
+    onClose, onSave, initial, locations,
 }: {
     onClose: () => void;
     onSave: (user: any) => Promise<void>;
     initial?: User;
+    locations: ApiLocation[];
 }) {
     const [name, setName] = useState(initial?.name ?? '');
     const [email, setEmail] = useState(initial?.email ?? '');
     const [password, setPassword] = useState('');
     const [phone, setPhone] = useState(initial?.phone ?? '');
     const [role, setRole] = useState(initial?.role ?? 'BRANCH_MANAGER');
-    const [branchId, setBranchId] = useState(initial?.branchId ?? LOCATIONS[0].id);
+    const [branchId, setBranchId] = useState(initial?.branchId ?? (locations[0]?.id || ''));
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
@@ -58,7 +77,7 @@ function UserModal({
         const payload: any = { name, email, role, phone };
         if (password) payload.password = password;
         if (role === 'BRANCH_MANAGER') {
-            payload.branchId = branchId;
+            payload.branchId = branchId || null;
         } else {
             payload.branchId = null;
         }
@@ -132,7 +151,8 @@ function UserModal({
                                 <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Assign Branch</label>
                                 <select value={branchId} onChange={e => setBranchId(e.target.value)}
                                     style={{ ...inputStyle, cursor: 'pointer', color: 'rgba(255,255,255,0.9)' }}>
-                                    {LOCATIONS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {locations.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {locations.length === 0 && <option value="">No branches available</option>}
                                 </select>
                             </div>
                         )}
@@ -154,59 +174,45 @@ function UserModal({
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
+    const [locations, setLocations] = useState<ApiLocation[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editUser, setEditUser] = useState<User | null>(null);
 
-    const loadUsers = () => {
+    const loadData = async () => {
         setLoading(true);
-        fetch('http://localhost:3001/api/users')
-            .then(res => res.json())
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setUsers(data);
-                } else {
-                    console.error('Expected array of users, got:', data);
-                    setUsers([]);
-                }
-            })
-            .catch(err => {
-                console.error('Failed to load users', err);
-                setUsers([]);
-            })
-            .finally(() => setLoading(false));
+        try {
+            const [usersData, locsData] = await Promise.all([
+                apiFetchUser('/users'),
+                getLocations(),
+            ]);
+            setUsers(Array.isArray(usersData) ? usersData : []);
+            setLocations(locsData);
+        } catch (err) {
+            console.error('Failed to load data', err);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    useEffect(() => {
-        loadUsers();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
     const handleSaveUser = async (data: any) => {
-        const url = editUser ? `http://localhost:3001/api/users/${editUser.id}` : 'http://localhost:3001/api/users';
-        const method = editUser ? 'PATCH' : 'POST';
-
-        const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-        });
-
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.message || 'Error saving user');
+        if (editUser) {
+            await apiFetchUser(`/users/${editUser.id}`, { method: 'PATCH', body: JSON.stringify(data) });
+        } else {
+            await apiFetchUser('/users', { method: 'POST', body: JSON.stringify(data) });
         }
-
         setShowModal(false);
         setEditUser(null);
-        loadUsers();
+        loadData();
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this user?')) return;
         try {
-            const res = await fetch(`http://localhost:3001/api/users/${id}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Error deleting user');
-            loadUsers();
+            await apiFetchUser(`/users/${id}`, { method: 'DELETE' });
+            loadData();
         } catch (err: any) {
             alert(err.message);
         }
@@ -308,6 +314,7 @@ export default function AdminUsersPage() {
             {(showModal || editUser) && (
                 <UserModal
                     initial={editUser || undefined}
+                    locations={locations}
                     onClose={() => { setShowModal(false); setEditUser(null); }}
                     onSave={handleSaveUser}
                 />

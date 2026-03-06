@@ -25,6 +25,8 @@ const cloudinary_module_1 = require("./cloudinary/cloudinary.module");
 const settings_module_1 = require("./settings/settings.module");
 const categories_module_1 = require("./categories/categories.module");
 const menu_items_module_1 = require("./menu-items/menu-items.module");
+const analytics_module_1 = require("./analytics/analytics.module");
+const locations_module_1 = require("./locations/locations.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -58,6 +60,8 @@ exports.AppModule = AppModule = __decorate([
             settings_module_1.SettingsModule,
             categories_module_1.CategoriesModule,
             menu_items_module_1.MenuItemsModule,
+            analytics_module_1.AnalyticsModule,
+            locations_module_1.LocationsModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

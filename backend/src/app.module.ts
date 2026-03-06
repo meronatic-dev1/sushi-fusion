@@ -17,6 +17,8 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { SettingsModule } from './settings/settings.module';
 import { CategoriesModule } from './categories/categories.module';
 import { MenuItemsModule } from './menu-items/menu-items.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -47,6 +49,8 @@ import { MenuItemsModule } from './menu-items/menu-items.module';
     SettingsModule,
     CategoriesModule,
     MenuItemsModule,
+    AnalyticsModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

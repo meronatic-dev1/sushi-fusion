@@ -67,6 +67,23 @@ let OrdersController = class OrdersController {
         const DELIVERY_FEE = 15;
         const tax = calculatedTotal * 0.05;
         const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax;
+        let resolvedUserId = body.userId;
+        if (!resolvedUserId && body.customerEmail && body.customerName) {
+            let existingUser = await this.prisma.user.findUnique({
+                where: { email: body.customerEmail }
+            });
+            if (!existingUser) {
+                existingUser = await this.prisma.user.create({
+                    data: {
+                        email: body.customerEmail,
+                        name: body.customerName,
+                        phone: body.customerPhone || null,
+                        password: 'guest-placeholder-password',
+                    }
+                });
+            }
+            resolvedUserId = existingUser.id;
+        }
         let fallbackBranch = await this.prisma.location.findFirst();
         if (!fallbackBranch) {
             fallbackBranch = await this.prisma.location.create({
@@ -82,14 +99,22 @@ let OrdersController = class OrdersController {
         }
         const order = await this.prisma.order.create({
             data: {
-                userId: body.userId || null,
+                userId: resolvedUserId || null,
                 mode: body.mode || 'DELIVERY',
                 totalAmount: finalTotal,
+                customerName: body.customerName || null,
+                customerEmail: body.customerEmail || null,
+                customerPhone: body.customerPhone || null,
+                customerStreet: body.customerStreet || null,
+                customerCity: body.customerCity || null,
+                customerPostcode: body.customerPostcode || null,
+                deliveryInstructions: body.deliveryInstructions || null,
                 branchId: fallbackBranch.id,
                 branchIdOriginal: fallbackBranch.id,
                 radiusUsedKm: 0,
                 customerLat: body.customerLat || 0,
                 customerLng: body.customerLng || 0,
+                customerAddress: body.customerAddress || null,
                 orderItems: {
                     create: orderItemsData
                 }

@@ -1,58 +1,16 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { TrendingUp, BarChart2, Users, ShoppingBag, Star, Clock } from 'lucide-react';
+import { getAnalyticsDashboard, DashboardData } from '@/lib/api';
 
-const TOP_10 = [
-    { name: 'Fusion VIP Moriwase 32 Pcs',      orders: 284, pct: 22, revenue: 'AED 56,516' },
-    { name: 'Dear Box 16 Pcs',                  orders: 231, pct: 18, revenue: 'AED 20,559' },
-    { name: 'Salmon Sashimi 5 Pcs',             orders: 198, pct: 15, revenue: 'AED 9,702'  },
-    { name: 'Happy Box 16 Pcs',                 orders: 176, pct: 14, revenue: 'AED 17,424' },
-    { name: 'Party Platter 64 Pcs',             orders: 143, pct: 11, revenue: 'AED 37,037' },
-    { name: 'Dynamite Shrimp',                  orders: 101, pct: 8,  revenue: 'AED 5,959'  },
-    { name: 'Fusion Rainbow Salmon Poke Bowl',  orders: 93,  pct: 7,  revenue: 'AED 8,277'  },
-    { name: 'Chicken Katsu Curry Rice',         orders: 78,  pct: 6,  revenue: 'AED 3,822'  },
-    { name: 'Mango Veggie Roll 8 Pcs',          orders: 87,  pct: 7,  revenue: 'AED 3,393'  },
-    { name: 'Fire & Sea Box A 16 Pcs',          orders: 65,  pct: 5,  revenue: 'AED 6,435'  },
-];
-
-const LEAST_5 = [
-    { name: 'Seafood Ramen',              orders: 12 },
-    { name: 'Veg Miso Soup',              orders: 15 },
-    { name: 'Avo Tempura Nigiri 4 Pcs',  orders: 18 },
-    { name: 'Mountain Dew',              orders: 20 },
-    { name: 'Veg Yaki Sanuki Udon',      orders: 23 },
-];
-
-const CUSTOMER_STATS = [
-    { label: 'New Customers',    value: '342',       icon: Users,      color: '#34d399', glow: 'rgba(52,211,153,0.15)'   },
-    { label: 'Returning',        value: '712',        icon: TrendingUp, color: '#818cf8', glow: 'rgba(129,140,248,0.15)'  },
-    { label: 'Peak Hour',        value: '7–9 PM',     icon: Clock,      color: '#fbbf24', glow: 'rgba(251,191,36,0.15)'   },
-    { label: 'Top Customer LTV', value: 'AED 3,204',  icon: Star,       color: '#FF6A0C', glow: 'rgba(255,106,12,0.15)'   },
-];
-
-const PEAK_DAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const PEAK_HOURS: Record<string, number[]> = {
-    Mon: [2,3,1,5,8,9,7,4,3,2,4,6,8,9,7],
-    Tue: [1,2,2,4,6,8,9,5,4,3,5,7,9,8,6],
-    Wed: [1,1,2,3,7,9,8,6,5,4,6,8,9,7,5],
-    Thu: [2,3,3,5,8,9,9,7,5,4,6,8,9,8,6],
-    Fri: [3,4,4,6,9,9,8,7,6,5,7,9,9,8,7],
-    Sat: [5,6,5,7,9,9,9,8,7,6,8,9,9,9,8],
-    Sun: [4,5,4,6,8,9,8,7,6,5,7,8,9,8,7],
-};
-const HOURS = ['10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm','12am'];
-
-const CATEGORY_PERF = [
-    { name: 'Special Offers',    revenue: 48320, orders: 634 },
-    { name: 'VIP Moriwase',      revenue: 38700, orders: 284 },
-    { name: 'Sashimi',           revenue: 19200, orders: 198 },
-    { name: 'Starters',          revenue: 12400, orders: 312 },
-    { name: 'Poke Bowl',         revenue: 11400, orders: 128 },
-    { name: 'Noodles',           revenue:  8900, orders: 143 },
-    { name: 'Curry & Fried Rice',revenue:  7800, orders: 159 },
-    { name: 'Beverages',         revenue:  2400, orders: 420 },
-];
-const MAX_REV = Math.max(...CATEGORY_PERF.map(c => c.revenue));
+const PEAK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const HOURS = Array.from({ length: 24 }, (_, i) => {
+    if (i === 0) return '12am';
+    if (i < 12) return `${i}am`;
+    if (i === 12) return '12pm';
+    return `${i - 12}pm`;
+});
 
 const RANK_CFG = [
     { bg: '#fbbf24', color: '#000' },
@@ -60,7 +18,6 @@ const RANK_CFG = [
     { bg: '#b45309', color: '#fff' },
 ];
 
-// ── shared card style ──
 const card: React.CSSProperties = {
     background: 'rgba(255,255,255,0.03)',
     border: '1px solid rgba(255,255,255,0.07)',
@@ -81,6 +38,41 @@ const iconBadge = (color: string): React.CSSProperties => ({
 });
 
 export default function AdminAnalyticsPage() {
+    const [data, setData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        getAnalyticsDashboard()
+            .then(setData)
+            .catch(e => console.error('Failed to load analytics', e))
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) {
+        return (
+            <div style={{ maxWidth: 1200, fontFamily: '"DM Sans", system-ui, sans-serif', textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>
+                Loading analytics…
+            </div>
+        );
+    }
+
+    if (!data) {
+        return (
+            <div style={{ maxWidth: 1200, fontFamily: '"DM Sans", system-ui, sans-serif', textAlign: 'center', padding: '80px 0', color: 'rgba(255,255,255,0.25)', fontSize: 14 }}>
+                Failed to load analytics data.
+            </div>
+        );
+    }
+
+    const maxCatRev = Math.max(...data.categoryPerformance.map(c => c.revenue), 1);
+
+    const customerStats = [
+        { label: 'New Customers', value: data.customerStats.newCustomers.toLocaleString(), icon: Users, color: '#34d399', glow: 'rgba(52,211,153,0.15)' },
+        { label: 'Returning', value: data.customerStats.returningCustomers.toLocaleString(), icon: TrendingUp, color: '#818cf8', glow: 'rgba(129,140,248,0.15)' },
+        { label: 'Peak Hour', value: data.customerStats.peakHour, icon: Clock, color: '#fbbf24', glow: 'rgba(251,191,36,0.15)' },
+        { label: 'Top Customer LTV', value: `AED ${data.customerStats.topLTV.toLocaleString()}`, icon: Star, color: '#FF6A0C', glow: 'rgba(255,106,12,0.15)' },
+    ];
+
     return (
         <div style={{ maxWidth: 1200, fontFamily: '"DM Sans", system-ui, sans-serif', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
@@ -88,30 +80,7 @@ export default function AdminAnalyticsPage() {
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', animation: 'fadeUp 0.4s ease both' }}>
                 <div>
                     <h2 style={{ fontSize: 26, fontWeight: 800, margin: '0 0 5px', letterSpacing: '-0.04em', color: '#fff' }}>Analytics</h2>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Business intelligence — last 30 days</p>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    {[
-                        { opts: ['Last 30 days','This week','This month','This year'] },
-                        { opts: ['All Locations','Downtown','Marina','Motor City'] },
-                    ].map((sel, i) => (
-                        <select key={i} style={{
-                            appearance: 'none',
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid rgba(255,255,255,0.07)',
-                            color: 'rgba(255,255,255,0.45)',
-                            borderRadius: 10, padding: '8px 14px',
-                            fontSize: 12, fontWeight: 500,
-                            outline: 'none', cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            transition: 'border-color 0.2s',
-                        }}
-                            onFocus={e  => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.4)')}
-                            onBlur={e   => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
-                        >
-                            {sel.opts.map(o => <option key={o}>{o}</option>)}
-                        </select>
-                    ))}
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', margin: 0 }}>Business intelligence — all time</p>
                 </div>
             </div>
 
@@ -123,11 +92,12 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                    {TOP_10.map((p, i) => {
+                    {data.topProducts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.15)', fontSize: 13 }}>No product data yet.</div>
+                    ) : data.topProducts.map((p, i) => {
                         const rank = RANK_CFG[i];
                         return (
                             <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                {/* Rank badge */}
                                 <div style={{
                                     width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                                     background: rank ? rank.bg : 'rgba(255,255,255,0.07)',
@@ -137,8 +107,6 @@ export default function AdminAnalyticsPage() {
                                 }}>
                                     {i + 1}
                                 </div>
-
-                                {/* Bar + name */}
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                                         <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -154,13 +122,11 @@ export default function AdminAnalyticsPage() {
                                             background: i === 0
                                                 ? 'linear-gradient(90deg, #FF6A0C, #ffb380)'
                                                 : `rgba(255,106,12,${0.75 - i * 0.06})`,
-                                            width: `${p.pct * 4}%`,
+                                            width: `${p.pct}%`,
                                             boxShadow: i === 0 ? '0 0 8px rgba(255,106,12,0.6)' : 'none',
                                         }} />
                                     </div>
                                 </div>
-
-                                {/* Revenue */}
                                 <span style={{
                                     fontSize: 12, fontWeight: 800, color: '#FF6A0C',
                                     flexShrink: 0, minWidth: 90, textAlign: 'right',
@@ -185,11 +151,13 @@ export default function AdminAnalyticsPage() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        {LEAST_5.map((p, i) => (
+                        {data.leastProducts.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.15)', fontSize: 13 }}>No product data yet.</div>
+                        ) : data.leastProducts.map((p, i) => (
                             <div key={p.name} style={{
                                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                                 padding: '11px 0',
-                                borderBottom: i < LEAST_5.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                                borderBottom: i < data.leastProducts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <div style={{
@@ -224,7 +192,7 @@ export default function AdminAnalyticsPage() {
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-                        {CUSTOMER_STATS.map(s => (
+                        {customerStats.map(s => (
                             <div key={s.label} style={{
                                 background: s.glow,
                                 border: `1px solid ${s.color}28`,
@@ -252,18 +220,18 @@ export default function AdminAnalyticsPage() {
                     {/* New vs returning split bar */}
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 7 }}>
-                            <span style={{ fontSize: 11, color: '#34d399', fontWeight: 700 }}>New · 32%</span>
-                            <span style={{ fontSize: 11, color: '#818cf8', fontWeight: 700 }}>Returning · 68%</span>
+                            <span style={{ fontSize: 11, color: '#34d399', fontWeight: 700 }}>New · {data.customerStats.newPct}%</span>
+                            <span style={{ fontSize: 11, color: '#818cf8', fontWeight: 700 }}>Returning · {data.customerStats.retPct}%</span>
                         </div>
                         <div style={{ height: 5, borderRadius: 99, overflow: 'hidden', display: 'flex', background: 'rgba(255,255,255,0.05)' }}>
-                            <div style={{ width: '32%', background: '#34d399', boxShadow: '0 0 8px rgba(52,211,153,0.5)' }} />
-                            <div style={{ width: '68%', background: '#818cf8', boxShadow: '0 0 8px rgba(129,140,248,0.5)' }} />
+                            <div style={{ width: `${data.customerStats.newPct}%`, background: '#34d399', boxShadow: '0 0 8px rgba(52,211,153,0.5)' }} />
+                            <div style={{ width: `${data.customerStats.retPct}%`, background: '#818cf8', boxShadow: '0 0 8px rgba(129,140,248,0.5)' }} />
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* ── Peak hours heatmap ── */}
+            {/* ── Peak hours heatmap (static) ── */}
             <div style={{ ...card, animation: 'fadeUp 0.4s ease both', animationDelay: '0.18s' }}>
                 <div style={cardHeader}>
                     <div style={iconBadge('#FF6A0C')}><Clock size={13} style={{ color: '#FF6A0C' }} /></div>
@@ -272,21 +240,19 @@ export default function AdminAnalyticsPage() {
 
                 <div style={{ overflowX: 'auto' }}>
                     <div style={{ minWidth: 600 }}>
-                        {/* Hour labels */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8, marginLeft: 52 }}>
                             {HOURS.map(h => (
                                 <div key={h} style={{ flex: 1, fontSize: 9, color: 'rgba(255,255,255,0.2)', textAlign: 'center', fontWeight: 600 }}>{h}</div>
                             ))}
                         </div>
 
-                        {/* Day rows */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {PEAK_DAYS.map(day => (
                                 <div key={day} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                     <span style={{ width: 46, fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'right', flexShrink: 0, fontWeight: 600 }}>
                                         {day}
                                     </span>
-                                    {PEAK_HOURS[day].map((val, hi) => (
+                                    {data.peakHoursHeatmap[day]?.map((val, hi) => (
                                         <div
                                             key={hi}
                                             title={`${day} ${HOURS[hi]}: intensity ${val}`}
@@ -306,7 +272,6 @@ export default function AdminAnalyticsPage() {
                             ))}
                         </div>
 
-                        {/* Legend */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 12, justifyContent: 'flex-end' }}>
                             <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontWeight: 600 }}>Low</span>
                             {[0.08, 0.26, 0.45, 0.63, 0.9].map(op => (
@@ -330,10 +295,13 @@ export default function AdminAnalyticsPage() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
-                    {CATEGORY_PERF.map((c, i) => {
-                        const pct = Math.round((c.revenue / MAX_REV) * 100);
+                    {data.categoryPerformance.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.15)', fontSize: 13 }}>No category data yet.</div>
+                    ) : data.categoryPerformance.map((c, i) => {
+                        const pct = Math.round((c.revenue / maxCatRev) * 100);
                         return (
-                            <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 16,
+                            <div key={c.name} style={{
+                                display: 'flex', alignItems: 'center', gap: 16,
                                 animation: `fadeUp 0.4s ease both`, animationDelay: `${0.28 + i * 0.04}s`,
                             }}>
                                 <span style={{ width: 140, fontSize: 12, color: 'rgba(255,255,255,0.55)', flexShrink: 0, fontWeight: 500 }}>
