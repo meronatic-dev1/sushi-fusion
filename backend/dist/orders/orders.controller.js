@@ -23,8 +23,9 @@ let OrdersController = class OrdersController {
         this.routingService = routingService;
         this.prisma = prisma;
     }
-    async getOrders() {
+    async getOrders(branchId) {
         return this.prisma.order.findMany({
+            where: branchId ? { branchId } : undefined,
             include: {
                 orderItems: {
                     include: {
@@ -64,9 +65,16 @@ let OrdersController = class OrdersController {
                 });
             }
         }
+        const settings = await this.prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
+        const serviceChargeEnabled = settings?.enableServiceCharge ?? false;
+        const serviceChargePercent = settings?.serviceCharge ?? 0;
+        let serviceChargeAmount = 0;
+        if (serviceChargeEnabled && body.mode === 'DINE_IN') {
+            serviceChargeAmount = calculatedTotal * (serviceChargePercent / 100);
+        }
         const DELIVERY_FEE = 15;
         const tax = calculatedTotal * 0.05;
-        const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax;
+        const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax + serviceChargeAmount;
         let resolvedUserId = body.userId;
         if (!resolvedUserId && body.customerEmail && body.customerName) {
             let existingUser = await this.prisma.user.findUnique({
@@ -84,9 +92,13 @@ let OrdersController = class OrdersController {
             }
             resolvedUserId = existingUser.id;
         }
-        let fallbackBranch = await this.prisma.location.findFirst();
-        if (!fallbackBranch) {
-            fallbackBranch = await this.prisma.location.create({
+        let selectedBranchId = body.branchId;
+        if (!selectedBranchId) {
+            const fallbackBranch = await this.prisma.location.findFirst({ where: { isActive: true } });
+            selectedBranchId = fallbackBranch?.id;
+        }
+        if (!selectedBranchId) {
+            const systemBranch = await this.prisma.location.create({
                 data: {
                     name: 'System Default Branch',
                     address: 'Default Address',
@@ -96,6 +108,7 @@ let OrdersController = class OrdersController {
                     isClosed: false,
                 }
             });
+            selectedBranchId = systemBranch.id;
         }
         const order = await this.prisma.order.create({
             data: {
@@ -109,8 +122,8 @@ let OrdersController = class OrdersController {
                 customerCity: body.customerCity || null,
                 customerPostcode: body.customerPostcode || null,
                 deliveryInstructions: body.deliveryInstructions || null,
-                branchId: fallbackBranch.id,
-                branchIdOriginal: fallbackBranch.id,
+                branchId: selectedBranchId,
+                branchIdOriginal: selectedBranchId,
                 radiusUsedKm: 0,
                 customerLat: body.customerLat || 0,
                 customerLng: body.customerLng || 0,
@@ -120,6 +133,12 @@ let OrdersController = class OrdersController {
                 }
             }
         });
+        for (const item of orderItemsData) {
+            await this.prisma.menuItem.update({
+                where: { id: item.menuItemId },
+                data: { salesCount: { increment: item.quantity } }
+            });
+        }
         if (order.mode === 'DELIVERY') {
             await this.routingService.queueOrderForRouting(order.id, order.customerLat, order.customerLng);
         }
@@ -133,8 +152,9 @@ let OrdersController = class OrdersController {
 exports.OrdersController = OrdersController;
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('branchId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], OrdersController.prototype, "getOrders", null);
 __decorate([

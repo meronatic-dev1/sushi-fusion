@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 import { MENU, CATEGORIES as STATIC_CATEGORIES, type Product } from '@/lib/data';
 import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
-import { getCategories, getMenuItems, type ApiCategory, type ApiMenuItem } from '@/lib/api';
+import { getCategories, getMenuItems, getBestSellers, type ApiCategory, type ApiMenuItem } from '@/lib/api';
 
 export default function Home() {
   const { cartCount, addToCart, setIsCartOpen } = useCart();
@@ -22,23 +22,29 @@ export default function Home() {
   // Live data from API
   const [apiCategories, setApiCategories] = useState<{ id: string; name: string; imgSrc?: string }[]>([]);
   const [apiProducts, setApiProducts] = useState<Product[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
   const [usingApi, setUsingApi] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   const t = (key: string) => translate(language, key);
 
-  // Load live data from backend, fall back to static data.ts if API is unreachable
+  // Load live data from backend
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [cats, items] = await Promise.all([getCategories(), getMenuItems()]);
+        const [cats, items, topItems] = await Promise.all([
+          getCategories(),
+          getMenuItems(),
+          getBestSellers()
+        ]);
         if (cancelled) return;
+
         if (cats.length > 0) {
-          setApiCategories(cats.map(c => ({ id: c.id, name: c.name, imgSrc: c.imageUrl || undefined })));
-          setApiProducts(items
+          const mappedProducts = items
             .filter(m => m.isAvailable)
             .map(m => ({
+              id: m.id,
               name: m.name,
               desc: m.description || '',
               price: m.price,
@@ -46,13 +52,34 @@ export default function Home() {
               imgSrc: m.imageUrl || undefined,
               _categoryId: m.categoryId,
               _categoryName: m.category?.name || '',
-            } as Product & { _categoryId: string; _categoryName: string }))
-          );
-          setActiveCategory(cats[0]?.id || '');
+            } as Product & { _categoryId: string; _categoryName: string }));
+
+          setApiProducts(mappedProducts);
+
+          const mappedBestSellers = topItems.map(m => ({
+            id: m.id,
+            name: m.name,
+            desc: m.description || '',
+            price: m.price,
+            emoji: '🔥',
+            imgSrc: m.imageUrl || undefined,
+            _categoryId: 'best-sellers',
+            _categoryName: 'Best Sellers',
+          } as Product));
+
+          setBestSellers(mappedBestSellers);
+
+          const virtualCats = [
+            ...(mappedBestSellers.length > 0 ? [{ id: 'best-sellers', name: 'Best Sellers', emoji: '🔥' }] : []),
+            ...cats.map(c => ({ id: c.id, name: c.name, imgSrc: c.imageUrl || undefined }))
+          ];
+
+          setApiCategories(virtualCats);
+          setActiveCategory(virtualCats[0]?.id || '');
           setUsingApi(true);
         }
-      } catch {
-        // API unavailable — fall back to static
+      } catch (err) {
+        console.error('API Error:', err);
         setActiveCategory('special');
       } finally {
         if (!cancelled) setLoaded(true);
@@ -71,6 +98,8 @@ export default function Home() {
         const haystack = `${p.name} ${p.desc}`.toLowerCase();
         return haystack.includes(normalizedQuery);
       });
+    } else if (activeCategory === 'best-sellers') {
+      products = bestSellers;
     } else {
       products = apiProducts.filter(p => (p as any)._categoryId === activeCategory);
     }
@@ -87,7 +116,12 @@ export default function Home() {
 
   // Build categories array for CategoryBar
   const displayCategories = usingApi
-    ? apiCategories.map(c => ({ id: c.id, name: c.name, emoji: '🍽️', imgSrc: c.imgSrc }))
+    ? apiCategories.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      emoji: c.emoji || '🍽️',
+      imgSrc: c.imgSrc
+    }))
     : STATIC_CATEGORIES;
 
   const handleBottomTabChange = (tab: string) => {

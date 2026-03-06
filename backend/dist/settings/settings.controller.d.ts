@@ -7,6 +7,8 @@ export declare class SettingsController {
         updatedAt: Date;
         logoUrl: string | null;
         bannerUrl: string | null;
+        serviceCharge: number;
+        enableServiceCharge: boolean;
     }>;
     updateSettings(data: {
         logoUrl?: string;
@@ -16,5 +18,7 @@ export declare class SettingsController {
         updatedAt: Date;
         logoUrl: string | null;
         bannerUrl: string | null;
+        serviceCharge: number;
+        enableServiceCharge: boolean;
     }>;
 }

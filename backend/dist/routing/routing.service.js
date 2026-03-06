@@ -36,6 +36,15 @@ let RoutingService = class RoutingService {
         });
         return { status: 'ROUTING', orderId };
     }
+    async queueAcceptanceCheck(orderId, delayMs = 480000) {
+        await this.routingQueue.add('check-acceptance', {
+            orderId,
+        }, {
+            delay: delayMs,
+            attempts: 1,
+            jobId: `acceptance-${orderId}-${Date.now()}`
+        });
+    }
 };
 exports.RoutingService = RoutingService;
 exports.RoutingService = RoutingService = __decorate([

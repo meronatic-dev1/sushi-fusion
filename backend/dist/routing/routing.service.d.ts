@@ -6,4 +6,5 @@ export declare class RoutingService {
         status: string;
         orderId: string;
     }>;
+    queueAcceptanceCheck(orderId: string, delayMs?: number): Promise<void>;
 }

@@ -4,23 +4,23 @@ export declare class OrdersController {
     private routingService;
     private prisma;
     constructor(routingService: RoutingService, prisma: PrismaService);
-    getOrders(): Promise<({
+    getOrders(branchId?: string): Promise<({
         user: {
             id: string;
-            email: string;
-            name: string;
-            password: string;
-            phone: string | null;
-            role: import("@prisma/client").$Enums.Role;
             branchId: string | null;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
+            email: string;
+            password: string;
+            phone: string | null;
+            role: import("@prisma/client").$Enums.Role;
         } | null;
         branch: {
             id: string;
-            name: string;
             createdAt: Date;
             updatedAt: Date;
+            name: string;
             address: string;
             latitude: number;
             longitude: number;
@@ -32,32 +32,30 @@ export declare class OrdersController {
         orderItems: ({
             menuItem: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string | null;
                 price: number;
                 imageUrl: string | null;
                 isAvailable: boolean;
+                salesCount: number;
                 categoryId: string;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            orderId: string;
+            menuItemId: string;
             quantity: number;
             unitPrice: number;
             totalPrice: number;
-            menuItemId: string;
-            orderId: string;
         })[];
     } & {
         id: string;
-        branchId: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.OrderStatus;
         userId: string | null;
+        status: import("@prisma/client").$Enums.OrderStatus;
         mode: import("@prisma/client").$Enums.OrderMode;
         totalAmount: number;
         customerName: string | null;
@@ -67,6 +65,7 @@ export declare class OrdersController {
         customerCity: string | null;
         customerPostcode: string | null;
         deliveryInstructions: string | null;
+        branchId: string;
         branchIdOriginal: string;
         routingAttempts: number;
         radiusUsedKm: number;
@@ -78,14 +77,13 @@ export declare class OrdersController {
         isReassigned: boolean;
         scheduledFor: Date | null;
         routingLog: import("@prisma/client/runtime/client").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
     })[]>;
     updateOrderStatus(id: string, status: string): Promise<{
         id: string;
-        branchId: string;
-        createdAt: Date;
-        updatedAt: Date;
-        status: import("@prisma/client").$Enums.OrderStatus;
         userId: string | null;
+        status: import("@prisma/client").$Enums.OrderStatus;
         mode: import("@prisma/client").$Enums.OrderMode;
         totalAmount: number;
         customerName: string | null;
@@ -95,6 +93,7 @@ export declare class OrdersController {
         customerCity: string | null;
         customerPostcode: string | null;
         deliveryInstructions: string | null;
+        branchId: string;
         branchIdOriginal: string;
         routingAttempts: number;
         radiusUsedKm: number;
@@ -106,6 +105,8 @@ export declare class OrdersController {
         isReassigned: boolean;
         scheduledFor: Date | null;
         routingLog: import("@prisma/client/runtime/client").JsonValue;
+        createdAt: Date;
+        updatedAt: Date;
     }>;
     createOrder(body: any): Promise<{
         message: string;

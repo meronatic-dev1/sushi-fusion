@@ -24,6 +24,7 @@ export declare class CategoriesService {
             price: number;
             imageUrl: string | null;
             isAvailable: boolean;
+            salesCount: number;
             categoryId: string;
         }[];
     } & {

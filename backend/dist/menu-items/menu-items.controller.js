@@ -23,6 +23,9 @@ let MenuItemsController = class MenuItemsController {
     findAll(categoryId) {
         return this.menuItemsService.findAll(categoryId);
     }
+    getBestSellers() {
+        return this.menuItemsService.getBestSellers();
+    }
     findOne(id) {
         return this.menuItemsService.findOne(id);
     }
@@ -44,6 +47,12 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], MenuItemsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('best-sellers'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], MenuItemsController.prototype, "getBestSellers", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

@@ -2,26 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, MapPin, Clock, Download, FileSpreadsheet, FileText, ChevronRight } from 'lucide-react';
-import { getOrders, updateOrderStatus } from '@/lib/api';
+import { getOrders, updateOrderStatus, getLocations, ApiLocation } from '@/lib/api';
 
-type OrderStatus = 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
-interface Order { id: string; displayId: string; customer: string; email: string; userPhone?: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; time: string; tableNo?: number; address?: string; customerStreet?: string; customerCity?: string; customerPostcode?: string; deliveryInstructions?: string; }
+type OrderStatus = 'Routing' | 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
+interface Order { id: string; displayId: string; customer: string; email: string; userPhone?: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; rawStatus: string; time: string; tableNo?: number; address?: string; customerStreet?: string; customerCity?: string; customerPostcode?: string; deliveryInstructions?: string; }
 
-const MOCK: Order[] = [
-    { id: '#10482', displayId: '#10482', customer: 'Ahmed Al Rashidi', email: 'ahmed@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Dear Box 16 Pcs', 'San Pellegrino x2'], total: 'AED 113', status: 'Pending', time: '2 min ago', address: '12 Al Wasl Rd, Dubai' },
-    { id: '#10481', displayId: '#10481', customer: 'Sara Nasser', email: 'sara@email.com', branch: 'Marina', mode: 'Pickup', items: ['Fusion VIP Moriwase 32 Pcs'], total: 'AED 199', status: 'Confirmed', time: '8 min ago' },
-    { id: '#10480', displayId: '#10480', customer: 'James Park', email: 'james@email.com', branch: 'Motor City', mode: 'Dine-In', items: ['Fire & Sea Box B 24 Pcs', 'Salmon Sashimi 5 Pcs', 'Red Bull x3'], total: 'AED 220', status: 'Preparing', time: '15 min ago', tableNo: 4 },
-    { id: '#10479', displayId: '#10479', customer: 'Lena Hoffman', email: 'lena@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Salmon Avocado Roll 8 Pcs', 'Water x2'], total: 'AED 63', status: 'Ready', time: '22 min ago', address: 'JBR The Walk' },
-    { id: '#10478', displayId: '#10478', customer: 'Mohammed Sultan', email: 'mo@email.com', branch: 'Marina', mode: 'Delivery', items: ['Happy Box 16 Pcs'], total: 'AED 99', status: 'Completed', time: '35 min ago', address: 'Palm Jumeirah' },
-    { id: '#10477', displayId: '#10477', customer: 'Aisha Khalid', email: 'aisha@email.com', branch: 'Downtown', mode: 'Pickup', items: ['Rainbow Dream Roll 8 Pcs', 'Pepsi x2'], total: 'AED 73', status: 'Cancelled', time: '42 min ago' },
-];
-
-const PIPELINE: OrderStatus[] = ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
-const NEXT: Partial<Record<OrderStatus, OrderStatus>> = { Pending: 'Confirmed', Confirmed: 'Preparing', Preparing: 'Ready', Ready: 'Completed' };
-const NEXT_LABEL: Partial<Record<OrderStatus, string>> = { Pending: 'Confirm', Confirmed: 'Start Prep', Preparing: 'Mark Ready', Ready: 'Complete' };
+const PIPELINE: OrderStatus[] = ['Routing', 'Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
+const NEXT: Partial<Record<OrderStatus, OrderStatus>> = { Routing: 'Pending', Pending: 'Confirmed', Confirmed: 'Preparing', Preparing: 'Ready', Ready: 'Completed' };
+const NEXT_LABEL: Partial<Record<OrderStatus, string>> = { Routing: 'Accept Manually', Pending: 'Confirm', Confirmed: 'Start Prep', Preparing: 'Mark Ready', Ready: 'Complete' };
 const MODE_ICON: Record<string, string> = { Delivery: '🛵', Pickup: '🏠', 'Dine-In': '🍽️' };
 
 const STATUS_CFG: Record<OrderStatus, { color: string; bg: string; border: string; icon: React.ReactNode; barColor: string }> = {
+    Routing: { color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.2)', icon: <ChevronRight size={11} />, barColor: '#a855f7' },
     Pending: { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', icon: <AlertCircle size={11} />, barColor: '#fbbf24' },
     Confirmed: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.2)', icon: <CheckCircle size={11} />, barColor: '#60a5fa' },
     Preparing: { color: '#FF6A0C', bg: 'rgba(255,106,12,0.08)', border: 'rgba(255,106,12,0.2)', icon: <ChefHat size={11} />, barColor: '#FF6A0C' },
@@ -232,23 +224,54 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
 
 export default function AdminOrdersPage() {
     const [orders, setOrders] = useState<Order[]>([]);
+    const [branches, setBranches] = useState<ApiLocation[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string>('All');
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'All'>('All');
     const [filterMode, setFilterMode] = useState<'All' | string>('All');
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [exportOpen, setExportOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadBranches();
+    }, []);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [selectedBranchId]);
+
+    const loadBranches = async () => {
+        try {
+            const data = await getLocations();
+            setBranches(data);
+        } catch (e) {
+            console.error('Failed to load branches', e);
+        }
+    };
 
     const loadData = async () => {
+        setLoading(true);
         try {
-            const data = await getOrders();
+            const data = await getOrders(selectedBranchId === 'All' ? undefined : selectedBranchId);
             const mapped: Order[] = data.map((o: any) => {
                 const modeMap: any = { DELIVERY: 'Delivery', PICKUP: 'Pickup', DINE_IN: 'Dine-In' };
                 const mode = modeMap[o.mode] || 'Delivery';
-                const statusMap: any = { ROUTING: 'Pending', PENDING: 'Pending', CONFIRMED: 'Confirmed', PREPARING: 'Preparing', READY_FOR_PICKUP: 'Ready', OUT_FOR_DELIVERY: 'Ready', DELIVERED: 'Completed', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
+                const statusMap: any = {
+                    ROUTING: 'Pending',
+                    PENDING: 'Pending',
+                    REASSIGNING: 'Pending',
+                    ESCALATED: 'Pending',
+                    LONG_DISTANCE: 'Pending',
+                    SCHEDULED: 'Pending',
+                    CONFIRMED: 'Confirmed',
+                    PREPARING: 'Preparing',
+                    READY_FOR_PICKUP: 'Ready',
+                    OUT_FOR_DELIVERY: 'Ready',
+                    DELIVERED: 'Completed',
+                    COMPLETED: 'Completed',
+                    CANCELLED: 'Cancelled'
+                };
                 const status = statusMap[o.status] || 'Pending';
 
                 const date = new Date(o.createdAt);
@@ -263,11 +286,12 @@ export default function AdminOrdersPage() {
                     customer: o.customerName || o.user?.name || 'Guest User',
                     email: o.customerEmail || o.user?.email || '—',
                     userPhone: o.customerPhone || o.user?.phone || undefined,
-                    branch: o.branch?.name || 'Dubai Branch',
+                    branch: o.branch?.name || 'Unassigned',
                     mode,
                     items,
                     total: `AED ${(o.totalAmount || 0).toFixed(2)}`,
                     status,
+                    rawStatus: o.status,
                     time: timeStr,
                     address: o.customerAddress || undefined,
                     customerStreet: o.customerStreet || undefined,
@@ -279,6 +303,8 @@ export default function AdminOrdersPage() {
             setOrders(mapped);
         } catch (e) {
             console.error('Failed to load orders', e);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -422,6 +448,26 @@ export default function AdminOrdersPage() {
                         onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
                     />
                 </div>
+
+                <select
+                    value={selectedBranchId}
+                    onChange={e => setSelectedBranchId(e.target.value)}
+                    style={{
+                        appearance: 'none', flexShrink: 0,
+                        background: 'rgba(255,106,12,0.05)',
+                        border: '1px solid rgba(255,106,12,0.2)',
+                        color: '#FF6A0C',
+                        borderRadius: 10, padding: '9px 16px',
+                        fontSize: 13, outline: 'none', cursor: 'pointer',
+                        fontWeight: 700,
+                        fontFamily: 'inherit',
+                    }}
+                >
+                    <option value="All">All Outlets</option>
+                    {branches.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                </select>
 
                 <select
                     value={filterMode}

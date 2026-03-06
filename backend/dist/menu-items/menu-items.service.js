@@ -24,6 +24,14 @@ let MenuItemsService = class MenuItemsService {
             include: { category: true },
         });
     }
+    getBestSellers() {
+        return this.prisma.menuItem.findMany({
+            where: { isAvailable: true, salesCount: { gt: 0 } },
+            orderBy: { salesCount: 'desc' },
+            take: 10,
+            include: { category: true },
+        });
+    }
     findOne(id) {
         return this.prisma.menuItem.findUnique({
             where: { id },

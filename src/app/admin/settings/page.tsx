@@ -18,6 +18,8 @@ const inputStyle: React.CSSProperties = {
 export default function AdminSettingsPage() {
     const [logoUrl, setLogoUrl] = useState('');
     const [bannerUrl, setBannerUrl] = useState('');
+    const [serviceCharge, setServiceCharge] = useState(0);
+    const [enableServiceCharge, setEnableServiceCharge] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -32,6 +34,8 @@ export default function AdminSettingsPage() {
             .then(data => {
                 if (data.logoUrl) setLogoUrl(data.logoUrl);
                 if (data.bannerUrl) setBannerUrl(data.bannerUrl);
+                setServiceCharge(data.serviceCharge || 0);
+                setEnableServiceCharge(data.enableServiceCharge || false);
             })
             .catch(err => console.error('Failed to load settings', err))
             .finally(() => setLoading(false));
@@ -44,7 +48,12 @@ export default function AdminSettingsPage() {
             const res = await fetch(`${API}/settings`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ logoUrl, bannerUrl }),
+                body: JSON.stringify({
+                    logoUrl,
+                    bannerUrl,
+                    serviceCharge: Number(serviceCharge),
+                    enableServiceCharge
+                }),
             });
             if (!res.ok) throw new Error('Failed to save settings');
             setMessage({ text: 'Settings updated successfully.', type: 'success' });
@@ -214,6 +223,63 @@ export default function AdminSettingsPage() {
                                 </button>
                             </div>
                         )}
+                    </div>
+                </div>
+
+                {/* Financial Settings Card */}
+                <div style={{
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 16,
+                    padding: '24px 28px',
+                    marginTop: 24,
+                    animation: 'fadeUp 0.4s ease both',
+                    animationDelay: '0.2s'
+                }}>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 20px', color: '#fff' }}>Financial Settings</h3>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                        <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+                                Service Charge
+                            </label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <button
+                                    onClick={() => setEnableServiceCharge(!enableServiceCharge)}
+                                    style={{
+                                        width: 44, height: 24, borderRadius: 12,
+                                        background: enableServiceCharge ? '#FF6A0C' : 'rgba(255,255,255,0.1)',
+                                        border: 'none', position: 'relative', cursor: 'pointer',
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                                        position: 'absolute', top: 3, left: enableServiceCharge ? 23 : 3,
+                                        transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }} />
+                                </button>
+                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                                    {enableServiceCharge ? 'Enabled (Dine-In only)' : 'Disabled'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style={{ opacity: enableServiceCharge ? 1 : 0.4, pointerEvents: enableServiceCharge ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+                                Charge Amount (%)
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="number"
+                                    value={serviceCharge}
+                                    onChange={(e) => setServiceCharge(Number(e.target.value))}
+                                    placeholder="0"
+                                    style={inputStyle}
+                                />
+                                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

@@ -24,6 +24,7 @@ export declare class CategoriesController {
             price: number;
             imageUrl: string | null;
             isAvailable: boolean;
+            salesCount: number;
             categoryId: string;
         }[];
     } & {

@@ -61,6 +61,7 @@ model MenuItem {
   price       Float
   imageUrl    String?
   isAvailable Boolean     @default(true)
+  salesCount  Int         @default(0)
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
   orderItems  OrderItem[]
@@ -144,8 +145,10 @@ model OrderItem {
 }
 
 model StoreSettings {
-  id        String   @id @default("singleton")
-  logoUrl   String?
-  bannerUrl String?
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default("singleton")
+  logoUrl             String?
+  bannerUrl           String?
+  serviceCharge       Float    @default(0)
+  enableServiceCharge Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
 }

@@ -1,6 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getLocations, ApiLocation } from '@/lib/api';
+
+function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
 
 interface LocationModalProps {
     isOpen: boolean;
@@ -18,13 +30,24 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
     const [geoError, setGeoError] = useState<string | null>(null);
     const [isLocating, setIsLocating] = useState(false);
     const [currentPosition, setCurrentPosition] = useState<{ lat: number; lng: number } | null>(null);
+    const [locations, setLocations] = useState<ApiLocation[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             setActiveTab(mode === 'Pickup' ? 'Pickup' : 'Delivery');
             setGeoError(null);
+            loadLocations();
         }
     }, [isOpen, mode]);
+
+    const loadLocations = async () => {
+        try {
+            const data = await getLocations();
+            setLocations(data);
+        } catch (e) {
+            console.error('Failed to load locations', e);
+        }
+    };
 
     const handleUseMyLocation = () => {
         if (!navigator.geolocation) {
@@ -42,6 +65,24 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                 const label = `Current location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
                 setSearchQuery(label);
                 setIsLocating(false);
+
+                // Auto-select nearest location
+                if (locations.length > 0) {
+                    let nearest = locations[0];
+                    let minDist = getHaversineDistance(latitude, longitude, nearest.latitude, nearest.longitude);
+
+                    for (let i = 1; i < locations.length; i++) {
+                        const d = getHaversineDistance(latitude, longitude, locations[i].latitude, locations[i].longitude);
+                        if (d < minDist) {
+                            minDist = d;
+                            nearest = locations[i];
+                        }
+                    }
+
+                    // Map address or name to city/store
+                    setCity('Auto-detected'); // Or parse address
+                    setStore(nearest.id);
+                }
             },
             (err) => {
                 if (err.code === err.PERMISSION_DENIED) {
@@ -91,14 +132,14 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                 </div>
 
                 <div className="modal-tabs">
-                    <button 
+                    <button
                         className={`modal-tab ${activeTab === 'Delivery' ? 'active' : ''}`}
                         onClick={() => setActiveTab('Delivery')}
                         type="button"
                     >
                         Delivery
                     </button>
-                    <button 
+                    <button
                         className={`modal-tab ${activeTab === 'Pickup' ? 'active' : ''}`}
                         onClick={() => setActiveTab('Pickup')}
                         type="button"
@@ -112,9 +153,9 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                         <form id="delivery-form" onSubmit={handleDeliverySubmit}>
                             <div className="delivery-search-bar">
                                 <span className="search-icon">🔍</span>
-                                <input 
-                                    type="text" 
-                                    placeholder="Search Location or Address" 
+                                <input
+                                    type="text"
+                                    placeholder="Search Location or Address"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
@@ -166,13 +207,17 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                                     id="city-select"
                                     className="pickup-form-select"
                                     value={city}
-                                    onChange={(e) => setCity(e.target.value)}
+                                    onChange={(e) => {
+                                        setCity(e.target.value);
+                                        setStore('');
+                                    }}
                                     required
                                 >
                                     <option value="" disabled>Select your city...</option>
-                                    <option value="Dubai">Dubai</option>
-                                    <option value="Abu Dhabi">Abu Dhabi</option>
-                                    <option value="Sharjah">Sharjah</option>
+                                    <option value="Auto-detected">Auto-detected</option>
+                                    {Array.from(new Set(locations.map(l => l.address.split(',').pop()?.trim() || 'Other'))).map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
                                 </select>
                             </div>
 
@@ -187,9 +232,12 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                                     disabled={!city}
                                 >
                                     <option value="" disabled>Select an outlet...</option>
-                                    <option value="Jumeirah Branch">Jumeirah Branch</option>
-                                    <option value="Downtown Mall">Downtown Mall</option>
-                                    <option value="Marina Walk">Marina Walk</option>
+                                    {locations
+                                        .filter(l => city === 'Auto-detected' || l.address.toLowerCase().includes(city.toLowerCase()))
+                                        .map(l => (
+                                            <option key={l.id} value={l.id}>{l.name}</option>
+                                        ))
+                                    }
                                 </select>
                             </div>
 
@@ -206,8 +254,8 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                                 Which outlet you would like to pickup from. Pickup service is available at select outlets only.
                             </p>
 
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 className="btn-primary-large"
                                 disabled={!city || !store}
                             >

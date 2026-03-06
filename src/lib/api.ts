@@ -78,7 +78,10 @@ export const uploadImage = async (file: File): Promise<{ url: string; public_id:
 };
 
 // ── Orders ─────────────────────────────────────────────────────────────────────
-export const getOrders = () => apiFetch<any[]>('/orders');
+export const getOrders = (branchId?: string) => {
+    const query = branchId ? `?branchId=${branchId}` : '';
+    return apiFetch<any[]>(`/orders${query}`);
+};
 
 export const updateOrderStatus = (id: string, status: string) =>
     apiFetch<any>(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
@@ -107,6 +110,9 @@ export const getMenuItems = (categoryId?: string) => {
     const query = categoryId ? `?categoryId=${categoryId}` : '';
     return apiFetch<ApiMenuItem[]>(`/menu-items${query}`);
 };
+
+export const getBestSellers = () =>
+    apiFetch<ApiMenuItem[]>('/menu-items/best-sellers');
 
 export const getMenuItem = (id: string) =>
     apiFetch<ApiMenuItem>(`/menu-items/${id}`);

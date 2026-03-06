@@ -6,6 +6,8 @@ import { API } from '@/lib/api';
 interface StoreSettings {
     logoUrl: string;
     bannerUrl: string;
+    serviceCharge: number;
+    enableServiceCharge: boolean;
 }
 
 interface SettingsContextType {
@@ -17,6 +19,8 @@ const defaultSettings: StoreSettings = {
     // Fallbacks if not configured in DB
     logoUrl: '/logo.png',
     bannerUrl: '/images/banner-1.png',
+    serviceCharge: 0,
+    enableServiceCharge: false,
 };
 
 const SettingsContext = createContext<SettingsContextType>({ settings: defaultSettings, loading: true });
@@ -32,6 +36,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 setSettings({
                     logoUrl: data.logoUrl || defaultSettings.logoUrl,
                     bannerUrl: data.bannerUrl || defaultSettings.bannerUrl,
+                    serviceCharge: data.serviceCharge ?? defaultSettings.serviceCharge,
+                    enableServiceCharge: data.enableServiceCharge ?? defaultSettings.enableServiceCharge,
                 });
             })
             .catch(err => {

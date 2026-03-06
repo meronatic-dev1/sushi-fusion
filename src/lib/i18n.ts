@@ -13,6 +13,7 @@ const translations: Translations = {
     'header.login': 'LOGIN',
 
     // Categories (chips)
+    'category.best-sellers': 'Best Sellers',
     'category.special': 'Special Offers',
     'category.lovers': 'Lovers Box',
     'category.sakura': 'Sakura Combos',
@@ -80,6 +81,7 @@ const translations: Translations = {
     'header.login': 'تسجيل الدخول',
 
     // Categories (chips)
+    'category.best-sellers': 'الأكثر مبيعاً',
     'category.special': 'العروض الخاصة',
     'category.lovers': 'صناديق العشّاق',
     'category.sakura': 'تشكيلة ساكورا',

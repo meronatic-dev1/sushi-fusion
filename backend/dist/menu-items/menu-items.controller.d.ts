@@ -6,41 +6,64 @@ export declare class MenuItemsController {
         category: {
             id: string;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             description: string | null;
             imageUrl: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
     } & {
         id: string;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         description: string | null;
         price: number;
         imageUrl: string | null;
         isAvailable: boolean;
+        salesCount: number;
         categoryId: string;
+        createdAt: Date;
+        updatedAt: Date;
+    })[]>;
+    getBestSellers(): import("@prisma/client").Prisma.PrismaPromise<({
+        category: {
+            id: string;
+            name: string;
+            description: string | null;
+            imageUrl: string | null;
+            createdAt: Date;
+            updatedAt: Date;
+        };
+    } & {
+        id: string;
+        name: string;
+        description: string | null;
+        price: number;
+        imageUrl: string | null;
+        isAvailable: boolean;
+        salesCount: number;
+        categoryId: string;
+        createdAt: Date;
+        updatedAt: Date;
     })[]>;
     findOne(id: string): import("@prisma/client").Prisma.Prisma__MenuItemClient<({
         category: {
             id: string;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             description: string | null;
             imageUrl: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
     } & {
         id: string;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         description: string | null;
         price: number;
         imageUrl: string | null;
         isAvailable: boolean;
+        salesCount: number;
         categoryId: string;
+        createdAt: Date;
+        updatedAt: Date;
     }) | null, null, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
     create(body: {
         name: string;
@@ -53,21 +76,22 @@ export declare class MenuItemsController {
         category: {
             id: string;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             description: string | null;
             imageUrl: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
     } & {
         id: string;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         description: string | null;
         price: number;
         imageUrl: string | null;
         isAvailable: boolean;
+        salesCount: number;
         categoryId: string;
+        createdAt: Date;
+        updatedAt: Date;
     }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
     update(id: string, body: {
         name?: string;
@@ -80,31 +104,33 @@ export declare class MenuItemsController {
         category: {
             id: string;
             name: string;
-            createdAt: Date;
-            updatedAt: Date;
             description: string | null;
             imageUrl: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         };
     } & {
         id: string;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         description: string | null;
         price: number;
         imageUrl: string | null;
         isAvailable: boolean;
+        salesCount: number;
         categoryId: string;
+        createdAt: Date;
+        updatedAt: Date;
     }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
     remove(id: string): import("@prisma/client").Prisma.Prisma__MenuItemClient<{
         id: string;
         name: string;
-        createdAt: Date;
-        updatedAt: Date;
         description: string | null;
         price: number;
         imageUrl: string | null;
         isAvailable: boolean;
+        salesCount: number;
         categoryId: string;
+        createdAt: Date;
+        updatedAt: Date;
     }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
 }
