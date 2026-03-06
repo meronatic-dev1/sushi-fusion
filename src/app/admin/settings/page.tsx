@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Save, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+import { Save, Image as ImageIcon, Link as LinkIcon, ImagePlus, Loader2, X } from 'lucide-react';
+import { uploadImage, API } from '@/lib/api';
 
 const inputStyle: React.CSSProperties = {
     background: 'rgba(255,255,255,0.03)',
@@ -21,8 +22,12 @@ export default function AdminSettingsPage() {
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingBanner, setUploadingBanner] = useState(false);
+
     useEffect(() => {
-        fetch('http://localhost:3001/settings')
+        // Use the same dynamic API URL as the rest of the app
+        fetch(`${API}/settings`)
             .then(res => res.json())
             .then(data => {
                 if (data.logoUrl) setLogoUrl(data.logoUrl);
@@ -36,7 +41,7 @@ export default function AdminSettingsPage() {
         setSaving(true);
         setMessage(null);
         try {
-            const res = await fetch('http://localhost:3001/settings', {
+            const res = await fetch(`${API}/settings`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ logoUrl, bannerUrl }),
@@ -80,23 +85,65 @@ export default function AdminSettingsPage() {
                 {/* Logo */}
                 <div style={{ marginBottom: 24 }}>
                     <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
-                        Logo URL
+                        Logo Image
                     </label>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+                        {/* File Upload Zone */}
                         <div style={{ flex: 1, position: 'relative' }}>
-                            <LinkIcon size={14} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.2)' }} />
                             <input
-                                value={logoUrl}
-                                onChange={e => setLogoUrl(e.target.value)}
-                                placeholder="https://example.com/logo.png"
-                                style={{ ...inputStyle, paddingLeft: 38 }}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                                type="file"
+                                accept="image/*"
+                                id="logo-upload"
+                                style={{ display: 'none' }}
+                                disabled={uploadingLogo}
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        try {
+                                            setUploadingLogo(true);
+                                            const res = await uploadImage(file);
+                                            setLogoUrl(res.url);
+                                        } catch (err) {
+                                            setMessage({ text: 'Failed to upload logo', type: 'error' });
+                                        } finally {
+                                            setUploadingLogo(false);
+                                        }
+                                    }
+                                }}
                             />
+                            <label
+                                htmlFor="logo-upload"
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                    background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)',
+                                    borderRadius: 10, padding: '12px', cursor: uploadingLogo ? 'not-allowed' : 'pointer', color: '#fff', fontSize: 13,
+                                    transition: 'background 0.2s', width: '100%', boxSizing: 'border-box',
+                                    opacity: uploadingLogo ? 0.5 : 1
+                                }}
+                                onMouseEnter={e => { if (!uploadingLogo) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                                onMouseLeave={e => { if (!uploadingLogo) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                            >
+                                {uploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                                {uploadingLogo ? 'Uploading...' : 'Upload New Logo'}
+                            </label>
                         </div>
                         {logoUrl && (
-                            <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                <img src={logoUrl} alt="Logo preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                            <div style={{ position: 'relative' }}>
+                                <div style={{ width: 64, height: 64, borderRadius: 8, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                    <img src={logoUrl} alt="Logo preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                </div>
+                                <button
+                                    onClick={() => setLogoUrl('')}
+                                    style={{
+                                        position: 'absolute', top: -8, right: -8,
+                                        width: 20, height: 20, borderRadius: '50%',
+                                        background: '#f87171', border: 'none',
+                                        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                                    }}
+                                >
+                                    <X size={12} />
+                                </button>
                             </div>
                         )}
                     </div>
@@ -105,26 +152,69 @@ export default function AdminSettingsPage() {
                 {/* Banner */}
                 <div style={{ marginBottom: 24 }}>
                     <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
-                        Banner Image URL
+                        Banner Image
                     </label>
-                    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                        <div style={{ flex: 1, position: 'relative' }}>
-                            <ImageIcon size={14} style={{ position: 'absolute', left: 14, top: 14, color: 'rgba(255,255,255,0.2)' }} />
+                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexDirection: 'column' }}>
+                        {/* File Upload Zone */}
+                        <div style={{ width: '100%', position: 'relative' }}>
                             <input
-                                value={bannerUrl}
-                                onChange={e => setBannerUrl(e.target.value)}
-                                placeholder="https://example.com/banner.jpg"
-                                style={{ ...inputStyle, paddingLeft: 38 }}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                                type="file"
+                                accept="image/*"
+                                id="banner-upload"
+                                disabled={uploadingBanner}
+                                style={{ display: 'none' }}
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        try {
+                                            setUploadingBanner(true);
+                                            const res = await uploadImage(file);
+                                            setBannerUrl(res.url);
+                                        } catch (err) {
+                                            setMessage({ text: 'Failed to upload banner', type: 'error' });
+                                        } finally {
+                                            setUploadingBanner(false);
+                                        }
+                                    }
+                                }}
                             />
+                            <label
+                                htmlFor="banner-upload"
+                                style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                    background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)',
+                                    borderRadius: 10, padding: '12px', cursor: uploadingBanner ? 'not-allowed' : 'pointer', color: '#fff', fontSize: 13,
+                                    transition: 'background 0.2s', width: '100%', boxSizing: 'border-box',
+                                    opacity: uploadingBanner ? 0.5 : 1
+                                }}
+                                onMouseEnter={e => { if (!uploadingBanner) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                                onMouseLeave={e => { if (!uploadingBanner) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                            >
+                                {uploadingBanner ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                                {uploadingBanner ? 'Uploading...' : 'Upload New Banner'}
+                            </label>
                         </div>
+                        {bannerUrl && (
+                            <div style={{ width: '100%', position: 'relative' }}>
+                                <div style={{ width: '100%', height: 160, borderRadius: 10, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+                                    <img src={bannerUrl} alt="Banner preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                                <button
+                                    onClick={() => setBannerUrl('')}
+                                    style={{
+                                        position: 'absolute', top: 8, right: 8,
+                                        width: 28, height: 28, borderRadius: '50%',
+                                        background: 'rgba(248, 113, 113, 0.9)', border: 'none',
+                                        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                        backdropFilter: 'blur(4px)'
+                                    }}
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    {bannerUrl && (
-                        <div style={{ marginTop: 12, height: 120, borderRadius: 10, background: 'rgba(255,255,255,0.05)', overflow: 'hidden', position: 'relative' }}>
-                            <img src={bannerUrl} alt="Banner preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                    )}
                 </div>
 
                 {/* Actions */}

@@ -1,4 +1,4 @@
-let API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+export let API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Dynamically adapt the API URL for local network testing (e.g. accessing via 192.168.x.x)
 if (typeof window !== 'undefined') {

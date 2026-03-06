@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 import { apiCreateOrder } from '@/lib/api';
 import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 
@@ -58,6 +59,7 @@ function FInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 
 export default function CheckoutPage() {
     const { cart, clearCart } = useCart();
+    const { settings } = useSettings();
     const [step, setStep] = useState<Step>(1);
     const [loginMode, setLoginMode] = useState(false);
     const [orderId, setOrderId] = useState<string | null>(null);
@@ -140,7 +142,7 @@ export default function CheckoutPage() {
                 boxShadow: '0 1px 12px rgba(0,0,0,0.06)',
             }}>
                 <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src="/logo.png" alt="Sushi Fusion" style={{ height: 32 }} />
+                    {settings.logoUrl && <img src={settings.logoUrl} alt="Sushi Fusion" style={{ height: 32 }} />}
                 </Link>
 
                 {/* Step progress — centered */}

@@ -7,11 +7,13 @@ import Footer from '@/components/Footer';
 import BottomNav from '@/components/BottomNav';
 import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
+import { useSettings } from '@/context/SettingsContext';
 import Image from 'next/image';
 
 export default function AboutPage() {
     const router = useRouter();
     const { cartCount, setIsCartOpen } = useCart();
+    const { settings } = useSettings();
 
     const [searchValue, setSearchValue] = useState('');
     const [language, setLanguage] = useState<Language>('en');
@@ -53,7 +55,7 @@ export default function AboutPage() {
                         </p>
 
                         <div style={{ borderRadius: 16, overflow: 'hidden', margin: '10px 0', border: '1px solid var(--b)' }}>
-                            <img src="/images/banner-1.png" alt="Sushi Fusion Kitchen" style={{ width: '100%', height: 260, objectFit: 'cover' }} />
+                            <img src={settings.bannerUrl} alt="Sushi Fusion Kitchen" style={{ width: '100%', height: 260, objectFit: 'cover' }} />
                         </div>
 
                         <p>

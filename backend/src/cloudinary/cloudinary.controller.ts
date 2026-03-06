@@ -1,9 +1,10 @@
-import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, Req } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CloudinaryService } from './cloudinary.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
+import type { Request } from 'express';
 
 @Controller('upload')
 export class CloudinaryController {
@@ -11,7 +12,7 @@ export class CloudinaryController {
 
     @Post()
     @UseInterceptors(FileInterceptor('file'))
-    async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    async uploadImage(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
         if (!file) {
             throw new BadRequestException('No file uploaded');
         }
@@ -38,9 +39,14 @@ export class CloudinaryController {
 
             fs.writeFileSync(filePath, file.buffer);
 
+            // Determine the base URL dynamically from the request
+            const protocol = req.protocol;
+            const host = req.get('host');
+            const baseUrl = `${protocol}://${host}`;
+
             // Return local URL
             return {
-                url: `http://localhost:3001/uploads/${filename}`,
+                url: `${baseUrl}/uploads/${filename}`,
                 public_id: filename,
             };
         }

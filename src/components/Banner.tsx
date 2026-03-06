@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useSettings } from '@/context/SettingsContext';
 
 const SLIDES = [
   {
@@ -16,13 +17,18 @@ const SLIDES = [
     alt: 'Sushi Fusion seasonal offers',
   },
 ];
-
 export default function Banner() {
+  const { settings } = useSettings();
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Prepend the dynamic banner if we have one besides the default
+  const slides = settings.bannerUrl && !settings.bannerUrl.includes('banner-1.png')
+    ? [{ src: settings.bannerUrl, alt: 'Custom Store Banner' }, ...SLIDES]
+    : SLIDES;
 
   useEffect(() => {
     const id = window.setTimeout(() => {
-      setActiveIndex((prev) => (prev + 1) % SLIDES.length);
+      setActiveIndex((prev) => (prev + 1) % slides.length);
     }, 10000);
 
     return () => window.clearTimeout(id);
@@ -32,7 +38,7 @@ export default function Banner() {
     setActiveIndex(index);
   };
 
-  const slide = SLIDES[activeIndex];
+  const slide = slides[activeIndex];
 
   return (
     <section className="banner">
@@ -44,7 +50,7 @@ export default function Banner() {
           className="banner-image"
         />
         <div className="banner-dots">
-          {SLIDES.map((_, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
               type="button"

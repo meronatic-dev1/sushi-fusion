@@ -57,7 +57,7 @@ let CloudinaryController = class CloudinaryController {
     constructor(cloudinaryService) {
         this.cloudinaryService = cloudinaryService;
     }
-    async uploadImage(file) {
+    async uploadImage(file, req) {
         if (!file) {
             throw new common_1.BadRequestException('No file uploaded');
         }
@@ -78,8 +78,11 @@ let CloudinaryController = class CloudinaryController {
             const filename = `${(0, crypto_1.randomUUID)()}${ext}`;
             const filePath = path.join(uploadDir, filename);
             fs.writeFileSync(filePath, file.buffer);
+            const protocol = req.protocol;
+            const host = req.get('host');
+            const baseUrl = `${protocol}://${host}`;
             return {
-                url: `http://localhost:3001/uploads/${filename}`,
+                url: `${baseUrl}/uploads/${filename}`,
                 public_id: filename,
             };
         }
@@ -90,8 +93,9 @@ __decorate([
     (0, common_1.Post)(),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('file')),
     __param(0, (0, common_1.UploadedFile)()),
+    __param(1, (0, common_1.Req)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], CloudinaryController.prototype, "uploadImage", null);
 exports.CloudinaryController = CloudinaryController = __decorate([

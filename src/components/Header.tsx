@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import LocationModal from './LocationModal';
 import type { Language } from '@/lib/i18n';
+import { useSettings } from '@/context/SettingsContext';
 
 interface HeaderProps {
     cartCount: number;
@@ -56,6 +57,7 @@ export default function Header({
     const [activeMode, setActiveMode] = useState<'delivery' | 'pickup' | 'dineIn'>('delivery');
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+    const { settings } = useSettings();
 
     const modes = ['delivery', 'pickup', 'dineIn'] as const;
 
@@ -81,7 +83,7 @@ export default function Header({
                 ╚══════════════════════════════════════════╝ */}
             <header className="topbar topbar--desktop">
                 <div className="logo-wrap">
-                    <img src="logo.png" alt="Sushi Fusion" />
+                    <img src={settings.logoUrl} alt="Sushi Fusion" />
                 </div>
 
                 <div className="mode-tabs">
