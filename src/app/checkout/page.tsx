@@ -1,306 +1,689 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useCart } from '@/context/CartContext';
+import { apiCreateOrder } from '@/lib/api';
+import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4;
 
-const MOCK_CART = [
-    { name: 'Dear Box 16 Pcs', qty: 1, price: 89, imgSrc: '/images/31.png' },
-    { name: 'Salmon Sashimi 5 Pcs', qty: 2, price: 49, imgSrc: '/images/33.png' },
-    { name: 'Red Bull', qty: 2, price: 13, imgSrc: '/images/142.png' },
+const STEPS = [
+    { num: 1 as Step, label: 'Details', short: 'You' },
+    { num: 2 as Step, label: 'Delivery', short: 'Ship' },
+    { num: 3 as Step, label: 'Payment', short: 'Pay' },
+    { num: 4 as Step, label: 'Done', short: 'Done' },
 ];
 
-const SUBTOTAL = MOCK_CART.reduce((s, i) => s + i.price * i.qty, 0);
-const DELIVERY_FEE = 15;
+/* ─── Reusable field wrapper ─── */
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', letterSpacing: '0.03em', fontFamily: '"DM Sans", sans-serif' }}>
+                    {label}
+                </label>
+                {hint && <span style={{ fontSize: 11, color: '#b08060', fontWeight: 500 }}>{hint}</span>}
+            </div>
+            {children}
+        </div>
+    );
+}
+
+/* ─── Styled input ─── */
+function FInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
+    const [focused, setFocused] = useState(false);
+    return (
+        <input
+            {...props}
+            onFocus={e => { setFocused(true); props.onFocus?.(e); }}
+            onBlur={e => { setFocused(false); props.onBlur?.(e); }}
+            style={{
+                width: '100%', boxSizing: 'border-box',
+                padding: '12px 16px',
+                fontSize: 14, fontFamily: '"DM Sans", sans-serif',
+                color: '#1a1108',
+                background: focused ? '#fff' : '#faf8f5',
+                border: `1.5px solid ${focused ? '#FF6A0C' : '#e8ddd2'}`,
+                borderRadius: 12,
+                outline: 'none',
+                transition: 'all 0.18s',
+                boxShadow: focused ? '0 0 0 3px rgba(255,106,12,0.1)' : 'none',
+                ...props.style,
+            }}
+        />
+    );
+}
 
 export default function CheckoutPage() {
+    const { cart, clearCart } = useCart();
     const [step, setStep] = useState<Step>(1);
     const [loginMode, setLoginMode] = useState(false);
-    const mode = 'Delivery';
+    const [orderId, setOrderId] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [promoCode, setPromoCode] = useState('');
+    const [promoApplied, setPromoApplied] = useState(false);
+    const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 
-    const tax = +(SUBTOTAL * 0.05).toFixed(2);
-    const total = SUBTOTAL + (mode === 'Delivery' ? DELIVERY_FEE : 0) + tax;
+    const cartItems = Object.values(cart);
+    const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
+    const DELIVERY = 15;
+    const TAX = +(SUBTOTAL * 0.05).toFixed(2);
+    const DISCOUNT = promoApplied ? Math.round(SUBTOTAL * 0.1) : 0;
+    const TOTAL = SUBTOTAL + DELIVERY + TAX - DISCOUNT;
+
     const next = () => setStep(s => Math.min(s + 1, 4) as Step);
     const back = () => setStep(s => Math.max(s - 1, 1) as Step);
 
-    const stepLabels = ['Your Details', 'Delivery', 'Payment', 'Confirmation'];
-
-    // Shared input styling using the same CSS vars as the ordering page
-    const inputStyle: React.CSSProperties = { borderRadius: 8, border: '1.5px solid var(--b)', fontSize: 13, padding: '10px 14px', fontFamily: 'Inter, sans-serif', width: '100%', outline: 'none', background: 'var(--w)', color: 'var(--d)' };
-    const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: 'var(--d)', marginBottom: 4, display: 'block' };
+    const handlePay = async () => {
+        if (cartItems.length === 0) return alert('Your cart is empty');
+        setIsProcessing(true);
+        try {
+            const res = await apiCreateOrder({
+                userId: null,
+                mode: 'DELIVERY',
+                totalAmount: TOTAL,
+                customerLat: 25.2048,
+                customerLng: 55.2708,
+                items: cartItems.map((item: any) => ({
+                    menuItemId: 'TEMP',
+                    name: item.name,
+                    quantity: item.qty,
+                    unitPrice: item.price,
+                })),
+            });
+            setOrderId(res.orderId || 'NEW-ORDER');
+            clearCart();
+            next();
+        } catch (e: any) {
+            alert(e.message || 'Payment failed');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-            {/* Top bar */}
-            <header className="topbar" style={{ justifyContent: 'space-between' }}>
-                <Link href="/" className="logo-wrap">
-                    <img src="/sushi-fusion-logo.png" alt="Sushi Fusion" />
-                </Link>
-                <span style={{ fontFamily: 'Mashiro, sans-serif', fontSize: 18, fontWeight: 800 }}>Checkout</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--g)' }}>
-                    🔒 Secure Checkout
-                </div>
-            </header>
+        <div style={{ minHeight: '100vh', background: '#f7f3ee', fontFamily: '"DM Sans", sans-serif' }}>
 
-            {/* Step progress bar */}
-            <div style={{ background: 'var(--w)', borderBottom: '1px solid var(--b)', padding: '0 24px' }}>
-                <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex' }}>
-                    {stepLabels.map((label, i) => {
-                        const num = (i + 1) as Step;
-                        const done = step > num;
-                        const active = step === num;
+            {/* ── Top nav ── */}
+            <header style={{
+                background: '#fff',
+                borderBottom: '1px solid #ede6dc',
+                padding: '0 24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                height: 64,
+                position: 'sticky', top: 0, zIndex: 50,
+                boxShadow: '0 1px 12px rgba(0,0,0,0.06)',
+            }}>
+                <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <img src="/logo.png" alt="Sushi Fusion" style={{ height: 32 }} />
+                </Link>
+
+                {/* Step progress — centered */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+                    {STEPS.map((s, i) => {
+                        const done = step > s.num;
+                        const active = step === s.num;
+                        const future = step < s.num;
                         return (
-                            <div key={label} style={{
-                                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                padding: '12px 0', borderBottom: `3px solid ${active || done ? 'var(--o)' : 'transparent'}`,
-                                color: active ? 'var(--o)' : done ? 'var(--o)' : 'var(--lg)',
-                                fontSize: 13, fontWeight: active ? 700 : 600, fontFamily: 'Inter, sans-serif',
-                                transition: 'all .2s',
-                            }}>
-                                <span style={{
-                                    width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 11, fontWeight: 800,
-                                    background: done || active ? 'var(--o)' : 'var(--b)',
-                                    color: done || active ? '#fff' : 'var(--lg)',
-                                }}>
-                                    {done ? '✓' : num}
-                                </span>
-                                <span className="hidden sm:block">{label}</span>
+                            <div key={s.num} style={{ display: 'flex', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                                    <div style={{
+                                        width: 30, height: 30, borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 11, fontWeight: 800,
+                                        background: done ? '#FF6A0C' : active ? '#fff5ee' : '#f0ebe4',
+                                        color: done ? '#fff' : active ? '#FF6A0C' : '#c4b5a5',
+                                        border: `2px solid ${done ? '#FF6A0C' : active ? '#FF6A0C' : '#e0d5c8'}`,
+                                        transition: 'all 0.3s',
+                                        boxShadow: active ? '0 0 0 4px rgba(255,106,12,0.12)' : 'none',
+                                    }}>
+                                        {done ? <Check size={13} strokeWidth={3} /> : s.num}
+                                    </div>
+                                    <span style={{
+                                        fontSize: 10, fontWeight: active ? 700 : 500,
+                                        color: active ? '#FF6A0C' : done ? '#b87a50' : '#c4b5a5',
+                                        letterSpacing: '0.02em',
+                                        transition: 'all 0.3s',
+                                    }}>
+                                        {s.label}
+                                    </span>
+                                </div>
+                                {i < STEPS.length - 1 && (
+                                    <div style={{
+                                        width: 40, height: 2, marginBottom: 14, marginLeft: 4, marginRight: 4,
+                                        background: done ? '#FF6A0C' : '#e0d5c8',
+                                        borderRadius: 99, transition: 'background 0.4s',
+                                    }} />
+                                )}
                             </div>
                         );
                     })}
                 </div>
-            </div>
 
-            <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px', display: 'grid', gridTemplateColumns: '1fr', gap: 20 }} className="lg:!grid-cols-[1fr_320px]">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#a08060', fontWeight: 600 }}>
+                    <Lock size={12} />
+                    Secure
+                </div>
+            </header>
 
-                    {/* Step 1 — Details */}
+            {/* ── Main layout ── */}
+            <div style={{
+                maxWidth: 980, margin: '0 auto',
+                padding: '36px 20px',
+                display: 'grid',
+                gridTemplateColumns: '1fr 340px',
+                gap: 28,
+                alignItems: 'start',
+            }}>
+
+                {/* ════ LEFT COLUMN ════ */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                    {/* ── STEP 1: Your Details ── */}
                     {step === 1 && (
-                        <Card style={{ borderRadius: 'var(--rb)', border: '1px solid var(--b)', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
-                            <CardHeader className="pb-0">
-                                <CardTitle style={{ fontFamily: 'Mashiro, sans-serif', fontSize: 20 }}>Your Details</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {/* Toggle */}
-                                <div style={{ display: 'flex', border: '1.5px solid var(--b)', borderRadius: 8, overflow: 'hidden', marginBottom: 20 }}>
-                                    {[{ k: false, label: '✨ Continue as Guest' }, { k: true, label: '🔒 Login for faster checkout' }].map(({ k, label }) => (
+                        <div style={{ animation: 'slideIn 0.3s ease both' }}>
+                            <SectionCard
+                                icon={<Sparkles size={16} />}
+                                title="Your Details"
+                                subtitle="We'll use this to send your confirmation"
+                            >
+                                {/* Guest / Login toggle */}
+                                <div style={{
+                                    display: 'grid', gridTemplateColumns: '1fr 1fr',
+                                    background: '#f2ede6', borderRadius: 12, padding: 4, marginBottom: 24,
+                                }}>
+                                    {[
+                                        { k: false, label: 'Guest Checkout', icon: '✨' },
+                                        { k: true, label: 'Sign In', icon: '🔑' },
+                                    ].map(({ k, label, icon }) => (
                                         <button key={label} onClick={() => setLoginMode(k)} style={{
-                                            flex: 1, padding: '10px 12px', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
-                                            fontFamily: 'Inter, sans-serif', transition: 'all .2s',
-                                            background: loginMode === k ? '#fff5ef' : 'var(--w)',
-                                            color: loginMode === k ? 'var(--o)' : 'var(--g)',
-                                            borderBottom: loginMode === k ? '2px solid var(--o)' : '2px solid transparent',
-                                        }}>{label}</button>
+                                            padding: '10px 12px', borderRadius: 9,
+                                            border: 'none', cursor: 'pointer',
+                                            fontFamily: '"DM Sans", sans-serif',
+                                            fontSize: 13, fontWeight: 700,
+                                            transition: 'all 0.2s',
+                                            background: loginMode === k ? '#fff' : 'transparent',
+                                            color: loginMode === k ? '#FF6A0C' : '#a08060',
+                                            boxShadow: loginMode === k ? '0 2px 10px rgba(0,0,0,0.08)' : 'none',
+                                        }}>
+                                            {icon} {label}
+                                        </button>
                                     ))}
                                 </div>
 
                                 {!loginMode ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                        <p style={{ fontSize: 12, color: 'var(--g)', background: '#fff5ef', padding: '8px 12px', borderRadius: 8 }}>
-                                            No account needed. We&apos;ll create one after your order for easy tracking and reordering.
-                                        </p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <div style={{
+                                            display: 'flex', alignItems: 'flex-start', gap: 10,
+                                            background: '#fff8f3', border: '1px solid #ffdcc4',
+                                            borderRadius: 10, padding: '10px 14px',
+                                        }}>
+                                            <ShieldCheck size={15} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 1 }} />
+                                            <p style={{ fontSize: 12, color: '#8a5c3a', margin: 0, lineHeight: 1.5 }}>
+                                                No account needed. We'll create one after your order for easy tracking.
+                                            </p>
+                                        </div>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                                            <div>
-                                                <label style={labelStyle}>Full Name</label>
-                                                <input placeholder="Ahmed Al Rashidi" style={inputStyle} />
-                                            </div>
-                                            <div>
-                                                <label style={labelStyle}>Phone Number</label>
-                                                <input placeholder="+971 50 000 0000" style={inputStyle} />
-                                            </div>
+                                            <Field label="Full Name">
+                                                <FInput placeholder="Ahmed Al Rashidi" />
+                                            </Field>
+                                            <Field label="Phone Number">
+                                                <FInput placeholder="+971 50 000 0000" />
+                                            </Field>
                                         </div>
-                                        <div>
-                                            <label style={labelStyle}>Email Address</label>
-                                            <input type="email" placeholder="you@example.com" style={inputStyle} />
-                                        </div>
+                                        <Field label="Email Address">
+                                            <FInput type="email" placeholder="you@example.com" />
+                                        </Field>
                                     </div>
                                 ) : (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                        <p style={{ fontSize: 12, color: 'var(--g)', background: '#fff5ef', padding: '8px 12px', borderRadius: 8 }}>
-                                            Sign in to auto-fill your saved details.
-                                        </p>
-                                        <div>
-                                            <label style={labelStyle}>Email</label>
-                                            <input type="email" placeholder="you@example.com" style={inputStyle} />
-                                        </div>
-                                        <div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <label style={labelStyle}>Password</label>
-                                                <Link href="/forgot-password" style={{ fontSize: 11, color: 'var(--o)', fontWeight: 600 }}>Forgot?</Link>
-                                            </div>
-                                            <input type="password" placeholder="••••••••" style={inputStyle} />
-                                        </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <Field label="Email">
+                                            <FInput type="email" placeholder="you@example.com" />
+                                        </Field>
+                                        <Field label="Password" hint={<><Link href="/forgot-password" style={{ color: '#FF6A0C', fontWeight: 600, fontSize: 11 }}>Forgot?</Link></>}>
+                                            <FInput type="password" placeholder="••••••••" />
+                                        </Field>
                                     </div>
                                 )}
 
-                                <button onClick={next} className="login-btn" style={{ width: '100%', textAlign: 'center', padding: '12px', fontSize: 14, borderRadius: 8, marginTop: 20 }}>
-                                    Continue →
-                                </button>
-                            </CardContent>
-                        </Card>
+                                <ActionButton onClick={next} style={{ marginTop: 8 }}>
+                                    Continue to Delivery <ChevronRight size={16} />
+                                </ActionButton>
+                            </SectionCard>
+                        </div>
                     )}
 
-                    {/* Step 2 — Delivery */}
+                    {/* ── STEP 2: Delivery ── */}
                     {step === 2 && (
-                        <Card style={{ borderRadius: 'var(--rb)', border: '1px solid var(--b)', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
-                            <CardHeader className="pb-0">
-                                <CardTitle style={{ fontFamily: 'Mashiro, sans-serif', fontSize: 20 }}>🛵 Delivery Details</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                    <div>
-                                        <label style={labelStyle}>Street Address</label>
-                                        <input placeholder="12 Al Wasl Rd, Apt 4B" style={inputStyle} />
-                                    </div>
+                        <div style={{ animation: 'slideIn 0.3s ease both' }}>
+                            <SectionCard
+                                icon={<Truck size={16} />}
+                                title="Delivery Address"
+                                subtitle="Where should we bring your order?"
+                            >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                    <Field label="Street Address">
+                                        <FInput placeholder="12 Al Wasl Rd, Apt 4B" />
+                                    </Field>
                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                                        <Field label="City">
+                                            <FInput placeholder="Dubai" />
+                                        </Field>
+                                        <Field label="Postcode">
+                                            <FInput placeholder="00000" />
+                                        </Field>
+                                    </div>
+                                    <Field label="Delivery Instructions" hint="Optional">
+                                        <FInput placeholder="Leave at door, call on arrival…" />
+                                    </Field>
+
+                                    {/* ETA pill */}
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', gap: 10,
+                                        background: '#fff8f3', border: '1px solid #ffdcc4',
+                                        borderRadius: 10, padding: '10px 14px',
+                                    }}>
+                                        <Clock size={14} style={{ color: '#FF6A0C', flexShrink: 0 }} />
                                         <div>
-                                            <label style={labelStyle}>City</label>
-                                            <input placeholder="Dubai" style={inputStyle} />
-                                        </div>
-                                        <div>
-                                            <label style={labelStyle}>Postcode</label>
-                                            <input placeholder="00000" style={inputStyle} />
+                                            <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>Estimated delivery: 30–45 min</p>
+                                            <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>From Sushi Fusion — Downtown (nearest branch)</p>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label style={labelStyle}>Delivery Instructions <span style={{ fontWeight: 400, color: 'var(--lg)' }}>(optional)</span></label>
-                                        <input placeholder="Leave at door, ring bell, etc." style={inputStyle} />
-                                    </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                                    <button onClick={back} style={{ flex: 1, fontSize: 13, height: 42, borderRadius: 8, border: '1.5px solid var(--b)', background: 'var(--w)', color: 'var(--d)', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .2s' }}>Back</button>
-                                    <button onClick={next} className="login-btn" style={{ flex: 1, textAlign: 'center', padding: '12px', fontSize: 13, borderRadius: 8 }}>Continue to Payment →</button>
+
+                                <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                                    <BackButton onClick={back} />
+                                    <ActionButton onClick={next} style={{ flex: 1 }}>
+                                        Continue to Payment <ChevronRight size={16} />
+                                    </ActionButton>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </SectionCard>
+                        </div>
                     )}
 
-                    {/* Step 3 — Payment */}
+                    {/* ── STEP 3: Payment ── */}
                     {step === 3 && (
-                        <Card style={{ borderRadius: 'var(--rb)', border: '1px solid var(--b)', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
-                            <CardHeader className="pb-0">
-                                <CardTitle style={{ fontFamily: 'Mashiro, sans-serif', fontSize: 20 }}>💳 Payment</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p style={{ fontSize: 12, color: 'var(--g)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    🔒 Encrypted and processed by Stripe. Your card data never touches our servers.
-                                </p>
-
-                                {/* Payment method tabs */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-                                    {['💳 Card', '🍎 Apple Pay', '🔵 Google Pay'].map((m, i) => (
-                                        <button key={m} style={{
-                                            padding: '10px 8px', fontSize: 12, fontWeight: 700, borderRadius: 8, cursor: 'pointer',
-                                            fontFamily: 'Inter, sans-serif', transition: 'all .2s',
-                                            border: i === 0 ? '2px solid var(--o)' : '1.5px solid var(--b)',
-                                            background: i === 0 ? '#fff5ef' : 'var(--w)',
-                                            color: i === 0 ? 'var(--o)' : 'var(--g)',
-                                        }}>{m}</button>
+                        <div style={{ animation: 'slideIn 0.3s ease both' }}>
+                            <SectionCard
+                                icon={<CreditCard size={16} />}
+                                title="Payment"
+                                subtitle="Your data is encrypted and never stored on our servers"
+                            >
+                                {/* Payment method selector */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 24 }}>
+                                    {([
+                                        { key: 'card', label: 'Card', icon: <CreditCard size={18} /> },
+                                        { key: 'apple', label: 'Apple Pay', icon: <Apple size={18} /> },
+                                        { key: 'google', label: 'Google Pay', icon: <Smartphone size={18} /> },
+                                    ] as const).map(m => (
+                                        <button key={m.key} onClick={() => setPayMethod(m.key)} style={{
+                                            padding: '14px 10px',
+                                            borderRadius: 12, border: `2px solid ${payMethod === m.key ? '#FF6A0C' : '#e8ddd2'}`,
+                                            background: payMethod === m.key ? '#fff8f3' : '#faf8f5',
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                                            cursor: 'pointer', fontFamily: '"DM Sans", sans-serif',
+                                            transition: 'all 0.18s',
+                                            color: payMethod === m.key ? '#FF6A0C' : '#a08060',
+                                            boxShadow: payMethod === m.key ? '0 0 0 4px rgba(255,106,12,0.1)' : 'none',
+                                        }}>
+                                            {m.icon}
+                                            <span style={{ fontSize: 11, fontWeight: 700 }}>{m.label}</span>
+                                        </button>
                                     ))}
                                 </div>
 
                                 {/* Stripe placeholder */}
-                                <div style={{ border: '2px dashed var(--b)', borderRadius: 12, padding: '32px 16px', textAlign: 'center', background: '#fafafa' }}>
-                                    <div style={{ fontSize: 28, marginBottom: 8, opacity: 0.4 }}>💳</div>
-                                    <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--g)' }}>Stripe Elements Card Form</p>
-                                    <p style={{ fontSize: 11, color: 'var(--lg)', marginTop: 4 }}>PCI-DSS compliant · Visa, Mastercard, Amex</p>
+                                <div style={{
+                                    border: '1.5px dashed #ddd0c2',
+                                    borderRadius: 14, padding: '36px 20px',
+                                    textAlign: 'center',
+                                    background: 'repeating-linear-gradient(45deg, #faf8f5, #faf8f5 8px, #f7f3ee 8px, #f7f3ee 16px)',
+                                    marginBottom: 20,
+                                }}>
+                                    <CreditCard size={28} style={{ color: '#d4c4b0', marginBottom: 10 }} />
+                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#b0997e', margin: '0 0 4px' }}>Stripe Card Form</p>
+                                    <p style={{ fontSize: 11, color: '#c4b5a5', margin: 0 }}>PCI-DSS compliant · Visa, Mastercard, Amex</p>
                                 </div>
 
-                                <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
-                                    <button onClick={back} style={{ flex: 1, fontSize: 13, height: 42, borderRadius: 8, border: '1.5px solid var(--b)', background: 'var(--w)', color: 'var(--d)', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif', transition: 'all .2s' }}>Back</button>
-                                    <button onClick={next} className="login-btn" style={{ flex: 1, textAlign: 'center', padding: '12px', fontSize: 13, borderRadius: 8 }}>Pay AED {total.toFixed(2)}</button>
+                                {/* Trust badges */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 20 }}>
+                                    {['🔒 SSL Encrypted', '🛡 PCI Compliant', '💳 Stripe Secured'].map(b => (
+                                        <span key={b} style={{ fontSize: 11, color: '#b09070', fontWeight: 600 }}>{b}</span>
+                                    ))}
                                 </div>
-                            </CardContent>
-                        </Card>
+
+                                <div style={{ display: 'flex', gap: 10 }}>
+                                    <BackButton onClick={back} />
+                                    <ActionButton onClick={handlePay} loading={isProcessing} style={{ flex: 1 }}>
+                                        {isProcessing ? 'Processing…' : <>Pay AED {TOTAL.toFixed(2)} <Lock size={14} /></>}
+                                    </ActionButton>
+                                </div>
+                            </SectionCard>
+                        </div>
                     )}
 
-                    {/* Step 4 — Confirmation */}
+                    {/* ── STEP 4: Confirmation ── */}
                     {step === 4 && (
-                        <Card style={{ borderRadius: 'var(--rb)', border: '1px solid var(--b)', boxShadow: '0 1px 6px rgba(0,0,0,.07)', textAlign: 'center', padding: '40px 24px' }}>
-                            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#e8fbe8', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}>✅</div>
-                            <h2 style={{ fontFamily: 'Mashiro, sans-serif', fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Order Confirmed!</h2>
-                            <p style={{ fontSize: 13, color: 'var(--g)', marginBottom: 20 }}>
-                                Your order <span style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--o)' }}>#10483</span> has been placed.
-                            </p>
-                            <div style={{ background: '#fafafa', borderRadius: 10, padding: 16, textAlign: 'left', marginBottom: 20 }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                                    <span style={{ color: 'var(--g)' }}>Estimated delivery</span>
-                                    <span style={{ fontWeight: 700 }}>30–45 minutes</span>
+                        <div style={{ animation: 'slideIn 0.3s ease both' }}>
+                            <div style={{
+                                background: '#fff', borderRadius: 20,
+                                border: '1px solid #ede6dc',
+                                boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+                                padding: '48px 40px',
+                                textAlign: 'center',
+                            }}>
+                                {/* Success ring */}
+                                <div style={{
+                                    width: 80, height: 80, borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #FF6A0C, #ff8c42)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 24px',
+                                    boxShadow: '0 8px 32px rgba(255,106,12,0.35)',
+                                }}>
+                                    <Check size={36} color="#fff" strokeWidth={3} />
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                                    <span style={{ color: 'var(--g)' }}>Branch</span>
-                                    <span style={{ fontWeight: 700 }}>Sushi Fusion — Downtown</span>
+
+                                <h2 style={{ fontFamily: 'Mashiro, sans-serif', fontSize: 28, fontWeight: 800, color: '#1a1108', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                                    Order Confirmed!
+                                </h2>
+                                <p style={{ fontSize: 14, color: '#8a7060', margin: '0 0 32px', lineHeight: 1.6 }}>
+                                    Your order{' '}
+                                    <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#FF6A0C', background: '#fff5ee', padding: '2px 8px', borderRadius: 6 }}>
+                                        #{orderId?.slice(0, 8).toUpperCase()}
+                                    </span>{' '}
+                                    is being prepared at our Downtown branch.
+                                </p>
+
+                                {/* Details card */}
+                                <div style={{
+                                    background: '#faf8f5', border: '1px solid #ede6dc',
+                                    borderRadius: 14, padding: 20, textAlign: 'left', marginBottom: 28,
+                                }}>
+                                    {[
+                                        { label: 'Estimated delivery', value: '30–45 minutes', bold: true },
+                                        { label: 'Branch', value: 'Sushi Fusion — Downtown' },
+                                        { label: 'Total paid', value: `AED ${TOTAL.toFixed(2)}`, highlight: true },
+                                    ].map((row, i) => (
+                                        <div key={i} style={{
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            padding: '10px 0',
+                                            borderBottom: i < 2 ? '1px solid #ede6dc' : 'none',
+                                        }}>
+                                            <span style={{ fontSize: 13, color: '#a08060' }}>{row.label}</span>
+                                            <span style={{ fontSize: 13, fontWeight: row.highlight ? 800 : 700, color: row.highlight ? '#FF6A0C' : '#1a1108' }}>
+                                                {row.value}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                                    <span style={{ color: 'var(--g)' }}>Total paid</span>
-                                    <span style={{ fontWeight: 800, color: 'var(--o)' }}>AED {total.toFixed(2)}</span>
-                                </div>
+
+                                <p style={{ fontSize: 12, color: '#b09070', marginBottom: 24, lineHeight: 1.6 }}>
+                                    A confirmation email is on its way. Your account has been created — check your inbox to set a password.
+                                </p>
+
+                                <Link href="/">
+                                    <ActionButton onClick={() => { }}>
+                                        ← Back to Menu
+                                    </ActionButton>
+                                </Link>
                             </div>
-                            <p style={{ fontSize: 11, color: 'var(--lg)', marginBottom: 16 }}>
-                                A confirmation email is on its way. Your account has been created — check your inbox to set a password.
-                            </p>
-                            <Link href="/">
-                                <button className="login-btn" style={{ padding: '10px 28px', fontSize: 14, borderRadius: 8 }}>Back to Menu</button>
-                            </Link>
-                        </Card>
+                        </div>
                     )}
                 </div>
 
-                {/* Right: Order Summary */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <Card style={{ borderRadius: 'var(--rb)', border: '1px solid var(--b)', boxShadow: '0 1px 6px rgba(0,0,0,.07)', padding: 0 }}>
-                        <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--b)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span>🛒</span>
-                            <span className="cart-title" style={{ fontSize: 15, marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>Order Summary</span>
+                {/* ════ RIGHT COLUMN — Order Summary ════ */}
+                <div style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+                    {/* Summary card */}
+                    <div style={{
+                        background: '#fff', borderRadius: 18,
+                        border: '1px solid #ede6dc',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.07)',
+                        overflow: 'hidden',
+                    }}>
+                        {/* Header */}
+                        <div style={{
+                            padding: '16px 20px',
+                            borderBottom: '1px solid #f0e8df',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        }}>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: '#1a1108', fontFamily: 'Mashiro, sans-serif' }}>
+                                Order Summary
+                            </span>
+                            <span style={{
+                                fontSize: 11, fontWeight: 700, color: '#FF6A0C',
+                                background: '#fff5ee', padding: '3px 9px', borderRadius: 20,
+                                border: '1px solid #ffd0b0',
+                            }}>
+                                {cartItems.length} item{cartItems.length !== 1 ? 's' : ''}
+                            </span>
                         </div>
-                        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {MOCK_CART.map(item => (
-                                <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                    <div className="cart-item-emoji" style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden' }}>
-                                        <img src={item.imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+
+                        {/* Items */}
+                        <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 280, overflowY: 'auto' }}>
+                            {cartItems.length === 0 ? (
+                                <p style={{ fontSize: 13, color: '#b09070', textAlign: 'center', padding: '20px 0' }}>Your cart is empty</p>
+                            ) : cartItems.map((item: any) => (
+                                <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                    <div style={{
+                                        width: 44, height: 44, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                                        background: '#f2ede6', border: '1px solid #e8ddd2',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    }}>
+                                        {item.imgSrc
+                                            ? <img src={item.imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            : <span style={{ fontSize: 20 }}>{item.emoji || '🍣'}</span>
+                                        }
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <p className="cart-item-name" style={{ fontSize: 12 }}>{item.name}</p>
-                                        <p style={{ fontSize: 11, color: 'var(--g)' }}>× {item.qty}</p>
+                                        <p style={{ fontSize: 13, fontWeight: 700, color: '#1a1108', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                            {item.name}
+                                        </p>
+                                        <p style={{ fontSize: 11, color: '#b09070', margin: 0 }}>× {item.qty}</p>
                                     </div>
-                                    <p style={{ fontSize: 13, fontWeight: 800 }}>AED {(item.price * item.qty)}</p>
+                                    <p style={{ fontSize: 13, fontWeight: 800, color: '#1a1108', flexShrink: 0 }}>
+                                        AED {item.price * item.qty}
+                                    </p>
                                 </div>
                             ))}
                         </div>
-                        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--b)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)' }}>
-                                <span>Subtotal</span><span>AED {SUBTOTAL}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)' }}>
-                                <span>Delivery fee</span><span>AED {DELIVERY_FEE}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)' }}>
-                                <span>VAT (5%)</span><span>AED {tax}</span>
-                            </div>
-                            <div style={{ borderTop: '1px solid var(--b)', paddingTop: 8, marginTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 800 }}>
-                                <span>Total</span>
-                                <span style={{ color: 'var(--o)' }}>AED {total.toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </Card>
 
-                    {/* Promo */}
-                    <Card style={{ borderRadius: 'var(--rb)', border: '1px solid var(--b)', boxShadow: '0 1px 4px rgba(0,0,0,.05)', padding: '14px 16px' }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--d)', marginBottom: 8 }}>Promo Code</p>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <input placeholder="Enter code..." style={{ ...inputStyle, flex: 1, padding: '8px 12px' }} />
-                            <button style={{ fontSize: 12, padding: '8px 14px', borderRadius: 6, border: '1.5px solid var(--b)', background: 'var(--w)', color: 'var(--o)', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>Apply</button>
+                        {/* Totals */}
+                        <div style={{ padding: '14px 20px', borderTop: '1px solid #f0e8df', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {[
+                                { label: 'Subtotal', value: `AED ${SUBTOTAL}` },
+                                { label: 'Delivery fee', value: `AED ${DELIVERY}` },
+                                { label: 'VAT (5%)', value: `AED ${TAX}` },
+                            ].map(row => (
+                                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: 13, color: '#a08060' }}>{row.label}</span>
+                                    <span style={{ fontSize: 13, color: '#5a4030' }}>{row.value}</span>
+                                </div>
+                            ))}
+                            {DISCOUNT > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>Promo (10% off)</span>
+                                    <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>−AED {DISCOUNT}</span>
+                                </div>
+                            )}
+                            <div style={{ borderTop: '1.5px solid #ede6dc', paddingTop: 10, marginTop: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: 15, fontWeight: 800, color: '#1a1108' }}>Total</span>
+                                <span style={{ fontSize: 18, fontWeight: 900, color: '#FF6A0C', letterSpacing: '-0.03em' }}>
+                                    AED {TOTAL.toFixed(2)}
+                                </span>
+                            </div>
                         </div>
-                    </Card>
+                    </div>
+
+                    {/* Promo code */}
+                    {step < 4 && (
+                        <div style={{
+                            background: '#fff', borderRadius: 14,
+                            border: '1px solid #ede6dc',
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+                            padding: '14px 16px',
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                                <Tag size={13} style={{ color: '#FF6A0C' }} />
+                                <span style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e' }}>Promo Code</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <FInput
+                                    placeholder="Enter code…"
+                                    value={promoCode}
+                                    onChange={e => setPromoCode(e.target.value)}
+                                    disabled={promoApplied}
+                                    style={{ flex: 1, padding: '9px 12px', fontSize: 13 }}
+                                />
+                                <button
+                                    onClick={() => { if (promoCode.trim()) setPromoApplied(true); }}
+                                    disabled={promoApplied || !promoCode.trim()}
+                                    style={{
+                                        padding: '9px 14px', borderRadius: 10,
+                                        border: 'none', cursor: promoApplied ? 'default' : 'pointer',
+                                        background: promoApplied ? '#22c55e' : '#FF6A0C',
+                                        color: '#fff', fontSize: 12, fontWeight: 700,
+                                        fontFamily: '"DM Sans", sans-serif',
+                                        transition: 'all 0.18s', flexShrink: 0,
+                                    }}
+                                >
+                                    {promoApplied ? '✓ Applied' : 'Apply'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Delivery info */}
+                    {step < 4 && (
+                        <div style={{
+                            background: '#fff8f3', borderRadius: 12,
+                            border: '1px solid #ffd0b0',
+                            padding: '12px 14px',
+                            display: 'flex', alignItems: 'flex-start', gap: 10,
+                        }}>
+                            <MapPin size={14} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 1 }} />
+                            <div>
+                                <p style={{ fontSize: 12, fontWeight: 700, color: '#7a3d10', margin: '0 0 2px' }}>
+                                    Delivering from Downtown branch
+                                </p>
+                                <p style={{ fontSize: 11, color: '#a06040', margin: 0 }}>
+                                    12 Al Wasl Rd · Est. 30–45 min
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
+                @keyframes slideIn {
+                    from { opacity: 0; transform: translateX(12px); }
+                    to   { opacity: 1; transform: translateX(0);    }
+                }
+                input::placeholder { color: #c4b5a5; }
+                ::-webkit-scrollbar { width: 4px; }
+                ::-webkit-scrollbar-track { background: transparent; }
+                ::-webkit-scrollbar-thumb { background: #e0d0c0; border-radius: 99px; }
+                @media (max-width: 768px) {
+                    .checkout-grid { grid-template-columns: 1fr !important; }
+                }
+            `}</style>
         </div>
+    );
+}
+
+/* ─── Section card wrapper ─── */
+function SectionCard({ icon, title, subtitle, children }: {
+    icon: React.ReactNode; title: string; subtitle: string; children: React.ReactNode;
+}) {
+    return (
+        <div style={{
+            background: '#fff', borderRadius: 20,
+            border: '1px solid #ede6dc',
+            boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
+            overflow: 'hidden',
+        }}>
+            {/* Card header */}
+            <div style={{
+                padding: '20px 24px 18px',
+                borderBottom: '1px solid #f5efe8',
+                display: 'flex', alignItems: 'center', gap: 12,
+            }}>
+                <div style={{
+                    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+                    background: '#fff5ee', border: '1px solid #ffd0b0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#FF6A0C',
+                }}>
+                    {icon}
+                </div>
+                <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: '#1a1108', margin: '0 0 2px', fontFamily: 'Mashiro, sans-serif', letterSpacing: '-0.01em' }}>
+                        {title}
+                    </h3>
+                    <p style={{ fontSize: 12, color: '#a08060', margin: 0, fontWeight: 500 }}>{subtitle}</p>
+                </div>
+            </div>
+
+            {/* Card body */}
+            <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+/* ─── Primary action button ─── */
+function ActionButton({ onClick, children, loading, style }: {
+    onClick: () => void; children: React.ReactNode; loading?: boolean; style?: React.CSSProperties;
+}) {
+    const [hov, setHov] = useState(false);
+    return (
+        <button
+            onClick={onClick}
+            disabled={loading}
+            onMouseEnter={() => setHov(true)}
+            onMouseLeave={() => setHov(false)}
+            style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                padding: '14px 24px',
+                background: loading ? '#f0a070' : hov ? '#e55a00' : '#FF6A0C',
+                border: 'none', borderRadius: 12,
+                color: '#fff', fontSize: 14, fontWeight: 700,
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: '"DM Sans", sans-serif',
+                transition: 'all 0.18s',
+                boxShadow: hov && !loading ? '0 6px 24px rgba(255,106,12,0.4)' : '0 3px 12px rgba(255,106,12,0.25)',
+                transform: hov && !loading ? 'translateY(-1px)' : 'translateY(0)',
+                letterSpacing: '0.01em',
+                width: '100%',
+                ...style,
+            }}
+        >
+            {children}
+        </button>
+    );
+}
+
+/* ─── Back button ─── */
+function BackButton({ onClick }: { onClick: () => void }) {
+    return (
+        <button onClick={onClick} style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '14px 18px',
+            background: '#faf8f5', border: '1.5px solid #e8ddd2',
+            borderRadius: 12, color: '#8a7060',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            fontFamily: '"DM Sans", sans-serif',
+            transition: 'all 0.18s', flexShrink: 0,
+        }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#f2ede6'; e.currentTarget.style.borderColor = '#d4c4b0'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#faf8f5'; e.currentTarget.style.borderColor = '#e8ddd2'; }}
+        >
+            <ArrowLeft size={14} /> Back
+        </button>
     );
 }

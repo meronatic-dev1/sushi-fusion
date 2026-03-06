@@ -3,14 +3,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Download, X, ChevronDown, ChevronRight, FolderPlus, Tag } from 'lucide-react';
 import Image from 'next/image';
+import {
+    getCategories, getMenuItems, createCategory as apiCreateCategory,
+    updateCategory as apiUpdateCategory, deleteCategory as apiDeleteCategory,
+    createMenuItem, updateMenuItem, deleteMenuItem, uploadImage,
+    type ApiCategory, type ApiMenuItem,
+} from '@/lib/api';
 
 interface Product {
-    id: string; name: string; category: string; price: number;
+    id: string; name: string; category: string; categoryId: string; price: number;
     available: boolean; dietary: string[]; imgSrc: string; orders: number;
 }
 
 interface Category {
-    id: string; name: string; color: string;
+    id: string; name: string; color: string; imgSrc?: string;
 }
 
 const CATEGORY_COLORS = [
@@ -18,33 +24,8 @@ const CATEGORY_COLORS = [
     '#a78bfa', '#34d399', '#f472b6', '#38bdf8', '#fb923c',
 ];
 
-const INITIAL_CATS: Category[] = [
-    { id: 'special-offers',     name: 'Special Offers',      color: '#FF6A0C' },
-    { id: 'vip-moriwase',       name: 'VIP Moriwase',        color: '#fbbf24' },
-    { id: 'sashimi',            name: 'Sashimi',             color: '#60a5fa' },
-    { id: 'hoso-maki',          name: 'Hoso Maki',           color: '#4ade80' },
-    { id: 'starters',           name: 'Starters',            color: '#f87171' },
-    { id: 'curry-fried-rice',   name: 'Curry & Fried Rice',  color: '#a78bfa' },
-    { id: 'poke-bowl',          name: 'Poke Bowl',           color: '#34d399' },
-    { id: 'noodles',            name: 'Noodles',             color: '#38bdf8' },
-    { id: 'beverages',          name: 'Beverages',           color: '#f472b6' },
-];
-
-const INITIAL: Product[] = [
-    { id: '1',  name: 'Dear Box 16 Pcs',            category: 'Special Offers',     price: 89,  available: true,  dietary: [],         imgSrc: '/images/31.png',         orders: 145 },
-    { id: '2',  name: 'Happy Box 16 Pcs',            category: 'Special Offers',     price: 99,  available: true,  dietary: [],         imgSrc: '/images/32.png',         orders: 122 },
-    { id: '3',  name: 'Fusion VIP Moriwase 32 Pcs',  category: 'VIP Moriwase',       price: 199, available: true,  dietary: [],         imgSrc: '/images/17.png',         orders: 284 },
-    { id: '4',  name: 'Salmon Sashimi 5 Pcs',        category: 'Sashimi',            price: 49,  available: true,  dietary: [],         imgSrc: '/images/33.png',         orders: 198 },
-    { id: '5',  name: 'Mango Veggie Roll 8 Pcs',     category: 'Special Offers',     price: 39,  available: true,  dietary: ['Vegan'],  imgSrc: '/images/special-03.png', orders: 87  },
-    { id: '6',  name: 'Kappa Maki',                  category: 'Hoso Maki',          price: 19,  available: false, dietary: ['Vegan'],  imgSrc: '/images/43.png',         orders: 62  },
-    { id: '7',  name: 'Dynamite Shrimp',             category: 'Starters',           price: 59,  available: true,  dietary: ['Spicy'],  imgSrc: '/images/128.png',        orders: 101 },
-    { id: '8',  name: 'Chicken Katsu Curry Rice',    category: 'Curry & Fried Rice', price: 49,  available: true,  dietary: [],         imgSrc: '/images/99.png',         orders: 78  },
-    { id: '9',  name: 'Fusion Rainbow Salmon Poke',  category: 'Poke Bowl',          price: 89,  available: true,  dietary: [],         imgSrc: '/images/110.png',        orders: 93  },
-    { id: '10', name: 'Seafood Ramen',               category: 'Noodles',            price: 69,  available: false, dietary: [],         imgSrc: '/images/133.png',        orders: 56  },
-];
-
 const DIETARY_CFG: Record<string, { color: string; bg: string; border: string }> = {
-    Vegan: { color: '#4ade80', bg: 'rgba(74,222,128,0.08)',  border: 'rgba(74,222,128,0.2)'  },
+    Vegan: { color: '#4ade80', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.2)' },
     Spicy: { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)' },
 };
 
@@ -66,18 +47,36 @@ function ProductModal({
     categories: Category[];
     initial?: Product;
 }) {
-    const [name,      setName]      = useState(initial?.name ?? '');
-    const [category,  setCategory]  = useState(initial?.category ?? (categories[0]?.name ?? ''));
-    const [price,     setPrice]     = useState(String(initial?.price ?? ''));
-    const [dietary,   setDietary]   = useState<string[]>(initial?.dietary ?? []);
+    const [name, setName] = useState(initial?.name ?? '');
+    const [category, setCategory] = useState(initial?.category ?? (categories[0]?.name ?? ''));
+    const [price, setPrice] = useState(String(initial?.price ?? ''));
+    const [dietary, setDietary] = useState<string[]>(initial?.dietary ?? []);
     const [available, setAvailable] = useState(initial?.available ?? true);
+    const [imgSrc, setImgSrc] = useState(initial?.imgSrc ?? '/images/31.png');
+    const [uploading, setUploading] = useState(false);
+    const fileRef = useRef<HTMLInputElement>(null);
 
     const toggleDiet = (d: string) =>
         setDietary(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const data = await uploadImage(file);
+            setImgSrc(data.url);
+        } catch (err: any) {
+            alert(err.message || 'Upload failed');
+        } finally {
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = '';
+        }
+    };
+
     const save = () => {
         if (!name.trim() || !category || !price) return;
-        onSave({ name: name.trim(), category, price: Number(price), dietary, available, imgSrc: initial?.imgSrc ?? '/images/31.png' });
+        onSave({ name: name.trim(), category, price: Number(price), dietary, available, imgSrc });
         onClose();
     };
 
@@ -94,13 +93,29 @@ function ProductModal({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Image Upload */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', position: 'relative', flexShrink: 0 }}>
+                            <Image src={imgSrc} alt="Preview" fill style={{ objectFit: 'cover', opacity: uploading ? 0.5 : 1 }} />
+                        </div>
+                        <div>
+                            <input type="file" ref={fileRef} accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                            <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding: '6px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: uploading ? 'wait' : 'pointer', transition: 'all 0.15s' }}
+                                onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                onMouseLeave={e => { if (!uploading) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}>
+                                {uploading ? 'Uploading...' : 'Change Image'}
+                            </button>
+                            <p style={{ margin: '6px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Recommended: Square format.</p>
+                        </div>
+                    </div>
+
                     {/* Name */}
                     <div>
                         <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Product Name</label>
                         <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Salmon Avocado Roll 8 Pcs"
                             style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', padding: '10px 14px', cursor: 'text', borderRadius: 10 }}
                             onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')}
-                            onBlur={e  => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
                         />
                     </div>
 
@@ -118,7 +133,7 @@ function ProductModal({
                             <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="0"
                                 style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', padding: '10px 14px', cursor: 'text', borderRadius: 10 }}
                                 onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')}
-                                onBlur={e  => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
                             />
                         </div>
                     </div>
@@ -146,7 +161,7 @@ function ProductModal({
                         <button onClick={() => setAvailable(a => !a)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, lineHeight: 0 }}>
                             {available
                                 ? <ToggleRight size={28} style={{ color: '#FF6A0C', filter: 'drop-shadow(0 0 5px rgba(255,106,12,0.4))' }} />
-                                : <ToggleLeft  size={28} style={{ color: 'rgba(255,255,255,0.2)' }} />
+                                : <ToggleLeft size={28} style={{ color: 'rgba(255,255,255,0.2)' }} />
                             }
                         </button>
                     </div>
@@ -171,17 +186,35 @@ function CategoryModal({
     onClose, onSave, initial, existingNames,
 }: {
     onClose: () => void;
-    onSave: (name: string, color: string) => void;
+    onSave: (name: string, color: string, imgSrc?: string) => void;
     initial?: Category;
     existingNames: string[];
 }) {
-    const [name,  setName]  = useState(initial?.name ?? '');
+    const [name, setName] = useState(initial?.name ?? '');
     const [color, setColor] = useState(initial?.color ?? CATEGORY_COLORS[0]);
+    const [imgSrc, setImgSrc] = useState(initial?.imgSrc ?? '');
+    const [uploading, setUploading] = useState(false);
+    const fileRef = useRef<HTMLInputElement>(null);
     const err = !initial && existingNames.map(n => n.toLowerCase()).includes(name.trim().toLowerCase());
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const data = await uploadImage(file);
+            setImgSrc(data.url);
+        } catch (err: any) {
+            alert(err.message || 'Upload failed');
+        } finally {
+            setUploading(false);
+            if (fileRef.current) fileRef.current.value = '';
+        }
+    };
 
     const save = () => {
         if (!name.trim() || err) return;
-        onSave(name.trim(), color);
+        onSave(name.trim(), color, imgSrc);
         onClose();
     };
 
@@ -198,12 +231,31 @@ function CategoryModal({
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Image Upload */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {imgSrc ? (
+                                <Image src={imgSrc} alt="Preview" fill style={{ objectFit: 'cover', opacity: uploading ? 0.5 : 1 }} />
+                            ) : (
+                                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>No<br />Image</span>
+                            )}
+                        </div>
+                        <div>
+                            <input type="file" ref={fileRef} accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+                            <button onClick={() => fileRef.current?.click()} disabled={uploading} style={{ padding: '6px 14px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: uploading ? 'wait' : 'pointer', transition: 'all 0.15s' }}
+                                onMouseEnter={e => { if (!uploading) e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                onMouseLeave={e => { if (!uploading) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}>
+                                {uploading ? 'Uploading...' : 'Change Image'}
+                            </button>
+                        </div>
+                    </div>
+
                     <div>
                         <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>Category Name</label>
                         <input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Desserts"
                             style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', padding: '10px 14px', cursor: 'text', borderRadius: 10, borderColor: err ? 'rgba(248,113,113,0.4)' : undefined }}
                             onFocus={e => (e.currentTarget.style.borderColor = err ? 'rgba(248,113,113,0.5)' : 'rgba(255,106,12,0.5)')}
-                            onBlur={e  => (e.currentTarget.style.borderColor = err ? 'rgba(248,113,113,0.4)' : 'rgba(255,255,255,0.07)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = err ? 'rgba(248,113,113,0.4)' : 'rgba(255,255,255,0.07)')}
                         />
                         {err && <p style={{ margin: '5px 0 0', fontSize: 11, color: '#f87171' }}>Category already exists</p>}
                     </div>
@@ -244,51 +296,106 @@ function CategoryModal({
 
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export default function AdminProductsPage() {
-    const [products,    setProducts]    = useState<Product[]>(INITIAL);
-    const [categories,  setCategories]  = useState<Category[]>(INITIAL_CATS);
-    const [search,      setSearch]      = useState('');
-    const [avFilter,    setAvFilter]    = useState<'All' | 'Available' | 'Unavailable'>('All');
-    const [selected,    setSelected]    = useState<string[]>([]);
-    const [view,        setView]        = useState<'all' | 'by-category'>('by-category');
-    const [collapsed,   setCollapsed]   = useState<Record<string, boolean>>({});
+    const [products, setProducts] = useState<Product[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [avFilter, setAvFilter] = useState<'All' | 'Available' | 'Unavailable'>('All');
+    const [selected, setSelected] = useState<string[]>([]);
+    const [view, setView] = useState<'all' | 'by-category'>('by-category');
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
     const [showAddProd, setShowAddProd] = useState(false);
-    const [showAddCat,  setShowAddCat]  = useState(false);
-    const [editProd,    setEditProd]    = useState<Product | null>(null);
-    const [editCat,     setEditCat]     = useState<Category | null>(null);
-    const [addToCat,    setAddToCat]    = useState<string | null>(null); // category name for quick-add
+    const [showAddCat, setShowAddCat] = useState(false);
+    const [editProd, setEditProd] = useState<Product | null>(null);
+    const [editCat, setEditCat] = useState<Category | null>(null);
+    const [addToCat, setAddToCat] = useState<string | null>(null);
 
-    const toggle    = (id: string) => setProducts(prev => prev.map(p => p.id === id ? { ...p, available: !p.available } : p));
+    // ── Load data from backend ──
+    const loadData = async () => {
+        try {
+            const [cats, items] = await Promise.all([getCategories(), getMenuItems()]);
+            setCategories(cats.map((c, i) => ({
+                id: c.id,
+                name: c.name,
+                color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                imgSrc: c.imageUrl || ''
+            })));
+            setProducts(items.map(m => ({
+                id: m.id,
+                name: m.name,
+                category: m.category?.name || 'Uncategorized',
+                categoryId: m.categoryId,
+                price: m.price,
+                available: m.isAvailable,
+                dietary: [],
+                imgSrc: m.imageUrl || '/images/31.png',
+                orders: 0,
+            })));
+        } catch (e) {
+            console.error('Failed to load data:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { loadData(); }, []);
+
+    const toggle = async (id: string) => {
+        const p = products.find(x => x.id === id);
+        if (!p) return;
+        await updateMenuItem(id, { isAvailable: !p.available });
+        setProducts(prev => prev.map(x => x.id === id ? { ...x, available: !x.available } : x));
+    };
     const toggleSel = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     const toggleCollapse = (catId: string) => setCollapsed(prev => ({ ...prev, [catId]: !prev[catId] }));
 
-    const deleteProduct  = (id: string)  => setProducts(prev => prev.filter(p => p.id !== id));
-    const deleteCategory = (catId: string) => {
-        const cat = categories.find(c => c.id === catId);
+    const deleteProduct = async (id: string) => {
+        await deleteMenuItem(id);
+        setProducts(prev => prev.filter(p => p.id !== id));
+    };
+    const deleteCategoryHandler = async (catId: string) => {
+        await apiDeleteCategory(catId);
+        await loadData();
+    };
+
+    const addProduct = async (data: Omit<Product, 'id' | 'orders'>) => {
+        const cat = categories.find(c => c.name === data.category);
         if (!cat) return;
-        setCategories(prev => prev.filter(c => c.id !== catId));
-        setProducts(prev => prev.filter(p => p.category !== cat.name));
+        await createMenuItem({
+            name: data.name,
+            description: '',
+            price: data.price,
+            imageUrl: data.imgSrc || undefined,
+            isAvailable: data.available,
+            categoryId: cat.id,
+        });
+        await loadData();
     };
 
-    const addProduct = (data: Omit<Product, 'id' | 'orders'>) => {
-        setProducts(prev => [...prev, { ...data, id: String(Date.now()), orders: 0 }]);
-    };
-
-    const saveProduct = (data: Omit<Product, 'id' | 'orders'>) => {
+    const saveProduct = async (data: Omit<Product, 'id' | 'orders'>) => {
         if (!editProd) return;
-        setProducts(prev => prev.map(p => p.id === editProd.id ? { ...p, ...data } : p));
+        const cat = categories.find(c => c.name === data.category);
+        await updateMenuItem(editProd.id, {
+            name: data.name,
+            price: data.price,
+            imageUrl: data.imgSrc || undefined,
+            isAvailable: data.available,
+            categoryId: cat?.id,
+        });
         setEditProd(null);
+        await loadData();
     };
 
-    const addCategory = (name: string, color: string) => {
-        setCategories(prev => [...prev, { id: name.toLowerCase().replace(/\s+/g, '-'), name, color }]);
+    const addCategory = async (name: string, _color: string, imgSrc?: string) => {
+        await apiCreateCategory({ name, imageUrl: imgSrc || undefined });
+        await loadData();
     };
 
-    const saveCategory = (name: string, color: string) => {
+    const saveCategory = async (name: string, _color: string, imgSrc?: string) => {
         if (!editCat) return;
-        const oldName = editCat.name;
-        setCategories(prev => prev.map(c => c.id === editCat.id ? { ...c, name, color } : c));
-        setProducts(prev => prev.map(p => p.category === oldName ? { ...p, category: name } : p));
+        await apiUpdateCategory(editCat.id, { name, imageUrl: imgSrc || undefined });
         setEditCat(null);
+        await loadData();
     };
 
     const filtered = products.filter(p => {
@@ -297,10 +404,10 @@ export default function AdminProductsPage() {
             && (avFilter === 'All' || (avFilter === 'Available' ? p.available : !p.available));
     });
 
-    const avCount   = products.filter(p =>  p.available).length;
+    const avCount = products.filter(p => p.available).length;
     const unavCount = products.filter(p => !p.available).length;
     const allChecked = selected.length === filtered.length && filtered.length > 0;
-    const maxOrders  = Math.max(...products.map(p => p.orders), 1);
+    const maxOrders = Math.max(...products.map(p => p.orders), 1);
 
     // Grouped by category
     const grouped = categories.map(cat => ({
@@ -358,7 +465,7 @@ export default function AdminProductsPage() {
                     onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}>
                     {p.available
                         ? <ToggleRight size={28} style={{ color: '#FF6A0C', filter: 'drop-shadow(0 0 5px rgba(255,106,12,0.5))' }} />
-                        : <ToggleLeft  size={28} style={{ color: 'rgba(255,255,255,0.15)' }} />
+                        : <ToggleLeft size={28} style={{ color: 'rgba(255,255,255,0.15)' }} />
                     }
                 </button>
             </td>
@@ -429,7 +536,7 @@ export default function AdminProductsPage() {
                     {/* Add Product */}
                     <button onClick={() => setShowAddProd(true)} style={{ padding: '9px 18px', background: 'linear-gradient(135deg, #FF6A0C, #e55a00)', border: 'none', borderRadius: 10, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 16px rgba(255,106,12,0.35)', transition: 'transform 0.15s, box-shadow 0.15s', fontFamily: 'inherit', letterSpacing: '0.01em' }}
                         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(255,106,12,0.45)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';    e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,106,12,0.35)'; }}>
+                        onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(255,106,12,0.35)'; }}>
                         <Plus size={14} /> Add Product
                     </button>
                 </div>
@@ -457,7 +564,7 @@ export default function AdminProductsPage() {
                     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search products…"
                         style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', padding: '9px 12px 9px 34px', cursor: 'text' }}
                         onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.4)')}
-                        onBlur={e  => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')} />
+                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')} />
                 </div>
 
                 <select value={avFilter} onChange={e => setAvFilter(e.target.value as typeof avFilter)}
@@ -486,7 +593,7 @@ export default function AdminProductsPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {grouped.map(({ cat, items }, gi) => {
                         const isCollapsed = collapsed[cat.id];
-                        const catAvail    = items.filter(p => p.available).length;
+                        const catAvail = items.filter(p => p.available).length;
                         return (
                             <div key={cat.id} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, overflow: 'hidden', animation: `fadeUp 0.4s ease both`, animationDelay: `${gi * 0.05}s` }}>
 
@@ -521,7 +628,7 @@ export default function AdminProductsPage() {
                                         </button>
 
                                         {/* Delete category */}
-                                        <button onClick={() => deleteCategory(cat.id)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
+                                        <button onClick={() => deleteCategoryHandler(cat.id)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
                                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.2)'; }}
                                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                                             <Trash2 size={11} />
@@ -572,7 +679,7 @@ export default function AdminProductsPage() {
                                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; }}>
                                         <Pencil size={11} />
                                     </button>
-                                    <button onClick={() => deleteCategory(cat.id)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer' }}
+                                    <button onClick={() => deleteCategoryHandler(cat.id)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer' }}
                                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.2)'; }}
                                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                                         <Trash2 size={11} />
@@ -603,7 +710,7 @@ export default function AdminProductsPage() {
             {(showAddProd || editProd) && (
                 <ProductModal
                     categories={categories}
-                    initial={editProd ?? (addToCat ? { ...INITIAL[0], category: addToCat, id: '', orders: 0, name: '', price: 0, dietary: [], available: true } : undefined)}
+                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, price: 0, available: true, dietary: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
                     onClose={() => { setShowAddProd(false); setEditProd(null); setAddToCat(null); }}
                     onSave={editProd ? saveProduct : addProduct}
                 />

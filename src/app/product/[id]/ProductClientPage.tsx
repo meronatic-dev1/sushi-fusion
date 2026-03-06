@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import Footer from '@/components/Footer';
-import { MENU } from '@/lib/data';
+import { MENU, type Product } from '@/lib/data';
 import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
+import { getMenuItems } from '@/lib/api';
 
 export default function ProductClientPage({ id }: { id: string }) {
     const router = useRouter();
@@ -18,13 +19,42 @@ export default function ProductClientPage({ id }: { id: string }) {
     const [language, setLanguage] = useState<Language>('en');
     const [activeBottomTab, setActiveBottomTab] = useState('menu');
     const [isAdded, setIsAdded] = useState(false);
+    const [product, setProduct] = useState<Product | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const t = (key: string) => translate(language, key);
 
-    // Reconstruct product from decoded URI component parameter
+    // Try to load from API first, then fall back to static data
     const decodedName = decodeURIComponent(id);
-    const allProducts = Object.values(MENU).flat();
-    const product = allProducts.find(p => p.name === decodedName);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const items = await getMenuItems();
+                const apiItem = items.find(m => m.name === decodedName);
+                if (!cancelled && apiItem) {
+                    setProduct({
+                        name: apiItem.name,
+                        desc: apiItem.description || '',
+                        price: apiItem.price,
+                        emoji: '🍣',
+                        imgSrc: apiItem.imageUrl || undefined,
+                    });
+                    setLoading(false);
+                    return;
+                }
+            } catch { /* API unavailable */ }
+            // Fallback to static data
+            if (!cancelled) {
+                const allProducts = Object.values(MENU).flat();
+                const found = allProducts.find(p => p.name === decodedName) || null;
+                setProduct(found);
+                setLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [decodedName]);
 
     const handleBottomTabChange = (tab: string) => {
         setActiveBottomTab(tab);

@@ -15,6 +15,8 @@ import { StripeModule } from './stripe/stripe.module';
 import { ResendModule } from './resend/resend.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { SettingsModule } from './settings/settings.module';
+import { CategoriesModule } from './categories/categories.module';
+import { MenuItemsModule } from './menu-items/menu-items.module';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { SettingsModule } from './settings/settings.module';
     ResendModule,
     CloudinaryModule,
     SettingsModule,
+    CategoriesModule,
+    MenuItemsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -160,10 +160,20 @@ export default function AdminUsersPage() {
 
     const loadUsers = () => {
         setLoading(true);
-        fetch('http://localhost:3001/users')
+        fetch('http://localhost:3001/api/users')
             .then(res => res.json())
-            .then(data => setUsers(data))
-            .catch(err => console.error('Failed to load users', err))
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setUsers(data);
+                } else {
+                    console.error('Expected array of users, got:', data);
+                    setUsers([]);
+                }
+            })
+            .catch(err => {
+                console.error('Failed to load users', err);
+                setUsers([]);
+            })
             .finally(() => setLoading(false));
     };
 
@@ -172,7 +182,7 @@ export default function AdminUsersPage() {
     }, []);
 
     const handleSaveUser = async (data: any) => {
-        const url = editUser ? `http://localhost:3001/users/${editUser.id}` : 'http://localhost:3001/users';
+        const url = editUser ? `http://localhost:3001/api/users/${editUser.id}` : 'http://localhost:3001/api/users';
         const method = editUser ? 'PATCH' : 'POST';
 
         const res = await fetch(url, {
@@ -194,7 +204,7 @@ export default function AdminUsersPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this user?')) return;
         try {
-            const res = await fetch(`http://localhost:3001/users/${id}`, { method: 'DELETE' });
+            const res = await fetch(`http://localhost:3001/api/users/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Error deleting user');
             loadUsers();
         } catch (err: any) {

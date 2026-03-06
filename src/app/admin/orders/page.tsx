@@ -2,17 +2,18 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, MapPin, Clock, Download, FileSpreadsheet, FileText, ChevronRight } from 'lucide-react';
+import { getOrders, updateOrderStatus } from '@/lib/api';
 
 type OrderStatus = 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
-interface Order { id: string; customer: string; email: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; time: string; tableNo?: number; address?: string; }
+interface Order { id: string; displayId: string; customer: string; email: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; time: string; tableNo?: number; address?: string; }
 
 const MOCK: Order[] = [
-    { id: '#10482', customer: 'Ahmed Al Rashidi', email: 'ahmed@email.com', branch: 'Downtown',   mode: 'Delivery', items: ['Dear Box 16 Pcs', 'San Pellegrino x2'],                            total: 'AED 113', status: 'Pending',   time: '2 min ago',  address: '12 Al Wasl Rd, Dubai' },
-    { id: '#10481', customer: 'Sara Nasser',       email: 'sara@email.com',  branch: 'Marina',     mode: 'Pickup',   items: ['Fusion VIP Moriwase 32 Pcs'],                                    total: 'AED 199', status: 'Confirmed', time: '8 min ago'  },
-    { id: '#10480', customer: 'James Park',        email: 'james@email.com', branch: 'Motor City', mode: 'Dine-In',  items: ['Fire & Sea Box B 24 Pcs', 'Salmon Sashimi 5 Pcs', 'Red Bull x3'], total: 'AED 220', status: 'Preparing', time: '15 min ago', tableNo: 4 },
-    { id: '#10479', customer: 'Lena Hoffman',      email: 'lena@email.com',  branch: 'Downtown',   mode: 'Delivery', items: ['Salmon Avocado Roll 8 Pcs', 'Water x2'],                         total: 'AED 63',  status: 'Ready',     time: '22 min ago', address: 'JBR The Walk' },
-    { id: '#10478', customer: 'Mohammed Sultan',   email: 'mo@email.com',    branch: 'Marina',     mode: 'Delivery', items: ['Happy Box 16 Pcs'],                                              total: 'AED 99',  status: 'Completed', time: '35 min ago', address: 'Palm Jumeirah' },
-    { id: '#10477', customer: 'Aisha Khalid',      email: 'aisha@email.com', branch: 'Downtown',   mode: 'Pickup',   items: ['Rainbow Dream Roll 8 Pcs', 'Pepsi x2'],                         total: 'AED 73',  status: 'Cancelled', time: '42 min ago' },
+    { id: '#10482', customer: 'Ahmed Al Rashidi', email: 'ahmed@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Dear Box 16 Pcs', 'San Pellegrino x2'], total: 'AED 113', status: 'Pending', time: '2 min ago', address: '12 Al Wasl Rd, Dubai' },
+    { id: '#10481', customer: 'Sara Nasser', email: 'sara@email.com', branch: 'Marina', mode: 'Pickup', items: ['Fusion VIP Moriwase 32 Pcs'], total: 'AED 199', status: 'Confirmed', time: '8 min ago' },
+    { id: '#10480', customer: 'James Park', email: 'james@email.com', branch: 'Motor City', mode: 'Dine-In', items: ['Fire & Sea Box B 24 Pcs', 'Salmon Sashimi 5 Pcs', 'Red Bull x3'], total: 'AED 220', status: 'Preparing', time: '15 min ago', tableNo: 4 },
+    { id: '#10479', customer: 'Lena Hoffman', email: 'lena@email.com', branch: 'Downtown', mode: 'Delivery', items: ['Salmon Avocado Roll 8 Pcs', 'Water x2'], total: 'AED 63', status: 'Ready', time: '22 min ago', address: 'JBR The Walk' },
+    { id: '#10478', customer: 'Mohammed Sultan', email: 'mo@email.com', branch: 'Marina', mode: 'Delivery', items: ['Happy Box 16 Pcs'], total: 'AED 99', status: 'Completed', time: '35 min ago', address: 'Palm Jumeirah' },
+    { id: '#10477', customer: 'Aisha Khalid', email: 'aisha@email.com', branch: 'Downtown', mode: 'Pickup', items: ['Rainbow Dream Roll 8 Pcs', 'Pepsi x2'], total: 'AED 73', status: 'Cancelled', time: '42 min ago' },
 ];
 
 const PIPELINE: OrderStatus[] = ['Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
@@ -21,28 +22,28 @@ const NEXT_LABEL: Partial<Record<OrderStatus, string>> = { Pending: 'Confirm', C
 const MODE_ICON: Record<string, string> = { Delivery: '🛵', Pickup: '🏠', 'Dine-In': '🍽️' };
 
 const STATUS_CFG: Record<OrderStatus, { color: string; bg: string; border: string; icon: React.ReactNode; barColor: string }> = {
-    Pending:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',   border: 'rgba(251,191,36,0.2)',   icon: <AlertCircle size={11} />, barColor: '#fbbf24' },
-    Confirmed: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',   border: 'rgba(96,165,250,0.2)',   icon: <CheckCircle size={11} />, barColor: '#60a5fa' },
-    Preparing: { color: '#FF6A0C', bg: 'rgba(255,106,12,0.08)',   border: 'rgba(255,106,12,0.2)',   icon: <ChefHat    size={11} />, barColor: '#FF6A0C' },
-    Ready:     { color: '#4ade80', bg: 'rgba(74,222,128,0.08)',   border: 'rgba(74,222,128,0.2)',   icon: <Bike       size={11} />, barColor: '#4ade80' },
-    Completed: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)',  border: 'rgba(107,114,128,0.2)',  icon: <CheckCircle size={11} />, barColor: '#6b7280' },
-    Cancelled: { color: '#f87171', bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.2)',  icon: <XCircle    size={11} />, barColor: '#f87171' },
+    Pending: { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)', icon: <AlertCircle size={11} />, barColor: '#fbbf24' },
+    Confirmed: { color: '#60a5fa', bg: 'rgba(96,165,250,0.08)', border: 'rgba(96,165,250,0.2)', icon: <CheckCircle size={11} />, barColor: '#60a5fa' },
+    Preparing: { color: '#FF6A0C', bg: 'rgba(255,106,12,0.08)', border: 'rgba(255,106,12,0.2)', icon: <ChefHat size={11} />, barColor: '#FF6A0C' },
+    Ready: { color: '#4ade80', bg: 'rgba(74,222,128,0.08)', border: 'rgba(74,222,128,0.2)', icon: <Bike size={11} />, barColor: '#4ade80' },
+    Completed: { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)', icon: <CheckCircle size={11} />, barColor: '#6b7280' },
+    Cancelled: { color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.2)', icon: <XCircle size={11} />, barColor: '#f87171' },
 };
 
 // ── Export helpers ─────────────────────────────────────────────────────────────
 
 function ordersToRows(orders: Order[]) {
     return orders.map(o => ({
-        'Order ID': o.id,
+        'Order ID': o.displayId,
         'Customer': o.customer,
-        'Email':    o.email,
-        'Branch':   o.branch,
-        'Mode':     o.mode,
-        'Items':    o.items.join(', '),
-        'Total':    o.total,
-        'Status':   o.status,
-        'Time':     o.time,
-        'Address':  o.address ?? (o.tableNo ? `Table ${o.tableNo}` : '—'),
+        'Email': o.email,
+        'Branch': o.branch,
+        'Mode': o.mode,
+        'Items': o.items.join(', '),
+        'Total': o.total,
+        'Status': o.status,
+        'Time': o.time,
+        'Address': o.address ?? (o.tableNo ? `Table ${o.tableNo}` : '—'),
     }));
 }
 
@@ -57,8 +58,8 @@ async function exportExcel(orders: Order[]) {
     }
     const XLSX = (window as any).XLSX;
     const rows = ordersToRows(orders);
-    const ws   = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [10,22,26,14,10,50,10,12,14,24].map(w => ({ wch: w }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [10, 22, 26, 14, 10, 50, 10, 12, 14, 24].map(w => ({ wch: w }));
     const range = XLSX.utils.decode_range(ws['!ref']!);
     for (let C = range.s.c; C <= range.e.c; C++) {
         const cell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
@@ -66,7 +67,7 @@ async function exportExcel(orders: Order[]) {
     }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Orders');
-    XLSX.writeFile(wb, `orders_export_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb, `orders_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 async function exportPDF(orders: Order[]) {
@@ -101,20 +102,20 @@ async function exportPDF(orders: Order[]) {
         headStyles: { fillColor: [255, 106, 12], textColor: [255, 255, 255], fontStyle: 'bold' },
         alternateRowStyles: { fillColor: [30, 30, 38] },
         bodyStyles: { textColor: [220, 220, 220], fillColor: [22, 22, 30] },
-        columnStyles: { 0:{cellWidth:18}, 1:{cellWidth:30}, 2:{cellWidth:38}, 3:{cellWidth:22}, 4:{cellWidth:18}, 5:{cellWidth:60}, 6:{cellWidth:18}, 7:{cellWidth:20}, 8:{cellWidth:18}, 9:{cellWidth:35} },
+        columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 30 }, 2: { cellWidth: 38 }, 3: { cellWidth: 22 }, 4: { cellWidth: 18 }, 5: { cellWidth: 60 }, 6: { cellWidth: 18 }, 7: { cellWidth: 20 }, 8: { cellWidth: 18 }, 9: { cellWidth: 35 } },
         margin: { left: 14, right: 14 },
         didDrawPage: (data: any) => {
             doc.setFontSize(7); doc.setTextColor(100, 100, 100);
             doc.text(`Page ${data.pageNumber} of ${doc.getNumberOfPages()}`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 6, { align: 'center' });
         },
     });
-    doc.save(`orders_export_${new Date().toISOString().slice(0,10)}.pdf`);
+    doc.save(`orders_export_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 
 // ── Export dropdown ────────────────────────────────────────────────────────────
 
 function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: (o: boolean) => void }) {
-    const [open,    setOpen]    = useState(false);
+    const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState<'excel' | 'pdf' | null>(null);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -137,7 +138,7 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
         setLoading(type);
         try {
             if (type === 'excel') await exportExcel(orders);
-            else                   await exportPDF(orders);
+            else await exportPDF(orders);
         } catch (e) {
             console.error(e);
             alert('Export failed. Check console for details.');
@@ -164,8 +165,8 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
                     position: 'relative', zIndex: 51,
                     borderBottom: open ? '1px solid transparent' : undefined,
                 }}
-                onMouseEnter={e => { if (!open) { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; }}}
-                onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}}
+                onMouseEnter={e => { if (!open) { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; } }}
+                onMouseLeave={e => { if (!open) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; } }}
             >
                 <Download size={14} />
                 {loading ? 'Exporting…' : 'Export'}
@@ -230,24 +231,89 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function AdminOrdersPage() {
-    const [orders, setOrders]             = useState<Order[]>(MOCK);
-    const [search, setSearch]             = useState('');
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'All'>('All');
-    const [filterMode, setFilterMode]     = useState<'All' | string>('All');
-    const [expandedId, setExpandedId]     = useState<string | null>(null);
-    const [exportOpen, setExportOpen]       = useState(false);
+    const [filterMode, setFilterMode] = useState<'All' | string>('All');
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [exportOpen, setExportOpen] = useState(false);
 
-    const advance = (id: string) => setOrders(prev => prev.map(o => o.id !== id ? o : NEXT[o.status] ? { ...o, status: NEXT[o.status]! } : o));
-    const cancel  = (id: string) => setOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'Cancelled' } : o));
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            const data = await getOrders();
+            const mapped: Order[] = data.map((o: any) => {
+                const modeMap: any = { DELIVERY: 'Delivery', PICKUP: 'Pickup', DINE_IN: 'Dine-In' };
+                const mode = modeMap[o.mode] || 'Delivery';
+                const statusMap: any = { ROUTING: 'Pending', PENDING: 'Pending', CONFIRMED: 'Confirmed', PREPARING: 'Preparing', READY_FOR_PICKUP: 'Ready', OUT_FOR_DELIVERY: 'Ready', DELIVERED: 'Completed', COMPLETED: 'Completed', CANCELLED: 'Cancelled' };
+                const status = statusMap[o.status] || 'Pending';
+
+                const date = new Date(o.createdAt);
+                const diffMins = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+                const timeStr = diffMins === 0 ? 'Just now' : diffMins < 60 ? `${diffMins} min ago` : `${Math.floor(diffMins / 60)} hr ago`;
+
+                const items = o.orderItems?.map((i: any) => `${i.menuItem?.name || 'Item'} x${i.quantity}`) || [];
+
+                return {
+                    id: o.id,
+                    displayId: '#' + o.id.split('-')[0].toUpperCase(),
+                    customer: o.user?.name || 'Guest User',
+                    email: o.user?.email || '—',
+                    branch: o.branch?.name || 'Dubai Branch',
+                    mode,
+                    items,
+                    total: `AED ${(o.totalAmount || 0).toFixed(2)}`,
+                    status,
+                    time: timeStr,
+                    address: o.customerAddress || undefined,
+                };
+            });
+            setOrders(mapped);
+        } catch (e) {
+            console.error('Failed to load orders', e);
+        }
+    };
+
+    const advance = async (order: Order) => {
+        const nextTarget = NEXT[order.status];
+        if (!nextTarget) return;
+
+        let backendStatus = 'PENDING';
+        if (nextTarget === 'Confirmed') backendStatus = 'CONFIRMED';
+        if (nextTarget === 'Preparing') backendStatus = 'PREPARING';
+        if (nextTarget === 'Ready') backendStatus = order.mode === 'Delivery' ? 'OUT_FOR_DELIVERY' : 'READY_FOR_PICKUP';
+        if (nextTarget === 'Completed') backendStatus = 'COMPLETED';
+
+        try {
+            await updateOrderStatus(order.id, backendStatus);
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: nextTarget } : o));
+        } catch (e) {
+            console.error('Failed to update status', e);
+            alert('Failed to update order status');
+        }
+    };
+
+    const cancel = async (order: Order) => {
+        try {
+            await updateOrderStatus(order.id, 'CANCELLED');
+            setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'Cancelled' } : o));
+        } catch (e) {
+            console.error('Failed to cancel order', e);
+            alert('Failed to cancel order');
+        }
+    };
 
     const filtered = orders.filter(o => {
         const q = search.toLowerCase();
-        return (!q || o.id.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q))
+        return (!q || o.displayId.toLowerCase().includes(q) || o.customer.toLowerCase().includes(q))
             && (filterStatus === 'All' || o.status === filterStatus)
-            && (filterMode   === 'All' || o.mode   === filterMode);
+            && (filterMode === 'All' || o.mode === filterMode);
     });
 
-    const liveCount = orders.filter(o => ['Pending','Confirmed','Preparing','Ready'].includes(o.status)).length;
+    const liveCount = orders.filter(o => ['Pending', 'Confirmed', 'Preparing', 'Ready'].includes(o.status)).length;
 
     return (
         <div style={{ maxWidth: 1200, fontFamily: '"DM Sans", system-ui, sans-serif' }}>
@@ -277,8 +343,8 @@ export default function AdminOrdersPage() {
             {/* ── Pipeline summary pills ── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
                 {PIPELINE.map((s, i) => {
-                    const count  = orders.filter(o => o.status === s).length;
-                    const cfg    = STATUS_CFG[s];
+                    const count = orders.filter(o => o.status === s).length;
+                    const cfg = STATUS_CFG[s];
                     const active = filterStatus === s;
                     return (
                         <button
@@ -348,7 +414,7 @@ export default function AdminOrdersPage() {
                             transition: 'border-color 0.2s',
                         }}
                         onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.4)')}
-                        onBlur={e  => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
                     />
                 </div>
 
@@ -381,7 +447,7 @@ export default function AdminOrdersPage() {
                 )}
 
                 {filtered.map((order, i) => {
-                    const cfg      = STATUS_CFG[order.status];
+                    const cfg = STATUS_CFG[order.status];
                     const expanded = expandedId === order.id;
 
                     return (
@@ -428,7 +494,7 @@ export default function AdminOrdersPage() {
 
                                     <div>
                                         <p style={{ fontSize: 11, fontFamily: 'monospace', color: '#FF6A0C', fontWeight: 700, margin: '0 0 2px' }}>
-                                            {order.id}
+                                            {order.displayId}
                                         </p>
                                         <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: '0 0 1px', letterSpacing: '-0.01em' }}>
                                             {order.customer}
@@ -540,7 +606,7 @@ export default function AdminOrdersPage() {
                                     <div style={{ display: 'flex', gap: 8, marginTop: 18, alignItems: 'center' }}>
                                         {NEXT[order.status] && (
                                             <button
-                                                onClick={() => advance(order.id)}
+                                                onClick={() => advance(order)}
                                                 style={{
                                                     height: 36, padding: '0 18px',
                                                     background: 'linear-gradient(135deg, #FF6A0C, #e55a00)',
@@ -553,7 +619,7 @@ export default function AdminOrdersPage() {
                                                     fontFamily: 'inherit',
                                                 }}
                                                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(255,106,12,0.45)'; }}
-                                                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)';    e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,106,12,0.35)'; }}
+                                                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(255,106,12,0.35)'; }}
                                             >
                                                 {NEXT_LABEL[order.status]}
                                             </button>
@@ -561,7 +627,7 @@ export default function AdminOrdersPage() {
 
                                         {!['Completed', 'Cancelled'].includes(order.status) && (
                                             <button
-                                                onClick={() => cancel(order.id)}
+                                                onClick={() => cancel(order)}
                                                 style={{
                                                     height: 36, padding: '0 16px',
                                                     background: 'rgba(248,113,113,0.07)',

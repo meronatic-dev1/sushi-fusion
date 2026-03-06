@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { RoutingService } from '../routing/routing.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -9,20 +9,93 @@ export class OrdersController {
         private prisma: PrismaService
     ) { }
 
+    @Get()
+    async getOrders() {
+        return this.prisma.order.findMany({
+            include: {
+                orderItems: {
+                    include: {
+                        menuItem: true
+                    }
+                },
+                branch: true,
+                user: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+    }
+
+    @Patch(':id/status')
+    async updateOrderStatus(@Param('id') id: string, @Body('status') status: string) {
+        return this.prisma.order.update({
+            where: { id },
+            data: { status: status as any } // Cast the string to Prisma enum
+        });
+    }
+
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async createOrder(@Body() body: any) {
-        // Basic stub. We would calculate total amounts, save items, etc.
+        // Resolve menu items from the DB to get their true IDs
+        const items = body.items || [];
+        const orderItemsData = [];
+
+        let calculatedTotal = 0;
+
+        for (const item of items) {
+            // Find the item by name since the frontend mock data didn't have real IDs
+            const menuItem = await this.prisma.menuItem.findFirst({
+                where: { name: item.name }
+            });
+
+            if (menuItem) {
+                const itemTotal = menuItem.price * item.quantity;
+                calculatedTotal += itemTotal;
+
+                orderItemsData.push({
+                    menuItemId: menuItem.id,
+                    quantity: item.quantity,
+                    unitPrice: menuItem.price,
+                    totalPrice: itemTotal,
+                });
+            }
+        }
+
+        // Add dummy Delivery fee & Tax for this POC
+        const DELIVERY_FEE = 15;
+        const tax = calculatedTotal * 0.05;
+        const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax;
+
+        // Resolve or create a valid location to satisfy foreign key constraints
+        let fallbackBranch = await this.prisma.location.findFirst();
+        if (!fallbackBranch) {
+            fallbackBranch = await this.prisma.location.create({
+                data: {
+                    name: 'System Default Branch',
+                    address: 'Default Address',
+                    latitude: 25.2048,
+                    longitude: 55.2708,
+                    isActive: true,
+                    isClosed: false,
+                }
+            });
+        }
+
         const order = await this.prisma.order.create({
             data: {
                 userId: body.userId || null,
                 mode: body.mode || 'DELIVERY',
-                totalAmount: body.totalAmount || 0,
-                branchId: 'temp', // This will be set by the queue
-                branchIdOriginal: 'temp',
+                totalAmount: finalTotal,
+                branchId: fallbackBranch.id, // Fixed invalid foreign key
+                branchIdOriginal: fallbackBranch.id,
                 radiusUsedKm: 0,
                 customerLat: body.customerLat || 0,
                 customerLng: body.customerLng || 0,
+                orderItems: {
+                    create: orderItemsData
+                }
             }
         });
 
