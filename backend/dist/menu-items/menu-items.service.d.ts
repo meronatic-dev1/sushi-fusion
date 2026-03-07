@@ -2,69 +2,9 @@ import { PrismaService } from '../prisma/prisma.service';
 export declare class MenuItemsService {
     private prisma;
     constructor(prisma: PrismaService);
-    findAll(categoryId?: string): import("@prisma/client").Prisma.PrismaPromise<({
-        category: {
-            id: string;
-            name: string;
-            description: string | null;
-            imageUrl: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-    } & {
-        id: string;
-        name: string;
-        description: string | null;
-        price: number;
-        imageUrl: string | null;
-        isAvailable: boolean;
-        salesCount: number;
-        categoryId: string;
-        createdAt: Date;
-        updatedAt: Date;
-    })[]>;
-    getBestSellers(): import("@prisma/client").Prisma.PrismaPromise<({
-        category: {
-            id: string;
-            name: string;
-            description: string | null;
-            imageUrl: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-    } & {
-        id: string;
-        name: string;
-        description: string | null;
-        price: number;
-        imageUrl: string | null;
-        isAvailable: boolean;
-        salesCount: number;
-        categoryId: string;
-        createdAt: Date;
-        updatedAt: Date;
-    })[]>;
-    findOne(id: string): import("@prisma/client").Prisma.Prisma__MenuItemClient<({
-        category: {
-            id: string;
-            name: string;
-            description: string | null;
-            imageUrl: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-    } & {
-        id: string;
-        name: string;
-        description: string | null;
-        price: number;
-        imageUrl: string | null;
-        isAvailable: boolean;
-        salesCount: number;
-        categoryId: string;
-        createdAt: Date;
-        updatedAt: Date;
-    }) | null, null, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    findAll(categoryId?: string): any;
+    getBestSellers(): any;
+    findOne(id: string): any;
     create(data: {
         name: string;
         description?: string;
@@ -72,27 +12,7 @@ export declare class MenuItemsService {
         imageUrl?: string;
         isAvailable?: boolean;
         categoryId: string;
-    }): import("@prisma/client").Prisma.Prisma__MenuItemClient<{
-        category: {
-            id: string;
-            name: string;
-            description: string | null;
-            imageUrl: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-    } & {
-        id: string;
-        name: string;
-        description: string | null;
-        price: number;
-        imageUrl: string | null;
-        isAvailable: boolean;
-        salesCount: number;
-        categoryId: string;
-        createdAt: Date;
-        updatedAt: Date;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }): any;
     update(id: string, data: {
         name?: string;
         description?: string;
@@ -100,37 +20,6 @@ export declare class MenuItemsService {
         imageUrl?: string;
         isAvailable?: boolean;
         categoryId?: string;
-    }): import("@prisma/client").Prisma.Prisma__MenuItemClient<{
-        category: {
-            id: string;
-            name: string;
-            description: string | null;
-            imageUrl: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-        };
-    } & {
-        id: string;
-        name: string;
-        description: string | null;
-        price: number;
-        imageUrl: string | null;
-        isAvailable: boolean;
-        salesCount: number;
-        categoryId: string;
-        createdAt: Date;
-        updatedAt: Date;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
-    remove(id: string): import("@prisma/client").Prisma.Prisma__MenuItemClient<{
-        id: string;
-        name: string;
-        description: string | null;
-        price: number;
-        imageUrl: string | null;
-        isAvailable: boolean;
-        salesCount: number;
-        categoryId: string;
-        createdAt: Date;
-        updatedAt: Date;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, import("@prisma/client").Prisma.PrismaClientOptions>;
+    }): any;
+    remove(id: string): any;
 }

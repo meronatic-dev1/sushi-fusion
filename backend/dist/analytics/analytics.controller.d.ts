@@ -4,9 +4,9 @@ export declare class AnalyticsController {
     constructor(analyticsService: AnalyticsService);
     getDashboard(): Promise<{
         kpis: {
-            revenue: number;
-            orders: number;
-            customers: number;
+            revenue: any;
+            orders: any;
+            customers: any;
             avgOrder: number;
         };
         modeSplit: {
@@ -14,25 +14,9 @@ export declare class AnalyticsController {
             count: number;
             pct: number;
         }[];
-        recentOrders: {
-            id: string;
-            name: string;
-            branch: string;
-            mode: string;
-            total: string;
-            status: string;
-            dot: string;
-        }[];
-        topProducts: {
-            name: string;
-            orders: number;
-            pct: number;
-            revenue: string;
-        }[];
-        leastProducts: {
-            name: string;
-            orders: number;
-        }[];
+        recentOrders: any;
+        topProducts: any;
+        leastProducts: any;
         categoryPerformance: {
             revenue: number;
             orders: number;
@@ -46,15 +30,8 @@ export declare class AnalyticsController {
             newPct: number;
             retPct: number;
         };
-        customerList: {
-            name: string;
-            email: string;
-            joined: string;
-            orders: number;
-            spend: string;
-            status: "Active";
-        }[];
-        totalItemsSold: number;
+        customerList: any;
+        totalItemsSold: any;
         peakHoursHeatmap: Record<string, number[]>;
     }>;
 }
