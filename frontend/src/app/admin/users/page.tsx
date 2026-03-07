@@ -198,14 +198,30 @@ export default function AdminUsersPage() {
     useEffect(() => { loadData(); }, []);
 
     const handleSaveUser = async (data: any) => {
-        if (editUser) {
-            await apiFetchUser(`/users/${editUser.id}`, { method: 'PATCH', body: JSON.stringify(data) });
-        } else {
-            await apiFetchUser('/users', { method: 'POST', body: JSON.stringify(data) });
+        try {
+            if (editUser) {
+                // For editing, just update the DB via NestJS for now 
+                // (Clerk metadata updates would need another API route if role changes)
+                await apiFetchUser(`/users/${editUser.id}`, { method: 'PATCH', body: JSON.stringify(data) });
+            } else {
+                // For NEW users, route through our Next.js API to create it in Clerk AND the Database
+                const res = await fetch('/api/clerk/users', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data) 
+                });
+                
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.message || 'Failed to create user via Clerk Sync');
+                }
+            }
+            setShowModal(false);
+            setEditUser(null);
+            loadData();
+        } catch (error: any) {
+            alert(error.message);
         }
-        setShowModal(false);
-        setEditUser(null);
-        loadData();
     };
 
     const handleDelete = async (id: string) => {

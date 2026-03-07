@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, Users, Star, Clock, ChevronRight, Flame } from "lucide-react";
+import { useUser } from '@clerk/nextjs';
 import { getAnalyticsDashboard, DashboardData } from '@/lib/api';
 
 const RANK_COLORS = [
@@ -18,15 +19,22 @@ const MODE_COLORS: Record<string, { color: string; icon: string }> = {
 };
 
 export default function AdminOverviewPage() {
+    const { user, isLoaded } = useUser();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getAnalyticsDashboard()
+        if (!isLoaded) return;
+        
+        const branchId = user?.publicMetadata?.role === 'branch_manager' 
+            ? user?.publicMetadata?.branchId as string 
+            : undefined;
+
+        getAnalyticsDashboard(branchId)
             .then(setData)
             .catch(e => console.error('Failed to load dashboard', e))
             .finally(() => setLoading(false));
-    }, []);
+    }, [isLoaded, user]);
 
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 

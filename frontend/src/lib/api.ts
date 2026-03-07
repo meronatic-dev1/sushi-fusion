@@ -168,8 +168,10 @@ export interface DashboardData {
     peakHoursHeatmap: Record<string, number[]>;
 }
 
-export const getAnalyticsDashboard = () =>
-    apiFetch<DashboardData>('/analytics/dashboard');
+export const getAnalyticsDashboard = (branchId?: string) => {
+    const query = branchId ? `?branchId=${branchId}` : '';
+    return apiFetch<DashboardData>(`/analytics/dashboard${query}`);
+};
 
 // ── Locations ──────────────────────────────────────────────────────────────────
 export interface ApiLocation {

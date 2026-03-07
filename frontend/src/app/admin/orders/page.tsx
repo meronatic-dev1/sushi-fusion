@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, MapPin, Clock, Download, FileSpreadsheet, FileText, ChevronRight } from 'lucide-react';
 import { getOrders, updateOrderStatus, getLocations, ApiLocation } from '@/lib/api';
 
@@ -223,6 +224,7 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function AdminOrdersPage() {
+    const { user, isLoaded } = useUser();
     const [orders, setOrders] = useState<Order[]>([]);
     const [branches, setBranches] = useState<ApiLocation[]>([]);
     const [selectedBranchId, setSelectedBranchId] = useState<string>('All');
@@ -233,13 +235,24 @@ export default function AdminOrdersPage() {
     const [exportOpen, setExportOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const userRole = user?.publicMetadata?.role as string | undefined;
+    const userBranchId = user?.publicMetadata?.branchId as string | undefined;
+
     useEffect(() => {
         loadBranches();
     }, []);
 
+    // Set initial branch based on role once Clerk loads
     useEffect(() => {
+        if (isLoaded && userRole === 'branch_manager' && userBranchId) {
+            setSelectedBranchId(userBranchId);
+        }
+    }, [isLoaded, userRole, userBranchId]);
+
+    useEffect(() => {
+        if (!isLoaded || (userRole === 'branch_manager' && selectedBranchId === 'All')) return; // Wait until branch manager gets locked in
         loadData();
-    }, [selectedBranchId]);
+    }, [selectedBranchId, isLoaded]);
 
     const loadBranches = async () => {
         try {
@@ -449,25 +462,39 @@ export default function AdminOrdersPage() {
                     />
                 </div>
 
-                <select
-                    value={selectedBranchId}
-                    onChange={e => setSelectedBranchId(e.target.value)}
-                    style={{
-                        appearance: 'none', flexShrink: 0,
+                {/* Branch Selector: Only super admins can switch branches */}
+                {userRole !== 'branch_manager' ? (
+                    <select
+                        value={selectedBranchId}
+                        onChange={e => setSelectedBranchId(e.target.value)}
+                        style={{
+                            appearance: 'none', flexShrink: 0,
+                            background: 'rgba(255,106,12,0.05)',
+                            border: '1px solid rgba(255,106,12,0.2)',
+                            color: '#FF6A0C',
+                            borderRadius: 10, padding: '9px 16px',
+                            fontSize: 13, outline: 'none', cursor: 'pointer',
+                            fontWeight: 700,
+                            fontFamily: 'inherit',
+                        }}
+                    >
+                        <option value="All">All Outlets</option>
+                        {branches.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                    </select>
+                ) : (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
                         background: 'rgba(255,106,12,0.05)',
                         border: '1px solid rgba(255,106,12,0.2)',
                         color: '#FF6A0C',
                         borderRadius: 10, padding: '9px 16px',
-                        fontSize: 13, outline: 'none', cursor: 'pointer',
-                        fontWeight: 700,
-                        fontFamily: 'inherit',
-                    }}
-                >
-                    <option value="All">All Outlets</option>
-                    {branches.map(b => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                </select>
+                        fontSize: 13, fontWeight: 700,
+                    }}>
+                        <MapPin size={14} /> My Branch
+                    </div>
+                )}
 
                 <select
                     value={filterMode}

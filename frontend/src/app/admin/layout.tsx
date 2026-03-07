@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { SignOutButton, useUser } from '@clerk/nextjs';
 import Image from 'next/image';
 import {
     LayoutDashboard, ShoppingBag, Package,
@@ -22,10 +23,25 @@ const NAV_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const { user, isLoaded } = useUser();
 
     if (pathname === '/admin/login') return <>{children}</>;
 
-    const currentPage = NAV_ITEMS.find(n =>
+    // Determine user role from Clerk public metadata
+    const userRole = (user?.publicMetadata?.role as string) || 'customer';
+    
+    // Filter Navigation Items based on Role
+    const filteredNavItems = NAV_ITEMS.filter(item => {
+        if (userRole === 'admin') {
+            return true;
+        }
+        if (userRole === 'branch_manager') {
+            return !['Analytics', 'Locations', 'Users', 'Settings'].includes(item.label);
+        }
+        return false;
+    });
+
+    const currentPage = filteredNavItems.find(n =>
         n.href === pathname || (n.href !== '/admin' && pathname.startsWith(n.href))
     )?.label ?? 'Dashboard';
 
@@ -126,7 +142,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 {/* Nav items */}
                 <nav style={{ flex: 1, padding: '0 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+                    {filteredNavItems.map(({ label, href, icon: Icon }) => {
                         const active = pathname === href || (href !== '/admin' && pathname.startsWith(href));
                         return (
                             <Link
@@ -213,21 +229,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         fontSize: 12, fontWeight: 900, color: '#fff',
                         boxShadow: '0 3px 10px rgba(255,106,12,0.35)',
                     }}>
-                        A
+                        {isLoaded && user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.01em' }}>Admin User</p>
-                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', margin: 0 }}>Super Admin</p>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {isLoaded ? (user?.firstName || user?.emailAddresses[0]?.emailAddress || 'User') : 'Loading...'}
+                        </p>
+                        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', margin: 0, textTransform: 'capitalize' }}>
+                            {userRole.replace('_', ' ')}
+                        </p>
                     </div>
-                    <Link
-                        href="/admin/login"
-                        title="Logout"
-                        style={{ color: 'rgba(255,255,255,0.2)', lineHeight: 0, transition: 'color 0.15s' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#FF6A0C')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
-                    >
-                        <LogOut size={14} />
-                    </Link>
+                    <SignOutButton redirectUrl="/admin/login">
+                        <button
+                            title="Logout"
+                            style={{ 
+                                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                                color: 'rgba(255,255,255,0.2)', lineHeight: 0, transition: 'color 0.15s' 
+                            }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#FF6A0C')}
+                            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
+                        >
+                            <LogOut size={14} />
+                        </button>
+                    </SignOutButton>
                 </div>
             </aside>
 
@@ -355,7 +379,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             boxShadow: '0 3px 10px rgba(255,106,12,0.3)',
                             cursor: 'pointer',
                         }}>
-                            A
+                            {isLoaded && user?.firstName ? user.firstName.charAt(0).toUpperCase() : 'U'}
                         </div>
                     </div>
                 </header>

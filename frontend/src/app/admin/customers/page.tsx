@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Eye, UserX, UserCheck } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
 import { getAnalyticsDashboard } from '@/lib/api';
 
 interface Customer {
@@ -13,18 +14,25 @@ const AVATAR_COLORS = ['#FF6A0C', '#818cf8', '#34d399', '#fbbf24', '#f87171', '#
 const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
 export default function AdminCustomersPage() {
+    const { user, isLoaded } = useUser();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        getAnalyticsDashboard()
+        if (!isLoaded) return;
+        
+        const branchId = user?.publicMetadata?.role === 'branch_manager' 
+            ? user?.publicMetadata?.branchId as string 
+            : undefined;
+
+        getAnalyticsDashboard(branchId)
             .then(data => {
                 setCustomers(data.customerList);
             })
             .catch(e => console.error('Failed to load customers', e))
             .finally(() => setLoading(false));
-    }, []);
+    }, [isLoaded, user]);
 
     const toggle = (email: string) =>
         setCustomers(prev => prev.map(c =>
