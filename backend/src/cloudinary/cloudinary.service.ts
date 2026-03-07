@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary } from 'cloudinary';
-// @ts-ignore
-import * as toStream from 'buffer-to-stream';
+import { Readable } from 'stream';
 
 @Injectable()
 export class CloudinaryService {
@@ -21,7 +20,7 @@ export class CloudinaryService {
                 resolve(result);
             });
 
-            toStream(file.buffer).pipe(upload);
+            Readable.from(file.buffer).pipe(upload);
         });
     }
 }

@@ -10,6 +10,11 @@ export class MenuItemsController {
         return this.menuItemsService.findAll(categoryId);
     }
 
+    @Get('best-sellers')
+    getBestSellers() {
+        return this.menuItemsService.getBestSellers();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.menuItemsService.findOne(id);

@@ -2,7 +2,8 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrdersGateway } from '../orders/orders.gateway';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
+import { RoutingService } from './routing.service';
 
 @Processor('order-routing')
 @Injectable()
@@ -11,7 +12,9 @@ export class RoutingProcessor extends WorkerHost {
 
     constructor(
         private prisma: PrismaService,
-        private ordersGateway: OrdersGateway
+        private ordersGateway: OrdersGateway,
+        @Inject(forwardRef(() => RoutingService))
+        private routingService: RoutingService
     ) {
         super();
     }
@@ -34,12 +37,19 @@ export class RoutingProcessor extends WorkerHost {
     }
 
     async process(job: Job<any, any, string>): Promise<any> {
+        if (job.name === 'assign-branch') {
+            return this.handleBranchAssignment(job);
+        } else if (job.name === 'check-acceptance') {
+            return this.handleAcceptanceCheck(job);
+        }
+    }
+
+    private async handleBranchAssignment(job: Job<any>) {
         const { orderId, customerLat, customerLng, isReassign } = job.data;
         this.logger.log(`Processing routing for order ${orderId}. Lat: ${customerLat}, Lng: ${customerLng}`);
 
         let routingLog = [];
 
-        // Fetch the order
         const order = await this.prisma.order.findUnique({ where: { id: orderId } });
         if (!order) throw new Error('Order not found');
 
@@ -48,21 +58,20 @@ export class RoutingProcessor extends WorkerHost {
         }
 
         if (order.mode === 'PICKUP' || order.mode === 'DINE_IN') {
-            // Manual selection or tied to branch.
             this.logger.log(`Order ${orderId} is ${order.mode}, already assigned -> PENDING`);
             await this.prisma.order.update({
                 where: { id: orderId },
                 data: { status: 'PENDING' }
             });
             this.ordersGateway.notifyBranchOfNewOrder(order.branchId, orderId);
+            // Even pickup orders get a check (optional, but good for SLA)
+            await this.routingService.queueAcceptanceCheck(orderId);
             return;
         }
 
-        // Phase 2: Find Eligible Branches within 20km
-        routingLog.push({ step: 'find_branches', radius: 20 });
+        routingLog.push({ step: 'find_branches', radius: 20, time: new Date() });
         let branches = await this.prisma.location.findMany({ where: { isActive: true } });
 
-        // Calculate distances
         let branchesWithDistance = branches.map(b => ({
             ...b,
             distanceKm: this.calculateDistance(customerLat, customerLng, b.latitude, b.longitude)
@@ -73,38 +82,49 @@ export class RoutingProcessor extends WorkerHost {
 
         if (eligible.length === 0) {
             this.logger.warn(`No branches within 20km for ${orderId}. Expanding to 35km.`);
-            routingLog.push({ step: 'radius_expand', newRadius: 35 });
+            routingLog.push({ step: 'radius_expand', newRadius: 35, time: new Date() });
             eligible = branchesWithDistance.filter(b => b.distanceKm <= 35);
             radiusUsedKm = 35;
 
             if (eligible.length === 0) {
                 this.logger.warn(`Still no branches within 35km for ${orderId}. Assigning nearest regardless of radius.`);
-                routingLog.push({ step: 'assign_nearest', logic: 'no_radius_limit' });
-                eligible = [branchesWithDistance[0]]; // fallback to absolute closest
+                routingLog.push({ step: 'assign_nearest', logic: 'no_radius_limit', time: new Date() });
+                eligible = [branchesWithDistance[0]];
                 radiusUsedKm = eligible[0].distanceKm;
             }
         }
 
-        // Phase 3: Check Assigned Branch
         let targetBranch = eligible[0];
         let isLongDistance = targetBranch.distanceKm > 20;
 
+        // If we have routing history, don't pick the same branch that skipped/rejected
+        if (isReassign) {
+            const skippedBranchIds = routingLog
+                .filter((l: any) => l.step === 'acceptance_timeout' || l.step === 'branch_rejected')
+                .map((l: any) => l.branchId);
+
+            const nextBest = eligible.find(b => !skippedBranchIds.includes(b.id));
+            if (nextBest) {
+                targetBranch = nextBest;
+            } else {
+                this.logger.warn(`All eligible branches already tried for ${orderId}. Rotating back or using absolute nearest.`);
+            }
+        }
+
         if (targetBranch.isClosed) {
-            // Find next open branch
-            routingLog.push({ step: 'branch_closed_check' });
+            routingLog.push({ step: 'branch_closed_check', branchId: targetBranch.id, time: new Date() });
             const nextOpen = eligible.find(b => !b.isClosed);
             if (nextOpen) {
                 targetBranch = nextOpen;
-                routingLog.push({ step: 'reassign_next_open', branchId: targetBranch.id });
+                routingLog.push({ step: 'reassign_next_open', branchId: targetBranch.id, time: new Date() });
             } else {
-                // All closed -> schedule
                 this.logger.log(`All eligible branches closed for order ${orderId}. Scheduling.`);
-                routingLog.push({ step: 'all_closed_scheduled' });
+                routingLog.push({ step: 'all_closed_scheduled', time: new Date() });
                 await this.prisma.order.update({
                     where: { id: orderId },
                     data: {
                         status: 'SCHEDULED',
-                        branchId: targetBranch.id, // assign nearest anyway
+                        branchId: targetBranch.id,
                         routingAttempts: { increment: 1 },
                         routingLog,
                         radiusUsedKm
@@ -114,11 +134,10 @@ export class RoutingProcessor extends WorkerHost {
             }
         }
 
-        // Phase 4: Final Assignment
-        routingLog.push({ step: 'branch_assigned', branchId: targetBranch.id });
+        routingLog.push({ step: 'branch_assigned', branchId: targetBranch.id, isReassign, time: new Date() });
 
         const updateData: any = {
-            status: 'PENDING',
+            status: isLongDistance ? 'LONG_DISTANCE' : 'PENDING',
             branchId: targetBranch.id,
             routingAttempts: { increment: 1 },
             radiusUsedKm,
@@ -141,10 +160,45 @@ export class RoutingProcessor extends WorkerHost {
         this.logger.log(`Order ${orderId} assigned to ${targetBranch.name} (${targetBranch.distanceKm.toFixed(2)}km). PENDING.`);
         this.ordersGateway.notifyBranchOfNewOrder(targetBranch.id, {
             orderId,
-            status: 'PENDING',
+            status: updateData.status,
             distance: targetBranch.distanceKm,
         });
 
-        // BullMQ logic to spawn an 8-min delayed job to check for branch acceptance goes here
+        // Start the 8-minute acceptance clock
+        await this.routingService.queueAcceptanceCheck(orderId);
+    }
+
+    private async handleAcceptanceCheck(job: Job<any>) {
+        const { orderId } = job.data;
+        const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+        if (!order) return;
+
+        // If order is still PENDING or LONG_DISTANCE, it means branch hasn't CONFIRMED yet
+        if (order.status === 'PENDING' || order.status === 'LONG_DISTANCE' || order.status === 'ROUTING') {
+            this.logger.warn(`Order ${orderId} not accepted within window. Escalating.`);
+
+            let routingLog = typeof order.routingLog === 'string' ? JSON.parse(order.routingLog) : order.routingLog;
+            routingLog.push({ step: 'acceptance_timeout', branchId: order.branchId, time: new Date() });
+
+            // If we've only tried once, try reassigning to next nearest
+            if (order.routingAttempts < 3) {
+                this.logger.log(`Triggering reassignment for order ${orderId}`);
+                await this.prisma.order.update({
+                    where: { id: orderId },
+                    data: { status: 'REASSIGNING', routingLog }
+                });
+
+                // Re-queue for routing with isReassign = true
+                await this.routingService.queueOrderForRouting(orderId, order.customerLat, order.customerLng, true);
+            } else {
+                // Max attempts reached, mark as ESCALATED for manager to handle manually
+                this.logger.error(`Max routing attempts reached for order ${orderId}. ESCALATING.`);
+                routingLog.push({ step: 'max_attempts_escalated', time: new Date() });
+                await this.prisma.order.update({
+                    where: { id: orderId },
+                    data: { status: 'ESCALATED', routingLog }
+                });
+            }
+        }
     }
 }

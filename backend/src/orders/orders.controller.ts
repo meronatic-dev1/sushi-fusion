@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { RoutingService } from '../routing/routing.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -10,8 +10,9 @@ export class OrdersController {
     ) { }
 
     @Get()
-    async getOrders() {
+    async getOrders(@Query('branchId') branchId?: string) {
         return this.prisma.order.findMany({
+            where: branchId ? { branchId } : undefined,
             include: {
                 orderItems: {
                     include: {
@@ -63,10 +64,20 @@ export class OrdersController {
             }
         }
 
+        // Fetch store settings for service charge
+        const settings = await this.prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
+        const serviceChargeEnabled = settings?.enableServiceCharge ?? false;
+        const serviceChargePercent = settings?.serviceCharge ?? 0;
+
+        let serviceChargeAmount = 0;
+        if (serviceChargeEnabled && body.mode === 'DINE_IN') {
+            serviceChargeAmount = calculatedTotal * (serviceChargePercent / 100);
+        }
+
         // Add dummy Delivery fee & Tax for this POC
         const DELIVERY_FEE = 15;
         const tax = calculatedTotal * 0.05;
-        const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax;
+        const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax + serviceChargeAmount;
 
         // Ensure we link a User (find existing or create guest)
         let resolvedUserId = body.userId;
@@ -89,10 +100,17 @@ export class OrdersController {
             resolvedUserId = existingUser.id;
         }
 
-        // Resolve or create a valid location to satisfy foreign key constraints
-        let fallbackBranch = await this.prisma.location.findFirst();
-        if (!fallbackBranch) {
-            fallbackBranch = await this.prisma.location.create({
+        // Resolve branch: use body.branchId if provided (frontend auto-selection)
+        // otherwise fallback to first available branch
+        let selectedBranchId = body.branchId;
+        if (!selectedBranchId) {
+            const fallbackBranch = await this.prisma.location.findFirst({ where: { isActive: true } });
+            selectedBranchId = fallbackBranch?.id;
+        }
+
+        // If still no branch, create a system default one
+        if (!selectedBranchId) {
+            const systemBranch = await this.prisma.location.create({
                 data: {
                     name: 'System Default Branch',
                     address: 'Default Address',
@@ -102,6 +120,7 @@ export class OrdersController {
                     isClosed: false,
                 }
             });
+            selectedBranchId = systemBranch.id;
         }
 
         const order = await this.prisma.order.create({
@@ -118,8 +137,8 @@ export class OrdersController {
                 customerPostcode: body.customerPostcode || null,
                 deliveryInstructions: body.deliveryInstructions || null,
                 // Routing fields
-                branchId: fallbackBranch.id,
-                branchIdOriginal: fallbackBranch.id,
+                branchId: selectedBranchId,
+                branchIdOriginal: selectedBranchId,
                 radiusUsedKm: 0,
                 customerLat: body.customerLat || 0,
                 customerLng: body.customerLng || 0,
@@ -129,6 +148,14 @@ export class OrdersController {
                 }
             }
         });
+
+        // Update salesCount for best sellers
+        for (const item of orderItemsData) {
+            await this.prisma.menuItem.update({
+                where: { id: item.menuItemId },
+                data: { salesCount: { increment: item.quantity } }
+            });
+        }
 
         if (order.mode === 'DELIVERY') {
             // Hands off the heavy lifting to BullMQ
