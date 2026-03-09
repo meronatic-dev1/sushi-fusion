@@ -1,5 +1,5 @@
 # Base image
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Production image
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -29,7 +29,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
 
 # Expose port
-EXPOSE 4000
+EXPOSE 3001
 
-# Start command
-CMD ["npm", "run", "start:prod"]
+# Start command — sync DB schema then run
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run start:prod"]
