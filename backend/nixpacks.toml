@@ -6,14 +6,16 @@
 nixpkgsArchive = "e6f23dc08d3624daab7094b701aa3954923c6bbb"
 nixPkgs = ["nodejs_22", "npm-9_x"]
 
+# Force NODE_ENV=development so devDependencies (@nestjs/cli, typescript) get installed
 [phases.install]
-cmds = ["npm ci --include=dev"]
+cmds = ["NODE_ENV=development npm install"]
 
 [phases.build]
 cmds = [
     "npx prisma generate",
-    "npm run build"
+    "NODE_ENV=development npm run build",
+    "ls -la dist/main.js || echo 'ERROR: dist/main.js was NOT created!'"
 ]
 
 [start]
-cmd = "npx prisma db push && npm run start:prod"
+cmd = "npx prisma db push && node dist/main"
