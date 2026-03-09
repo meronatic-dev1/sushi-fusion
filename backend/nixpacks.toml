@@ -1,8 +1,10 @@
 # Nixpacks config for Sushi Fusion Backend (NestJS + Prisma)
 # Coolify: set Base Directory to "backend"
 
-# Let Coolify control Node version via NIXPACKS_NODE_VERSION env var (defaults to 22)
-# Do NOT override [phases.setup] — that would conflict with the env var
+# Use a nixpkgs archive that includes Node 22.14.0 (Prisma 7.4 requires 22.12+)
+[phases.setup]
+nixpkgsArchive = "e6f23dc08d3624daab7094b701aa3954923c6bbb"
+nixPkgs = ["nodejs_22", "npm-9_x"]
 
 [phases.install]
 cmds = ["npm ci"]
