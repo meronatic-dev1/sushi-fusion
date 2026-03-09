@@ -73,6 +73,18 @@ export default function Header({
             const summary = [data.city, data.store].filter(Boolean).join(' • ');
             setSelectedLocation(summary || t('header.selectLocation'));
         }
+
+        // Persist location data so checkout can read real coordinates
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('selectedLocation', JSON.stringify({
+                lat: data.lat || 0,
+                lng: data.lng || 0,
+                address: data.address || '',
+                mode: data.mode,
+                branchId: data.store || null,
+            }));
+        }
+
         setIsPopoverOpen(false);
     };
 

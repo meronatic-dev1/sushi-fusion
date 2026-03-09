@@ -19,6 +19,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { MenuItemsModule } from './menu-items/menu-items.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { LocationsModule } from './locations/locations.module';
+import { GeocodeModule } from './geocode/geocode.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { LocationsModule } from './locations/locations.module';
     MenuItemsModule,
     AnalyticsModule,
     LocationsModule,
+    GeocodeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
@@ -66,6 +66,29 @@ export default function CheckoutPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [promoCode, setPromoCode] = useState('');
     const [promoApplied, setPromoApplied] = useState(false);
+
+    // Read real coordinates from LocationModal selection
+    const [customerLat, setCustomerLat] = useState(25.2048);
+    const [customerLng, setCustomerLng] = useState(55.2708);
+    const [selectedAddress, setSelectedAddress] = useState('');
+    const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('selectedLocation');
+            if (stored) {
+                try {
+                    const loc = JSON.parse(stored);
+                    if (loc.lat) setCustomerLat(loc.lat);
+                    if (loc.lng) setCustomerLng(loc.lng);
+                    if (loc.address) setSelectedAddress(loc.address);
+                    if (loc.branchId) setSelectedBranchId(loc.branchId);
+                } catch (e) {
+                    // ignore parse errors
+                }
+            }
+        }
+    }, []);
     const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 
     // Form states
@@ -109,8 +132,9 @@ export default function CheckoutPage() {
                 customerAddress,
                 mode: 'DELIVERY',
                 totalAmount: TOTAL,
-                customerLat: 25.2048,
-                customerLng: 55.2708,
+                customerLat,
+                customerLng,
+                branchId: selectedBranchId || undefined,
                 items: cartItems.map((item: any) => ({
                     menuItemId: 'TEMP',
                     name: item.name,
@@ -342,7 +366,7 @@ export default function CheckoutPage() {
                                         <Clock size={14} style={{ color: '#FF6A0C', flexShrink: 0 }} />
                                         <div>
                                             <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>Estimated delivery: 30–45 min</p>
-                                            <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>From Sushi Fusion — Downtown (nearest branch)</p>
+                                            <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>{selectedAddress ? `Delivering to: ${selectedAddress}` : 'From nearest branch'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -620,10 +644,10 @@ export default function CheckoutPage() {
                             <MapPin size={14} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 1 }} />
                             <div>
                                 <p style={{ fontSize: 12, fontWeight: 700, color: '#7a3d10', margin: '0 0 2px' }}>
-                                    Delivering from Downtown branch
+                                    {selectedAddress ? `Delivering to ${selectedAddress.substring(0, 40)}…` : 'Delivering from nearest branch'}
                                 </p>
                                 <p style={{ fontSize: 11, color: '#a06040', margin: 0 }}>
-                                    12 Al Wasl Rd · Est. 30–45 min
+                                    Est. 30–45 min
                                 </p>
                             </div>
                         </div>

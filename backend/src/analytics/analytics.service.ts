@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AnalyticsService {
     constructor(private prisma: PrismaService) { }
 
-    async getDashboard() {
+    async getDashboard(branchId?: string) {
         // Run all queries in parallel for performance
         // Fetch orders and ALL menu items to build the dashboard entirely in-memory.
         // This makes filtering by branch trivial and fully accurate.
@@ -32,7 +32,7 @@ export class AnalyticsService {
             for (const i of o.orderItems) {
                 if (!itemAgg[i.menuItemId]) itemAgg[i.menuItemId] = { quantity: 0, totalPrice: 0, menuItemId: i.menuItemId };
                 itemAgg[i.menuItemId].quantity += i.quantity;
-                itemAgg[i.menuItemId].totalPrice += (i.price * i.quantity);
+                itemAgg[i.menuItemId].totalPrice += (i.unitPrice * i.quantity);
             }
         }
         
@@ -105,15 +105,15 @@ export class AnalyticsService {
             ...leastProducts.map(p => p.menuItemId),
             ...categoryPerf.map(p => p.menuItemId),
         ])];
-        const menuItems = await this.prisma.menuItem.findMany({
+        const menuItemsLookup = await this.prisma.menuItem.findMany({
             where: { id: { in: menuItemIds } },
             include: { category: true },
         });
-        const menuMap = new Map(menuItems.map(m => [m.id, m]));
+        const menuMapLookup = new Map(menuItemsLookup.map(m => [m.id, m]));
 
         const maxTopOrders = topProducts.length > 0 ? (topProducts[0]._sum.quantity || 1) : 1;
         const topProductsData = topProducts.map(p => {
-            const mi = menuMap.get(p.menuItemId);
+            const mi = menuMapLookup.get(p.menuItemId);
             return {
                 name: mi?.name || 'Unknown',
                 orders: p._sum.quantity || 0,
@@ -123,7 +123,7 @@ export class AnalyticsService {
         });
 
         const leastProductsData = leastProducts.map(p => {
-            const mi = menuMap.get(p.menuItemId);
+            const mi = menuMapLookup.get(p.menuItemId);
             return {
                 name: mi?.name || 'Unknown',
                 orders: p._sum.quantity || 0,
@@ -133,7 +133,7 @@ export class AnalyticsService {
         // ── Category performance ──
         const catAgg: Record<string, { revenue: number; orders: number; name: string }> = {};
         for (const item of categoryPerf) {
-            const mi = menuMap.get(item.menuItemId);
+            const mi = menuMapLookup.get(item.menuItemId);
             const catName = mi?.category?.name || 'Uncategorized';
             if (!catAgg[catName]) catAgg[catName] = { revenue: 0, orders: 0, name: catName };
             catAgg[catName].revenue += item._sum.totalPrice || 0;
@@ -182,7 +182,7 @@ export class AnalyticsService {
             email: u.email,
             joined: new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             orders: u.orders.length,
-            spend: `AED ${u.orders.reduce((s, o) => s + (o.totalAmount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`,
+            spend: `AED ${u.orders.reduce((s: number, o: any) => s + (o.totalAmount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`,
             status: 'Active' as const,
         }));
 

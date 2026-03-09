@@ -1,0 +1,17 @@
+# Nixpacks config for Sushi Fusion Backend (NestJS + Prisma)
+# Coolify: set Base Directory to "backend"
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "npm-9_x"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = [
+    "npx prisma generate",
+    "npm run build"
+]
+
+[start]
+cmd = "npx prisma db push --skip-generate && npm run start:prod"

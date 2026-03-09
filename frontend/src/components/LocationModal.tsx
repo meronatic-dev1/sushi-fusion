@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getLocations, ApiLocation } from '@/lib/api';
+import GoogleMapPicker, { PickedLocation } from './GoogleMapPicker';
 
 function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371;
@@ -24,18 +25,17 @@ interface LocationModalProps {
 
 export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: LocationModalProps) {
     const [activeTab, setActiveTab] = useState<'Delivery' | 'Pickup'>('Delivery');
-    const [searchQuery, setSearchQuery] = useState('');
     const [city, setCity] = useState('');
     const [store, setStore] = useState('');
-    const [geoError, setGeoError] = useState<string | null>(null);
-    const [isLocating, setIsLocating] = useState(false);
-    const [currentPosition, setCurrentPosition] = useState<{ lat: number; lng: number } | null>(null);
     const [locations, setLocations] = useState<ApiLocation[]>([]);
+    const [isLocating, setIsLocating] = useState(false);
+
+    // State from Google Map Picker
+    const [pickedLocation, setPickedLocation] = useState<PickedLocation | null>(null);
 
     useEffect(() => {
         if (isOpen) {
             setActiveTab(mode === 'Pickup' ? 'Pickup' : 'Delivery');
-            setGeoError(null);
             loadLocations();
         }
     }, [isOpen, mode]);
@@ -49,28 +49,36 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
         }
     };
 
-    const handleUseMyLocation = () => {
-        if (!navigator.geolocation) {
-            setGeoError('Geolocation is not supported in this browser.');
-            return;
+    const handleLocationSelect = (loc: PickedLocation) => {
+        setPickedLocation(loc);
+
+        // Auto-select nearest branch for pickup too
+        if (locations.length > 0) {
+            let nearest = locations[0];
+            let minDist = getHaversineDistance(loc.lat, loc.lng, nearest.latitude, nearest.longitude);
+            for (let i = 1; i < locations.length; i++) {
+                const d = getHaversineDistance(loc.lat, loc.lng, locations[i].latitude, locations[i].longitude);
+                if (d < minDist) {
+                    minDist = d;
+                    nearest = locations[i];
+                }
+            }
+            setCity('Auto-detected');
+            setStore(nearest.id);
         }
+    };
 
+    const handleUseMyLocationForPickup = () => {
+        if (!navigator.geolocation) return;
         setIsLocating(true);
-        setGeoError(null);
-
         navigator.geolocation.getCurrentPosition(
             (pos) => {
                 const { latitude, longitude } = pos.coords;
-                setCurrentPosition({ lat: latitude, lng: longitude });
-                const label = `Current location (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
-                setSearchQuery(label);
-                setIsLocating(false);
+                setPickedLocation({ lat: latitude, lng: longitude, address: 'Current Location' });
 
-                // Auto-select nearest location
                 if (locations.length > 0) {
                     let nearest = locations[0];
                     let minDist = getHaversineDistance(latitude, longitude, nearest.latitude, nearest.longitude);
-
                     for (let i = 1; i < locations.length; i++) {
                         const d = getHaversineDistance(latitude, longitude, locations[i].latitude, locations[i].longitude);
                         if (d < minDist) {
@@ -78,47 +86,43 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                             nearest = locations[i];
                         }
                     }
-
-                    // Map address or name to city/store
-                    setCity('Auto-detected'); // Or parse address
+                    setCity('Auto-detected');
                     setStore(nearest.id);
-                }
-            },
-            (err) => {
-                if (err.code === err.PERMISSION_DENIED) {
-                    setGeoError('Location permission was denied. You can allow it in your browser settings.');
-                } else {
-                    setGeoError('Unable to fetch your current location. Please try again.');
                 }
                 setIsLocating(false);
             },
-            {
-                enableHighAccuracy: true,
-                timeout: 15000,
-                maximumAge: 0,
-            }
+            () => { setIsLocating(false); },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
     };
-
-    const googleMapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    const mapSrc = googleMapsKey
-        ? currentPosition
-            ? `https://www.google.com/maps/embed/v1/view?key=${googleMapsKey}&center=${currentPosition.lat},${currentPosition.lng}&zoom=15&maptype=roadmap`
-            : `https://www.google.com/maps/embed/v1/view?key=${googleMapsKey}&center=25.3463,55.4209&zoom=13&maptype=roadmap`
-        : currentPosition
-            ? `https://www.openstreetmap.org/export/embed.html?bbox=${currentPosition.lng - 0.03},${currentPosition.lat - 0.03},${currentPosition.lng + 0.03},${currentPosition.lat + 0.03}&layer=mapnik&marker=${currentPosition.lat},${currentPosition.lng}`
-            : "https://www.openstreetmap.org/export/embed.html?bbox=55.32%2C25.30%2C55.42%2C25.36&layer=mapnik";
 
     if (!isOpen) return null;
 
     const handleDeliverySubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onProceed({ mode: 'Delivery', address: searchQuery || 'Current Location' });
+        if (!pickedLocation) {
+            alert('Please select a delivery location on the map.');
+            return;
+        }
+        onProceed({
+            mode: 'Delivery',
+            address: pickedLocation.address,
+            lat: pickedLocation.lat,
+            lng: pickedLocation.lng,
+        });
     };
 
     const handlePickupSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onProceed({ mode: 'Pickup', city, store });
+        const selectedBranch = locations.find(l => l.id === store);
+        onProceed({
+            mode: 'Pickup',
+            city,
+            store,
+            lat: selectedBranch?.latitude || pickedLocation?.lat || 0,
+            lng: selectedBranch?.longitude || pickedLocation?.lng || 0,
+            address: selectedBranch?.address || '',
+        });
     };
 
     return (
@@ -151,49 +155,21 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                 <div className="modal-body">
                     {activeTab === 'Delivery' && (
                         <form id="delivery-form" onSubmit={handleDeliverySubmit}>
-                            <div className="delivery-search-bar">
-                                <span className="search-icon">🔍</span>
-                                <input
-                                    type="text"
-                                    placeholder="Search Location or Address"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                <span className="country-flag">🇦🇪</span>
-                            </div>
+                            <GoogleMapPicker
+                                onLocationSelect={handleLocationSelect}
+                                height={300}
+                            />
 
-                            <div className="map-placeholder">
-                                <iframe
-                                    width="100%"
-                                    height="100%"
-                                    frameBorder={0}
-                                    scrolling="no"
-                                    src={mapSrc}
-                                    title="Location map"
-                                />
-                                <button
-                                    type="button"
-                                    className="map-recenter"
-                                    title="Use my current location"
-                                    onClick={handleUseMyLocation}
-                                    disabled={isLocating}
-                                >
-                                    {isLocating ? '…' : '🧭'}
-                                </button>
-                            </div>
-
-                            <div className="login-prompt-bar">
+                            <div className="login-prompt-bar" style={{ marginTop: 12 }}>
                                 <span className="login-prompt-text">Login to use your saved addresses</span>
                                 <button type="button" className="login-prompt-btn">Login</button>
                             </div>
 
-                            {geoError && (
-                                <p className="location-error-text">
-                                    {geoError}
-                                </p>
-                            )}
-
-                            <button type="submit" className="btn-primary-large">
+                            <button
+                                type="submit"
+                                className="btn-primary-large"
+                                style={{ marginTop: 12, opacity: pickedLocation ? 1 : 0.5 }}
+                            >
                                 CONFIRM LOCATION
                             </button>
                         </form>
@@ -244,7 +220,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                             <button
                                 type="button"
                                 className="btn-outlined-location"
-                                onClick={handleUseMyLocation}
+                                onClick={handleUseMyLocationForPickup}
                                 disabled={isLocating}
                             >
                                 {isLocating ? 'Locating…' : '📍 Use My Location'}
