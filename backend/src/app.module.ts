@@ -13,7 +13,7 @@ import { OrdersModule } from './orders/orders.module';
 import { RoutingModule } from './routing/routing.module';
 import { StripeModule } from './stripe/stripe.module';
 import { ResendModule } from './resend/resend.module';
-import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { UploadModule } from './upload/upload.module';
 import { SettingsModule } from './settings/settings.module';
 import { CategoriesModule } from './categories/categories.module';
 import { MenuItemsModule } from './menu-items/menu-items.module';
@@ -46,7 +46,7 @@ import { GeocodeModule } from './geocode/geocode.module';
     RoutingModule,
     StripeModule,
     ResendModule,
-    CloudinaryModule,
+    UploadModule,
     SettingsModule,
     CategoriesModule,
     MenuItemsModule,
