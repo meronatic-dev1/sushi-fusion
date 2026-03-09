@@ -12,7 +12,7 @@ export class StripeService {
         private configService: ConfigService,
         private prisma: PrismaService
     ) {
-        this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || '', {
+        this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || 'sk_test_dummy_key_prevents_crash', {
             apiVersion: '2023-10-16' as any, // Use standard casting in Nestjs
         });
     }
