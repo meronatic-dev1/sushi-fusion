@@ -23,12 +23,12 @@ export default function CategoryBar({ activeCategory, onSelectCategory, t, categ
                         onClick={() => onSelectCategory(cat.id)}
                     >
                         <div className="cat-img">
-                            {cat.imgSrc ? (
-                                <img src={cat.imgSrc} alt={cat.name} />
+                            {(cat as any).imgSrc ? (
+                                <img src={(cat as any).imgSrc} alt={cat.name} />
                             ) : MENU[cat.id]?.[0]?.imgSrc ? (
                                 <img src={MENU[cat.id][0].imgSrc!} alt={cat.name} />
                             ) : (
-                                cat.icon || cat.emoji || '🍽️'
+                                (cat as any).icon || (cat as any).emoji || '🍽️'
                             )}
                         </div>
                         <span className="cat-name">{t(`category.${cat.id}`) !== `category.${cat.id}` ? t(`category.${cat.id}`) : cat.name}</span>
