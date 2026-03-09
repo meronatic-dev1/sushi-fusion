@@ -12,8 +12,7 @@ cmds = ["npm install --include=dev"]
 [phases.build]
 cmds = [
     "npx prisma generate",
-    "npx tsc -p tsconfig.build.json",
-    "ls -la dist/main.js"
+    "npm run build"
 ]
 
 [start]
