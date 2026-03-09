@@ -76,7 +76,8 @@ function ProductModal({
 
     const save = () => {
         if (!name.trim() || !category || !price) return;
-        onSave({ name: name.trim(), category, price: Number(price), dietary, available, imgSrc });
+        const cat = categories.find(c => c.name === category);
+        onSave({ name: name.trim(), category, categoryId: cat?.id ?? '', price: Number(price), dietary, available, imgSrc });
         onClose();
     };
 
