@@ -711,7 +711,7 @@ export default function AdminProductsPage() {
             {(showAddProd || editProd) && (
                 <ProductModal
                     categories={categories}
-                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, price: 0, available: true, dietary: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
+                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, categoryId: '', price: 0, available: true, dietary: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
                     onClose={() => { setShowAddProd(false); setEditProd(null); setAddToCat(null); }}
                     onSave={editProd ? saveProduct : addProduct}
                 />
