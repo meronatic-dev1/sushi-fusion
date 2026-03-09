@@ -9,20 +9,27 @@ export class S3Service {
     private s3Client: S3Client;
     private bucketName: string;
     private endpoint: string;
+    private region: string;
 
-    constructor(private configService: ConfigService) {
+constructor(private configService: ConfigService) {
         this.endpoint = this.configService.get('S3_ENDPOINT') || '';
         this.bucketName = this.configService.get('S3_BUCKET_NAME') || '';
+        this.region = this.configService.get('S3_REGION') || 'us-east-1';
         
-        this.s3Client = new S3Client({
-            region: this.configService.get('S3_REGION') || 'us-east-1',
-            endpoint: this.endpoint,
+        const clientConfig: any = {
+            region: this.region,
             credentials: {
                 accessKeyId: this.configService.get('S3_ACCESS_KEY') || '',
                 secretAccessKey: this.configService.get('S3_SECRET_KEY') || '',
             },
-            forcePathStyle: true, // Required for MinIO
-        });
+        };
+
+        if (this.endpoint) {
+            clientConfig.endpoint = this.endpoint;
+            clientConfig.forcePathStyle = true; // Required for MinIO/custom endpoints
+        }
+
+        this.s3Client = new S3Client(clientConfig);
     }
 
     async uploadImage(file: Express.Multer.File): Promise<{ url: string, public_id: string }> {
@@ -40,9 +47,14 @@ export class S3Service {
 
         await this.s3Client.send(command);
 
-        // Construct the public URL for the uploaded image
-        // With forcePathStyle, MinIO URLs look like: http://endpoint:9000/bucket/filename
-        const url = `${this.endpoint.replace(/\/$/, '')}/${this.bucketName}/${filename}`;
+        let url = '';
+        if (this.endpoint) {
+            // Path-style URL for custom endpoints like MinIO
+            url = `${this.endpoint.replace(/\/$/, '')}/${this.bucketName}/${filename}`;
+        } else {
+            // Virtual-hosted-style URL for standard AWS S3
+            url = `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${filename}`;
+        }
 
         return {
             url,
