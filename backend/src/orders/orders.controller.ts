@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ResendService } from '../resend/resend.service';
 import { ConfigService } from '@nestjs/config';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
+import { OrdersGateway } from './orders.gateway';
 
 @Controller('orders')
 export class OrdersController {
@@ -15,6 +16,7 @@ export class OrdersController {
         private prisma: PrismaService,
         private resendService: ResendService,
         private configService: ConfigService,
+        private ordersGateway: OrdersGateway,
     ) {
         const clerkSecret = this.configService.get<string>('CLERK_SECRET_KEY');
         if (clerkSecret) {
@@ -78,6 +80,12 @@ export class OrdersController {
             }).catch(err => this.logger.error('Failed to send status email', err));
         }
 
+        // Real-time notification to customer
+        this.ordersGateway.notifyOrderUpdate(order.id, order);
+        
+        // Notify branch managers
+        this.ordersGateway.notifyBranchOfOrderUpdate(order.branchId, order);
+
         return order;
     }
 
@@ -111,6 +119,9 @@ export class OrdersController {
                 reason: body.reason,
             }).catch(err => this.logger.error('Failed to send refund email', err));
         }
+
+        // Real-time notification to customer
+        this.ordersGateway.notifyOrderUpdate(id, { id, status: 'CANCELLED' });
 
         return { message: 'Refund processed', orderId: id, refundAmount };
     }

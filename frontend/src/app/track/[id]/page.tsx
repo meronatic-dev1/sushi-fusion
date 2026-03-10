@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getOrder } from '@/lib/api';
-import { Package, Clock, Check, ChefHat, Truck, XCircle, ArrowLeft, MapPin } from 'lucide-react';
+import { getOrder, API } from '@/lib/api';
+import { Package, Clock, Check, ChefHat, Truck, XCircle, ArrowLeft, MapPin, Bell } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
 
 const STATUS_STEPS = [
     { key: 'PENDING', label: 'Pending', icon: <Clock size={18} />, desc: 'Order received' },
@@ -26,9 +27,24 @@ export default function TrackOrderPage() {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+    const socketRef = useRef<Socket | null>(null);
+
+    // Request notification permission
+    const requestPermission = async () => {
+        if (!('Notification' in window)) return;
+        const permission = await Notification.requestPermission();
+        setNotificationPermission(permission);
+    };
 
     useEffect(() => {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            setNotificationPermission(Notification.permission);
+        }
+
         if (!orderId) return;
+
+        // 1. Initial Load
         const load = async () => {
             try {
                 const data = await getOrder(orderId);
@@ -40,9 +56,46 @@ export default function TrackOrderPage() {
             }
         };
         load();
-        // Poll every 15 seconds for live updates
-        const interval = setInterval(load, 15000);
-        return () => clearInterval(interval);
+
+        // 2. Real-time Setup
+        const socketUrl = API.replace('/api', ''); // e.g. http://localhost:3001
+        const socket = io(socketUrl);
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            console.log('Connected to order tracking socket');
+            socket.emit('joinOrderRoom', orderId);
+        });
+
+        socket.on('orderStatusUpdated', (updatedOrder: any) => {
+            console.log('Real-time order update received:', updatedOrder);
+            
+            setOrder((prev: any) => {
+                // Only notify if status actually changed
+                if (prev && prev.status !== updatedOrder.status) {
+                    showBrowserNotification(updatedOrder.status);
+                }
+                return { ...prev, ...updatedOrder };
+            });
+        });
+
+        const showBrowserNotification = (status: string) => {
+            if (Notification.permission === 'granted') {
+                const step = STATUS_STEPS.find(s => s.key === status);
+                new Notification('Sushi Fusion Update 🍣', {
+                    body: `Your order status is now: ${step?.label || status}. ${step?.desc || ''}`,
+                    icon: '/favicon.ico', // Placeholder if no logo is available
+                });
+            }
+        };
+
+        // 3. Fallback polling (every 60s)
+        const interval = setInterval(load, 60000);
+
+        return () => {
+            socket.disconnect();
+            clearInterval(interval);
+        };
     }, [orderId]);
 
     const shortId = orderId?.slice(0, 8).toUpperCase() || '';
@@ -130,6 +183,41 @@ export default function TrackOrderPage() {
                                         {order.mode === 'DELIVERY' ? '🚚 Delivery' : '🍽️ Dine-In'} · Updates in real time
                                     </p>
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Notifications Prompt */}
+                        {notificationPermission === 'default' && !isCancelled && (
+                            <div style={{
+                                background: '#f0f9ff', borderRadius: 16, border: '1px solid #bae6fd',
+                                padding: '16px 20px', marginBottom: 20,
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <Bell size={18} style={{ color: '#0369a1' }} />
+                                    <p style={{ fontSize: 13, color: '#0369a1', fontWeight: 600, margin: 0 }}>
+                                        Get browser notifications on status change?
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={requestPermission}
+                                    style={{
+                                        background: '#0369a1', color: '#fff', border: 'none',
+                                        padding: '8px 16px', borderRadius: 8, fontSize: 12,
+                                        fontWeight: 700, cursor: 'pointer',
+                                    }}
+                                >
+                                    Enable
+                                </button>
+                            </div>
+                        ) || notificationPermission === 'denied' && (
+                           <div style={{
+                                background: '#fef2f2', borderRadius: 16, border: '1px solid #fecaca',
+                                padding: '12px 20px', marginBottom: 20, textAlign: 'center'
+                            }}>
+                                <p style={{ fontSize: 12, color: '#991b1b', margin: 0 }}>
+                                    Notifications are blocked. Please enable them in your browser settings to get live updates.
+                                </p>
                             </div>
                         )}
 
