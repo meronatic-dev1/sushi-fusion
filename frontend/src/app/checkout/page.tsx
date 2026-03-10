@@ -471,7 +471,7 @@ export default function CheckoutPage() {
                                     <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#FF6A0C', background: '#fff5ee', padding: '2px 8px', borderRadius: 6 }}>
                                         #{orderId?.slice(0, 8).toUpperCase()}
                                     </span>{' '}
-                                    is being prepared at our Downtown branch.
+                                    is being prepared. You'll receive a confirmation email shortly.
                                 </p>
 
                                 {/* Details card */}
@@ -481,13 +481,12 @@ export default function CheckoutPage() {
                                 }}>
                                     {[
                                         { label: 'Estimated delivery', value: '30–45 minutes', bold: true },
-                                        { label: 'Branch', value: 'Sushi Fusion — Downtown' },
                                         { label: 'Total paid', value: `AED ${TOTAL.toFixed(2)}`, highlight: true },
                                     ].map((row, i) => (
                                         <div key={i} style={{
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                             padding: '10px 0',
-                                            borderBottom: i < 2 ? '1px solid #ede6dc' : 'none',
+                                            borderBottom: i < 1 ? '1px solid #ede6dc' : 'none',
                                         }}>
                                             <span style={{ fontSize: 13, color: '#a08060' }}>{row.label}</span>
                                             <span style={{ fontSize: 13, fontWeight: row.highlight ? 800 : 700, color: row.highlight ? '#FF6A0C' : '#1a1108' }}>
@@ -501,11 +500,27 @@ export default function CheckoutPage() {
                                     A confirmation email is on its way. Your account has been created — check your inbox to set a password.
                                 </p>
 
-                                <Link href="/">
-                                    <ActionButton onClick={() => { }}>
-                                        ← Back to Menu
-                                    </ActionButton>
-                                </Link>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                    {orderId && (
+                                        <Link href={`/track/${orderId}`}>
+                                            <ActionButton onClick={() => {}}>
+                                                📦 Track Your Order
+                                            </ActionButton>
+                                        </Link>
+                                    )}
+                                    <Link href="/">
+                                        <button style={{
+                                            width: '100%', padding: '14px 24px',
+                                            background: '#faf8f5', border: '1.5px solid #e8ddd2',
+                                            borderRadius: 12, color: '#8a7060',
+                                            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+                                            fontFamily: '"DM Sans", sans-serif',
+                                            transition: 'all 0.18s',
+                                        }}>
+                                            ← Back to Menu
+                                        </button>
+                                    </Link>
+                                </div>
                             </div>
                         </div>
                     )}

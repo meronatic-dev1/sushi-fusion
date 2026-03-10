@@ -3,9 +3,10 @@ import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { OrdersGateway } from './orders.gateway';
 import { RoutingModule } from '../routing/routing.module';
+import { ResendModule } from '../resend/resend.module';
 
 @Module({
-  imports: [RoutingModule],
+  imports: [RoutingModule, ResendModule],
   providers: [OrdersService, OrdersGateway],
   controllers: [OrdersController],
   exports: [OrdersService, OrdersGateway],

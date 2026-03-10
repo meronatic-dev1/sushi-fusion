@@ -1,13 +1,28 @@
-import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus, Query, Logger } from '@nestjs/common';
 import { RoutingService } from '../routing/routing.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ResendService } from '../resend/resend.service';
+import { ConfigService } from '@nestjs/config';
+import { createClerkClient } from '@clerk/clerk-sdk-node';
 
 @Controller('orders')
 export class OrdersController {
+    private readonly logger = new Logger(OrdersController.name);
+    private clerkClient: ReturnType<typeof createClerkClient> | null = null;
+
     constructor(
         private routingService: RoutingService,
-        private prisma: PrismaService
-    ) { }
+        private prisma: PrismaService,
+        private resendService: ResendService,
+        private configService: ConfigService,
+    ) {
+        const clerkSecret = this.configService.get<string>('CLERK_SECRET_KEY');
+        if (clerkSecret) {
+            this.clerkClient = createClerkClient({ secretKey: clerkSecret });
+        } else {
+            this.logger.warn('CLERK_SECRET_KEY not set — guest Clerk account creation disabled');
+        }
+    }
 
     @Get()
     async getOrders(@Query('branchId') branchId?: string) {
@@ -28,12 +43,42 @@ export class OrdersController {
         });
     }
 
+    @Get(':id')
+    async getOrderById(@Param('id') id: string) {
+        return this.prisma.order.findUnique({
+            where: { id },
+            include: {
+                orderItems: {
+                    include: {
+                        menuItem: true
+                    }
+                },
+                branch: true,
+            }
+        });
+    }
+
     @Patch(':id/status')
     async updateOrderStatus(@Param('id') id: string, @Body('status') status: string) {
-        return this.prisma.order.update({
+        const order = await this.prisma.order.update({
             where: { id },
-            data: { status: status as any } // Cast the string to Prisma enum
+            data: { status: status as any },
+            include: {
+                orderItems: { include: { menuItem: true } },
+            }
         });
+
+        // Send status update email if we have a customer email
+        if (order.customerEmail) {
+            this.resendService.sendOrderStatusEmail(order.customerEmail, {
+                id: order.id,
+                customerName: order.customerName || undefined,
+                totalAmount: Number(order.totalAmount),
+                status: order.status,
+            }).catch(err => this.logger.error('Failed to send status email', err));
+        }
+
+        return order;
     }
 
     @Post()
@@ -46,7 +91,6 @@ export class OrdersController {
         let calculatedTotal = 0;
 
         for (const item of items) {
-            // Find the item by name since the frontend mock data didn't have real IDs
             const menuItem = await this.prisma.menuItem.findFirst({
                 where: { name: item.name }
             });
@@ -74,13 +118,13 @@ export class OrdersController {
             serviceChargeAmount = calculatedTotal * (serviceChargePercent / 100);
         }
 
-        // Add dummy Delivery fee & Tax for this POC
         const DELIVERY_FEE = 15;
         const tax = calculatedTotal * 0.05;
         const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax + serviceChargeAmount;
 
-        // Ensure we link a User (find existing or create guest)
+        // ─── Guest Account Creation ───
         let resolvedUserId = body.userId;
+        let isNewGuestAccount = false;
 
         if (!resolvedUserId && body.customerEmail && body.customerName) {
             let existingUser = await this.prisma.user.findUnique({
@@ -88,27 +132,45 @@ export class OrdersController {
             });
 
             if (!existingUser) {
+                // Try to create Clerk account for the guest
+                let clerkUserId: string | null = null;
+                if (this.clerkClient) {
+                    try {
+                        const clerkUser = await this.clerkClient.users.createUser({
+                            firstName: body.customerName,
+                            emailAddress: [body.customerEmail],
+                            skipPasswordChecks: true,
+                            skipPasswordRequirement: true,
+                            publicMetadata: { role: 'customer' },
+                        });
+                        clerkUserId = clerkUser.id;
+                        isNewGuestAccount = true;
+                        this.logger.log(`Created Clerk guest account for ${body.customerEmail}: ${clerkUserId}`);
+                    } catch (clerkErr: any) {
+                        this.logger.warn(`Clerk guest creation failed for ${body.customerEmail}: ${clerkErr.message}`);
+                    }
+                }
+
                 existingUser = await this.prisma.user.create({
                     data: {
+                        ...(clerkUserId ? { id: clerkUserId } : {}),
                         email: body.customerEmail,
                         name: body.customerName,
                         phone: body.customerPhone || null,
-                        password: 'guest-placeholder-password', // Required by schema
+                        password: 'guest-placeholder-password',
                     }
                 });
             }
             resolvedUserId = existingUser.id;
         }
 
-        // Resolve branch: use body.branchId if provided (frontend auto-selection)
-        // otherwise fallback to first available branch
+        // Resolve branch
         let selectedBranchId = body.branchId;
         if (!selectedBranchId) {
             const fallbackBranch = await this.prisma.location.findFirst({ where: { isActive: true } });
             selectedBranchId = fallbackBranch?.id;
         }
 
-        // If still no branch, create a system default one
         if (!selectedBranchId) {
             const systemBranch = await this.prisma.location.create({
                 data: {
@@ -128,7 +190,6 @@ export class OrdersController {
                 userId: resolvedUserId || null,
                 mode: body.mode || 'DELIVERY',
                 totalAmount: finalTotal,
-                // Customer details from checkout form
                 customerName: body.customerName || null,
                 customerEmail: body.customerEmail || null,
                 customerPhone: body.customerPhone || null,
@@ -136,7 +197,6 @@ export class OrdersController {
                 customerCity: body.customerCity || null,
                 customerPostcode: body.customerPostcode || null,
                 deliveryInstructions: body.deliveryInstructions || null,
-                // Routing fields
                 branchId: selectedBranchId,
                 branchIdOriginal: selectedBranchId,
                 radiusUsedKm: 0,
@@ -146,6 +206,9 @@ export class OrdersController {
                 orderItems: {
                     create: orderItemsData
                 }
+            },
+            include: {
+                orderItems: { include: { menuItem: true } },
             }
         });
 
@@ -158,12 +221,31 @@ export class OrdersController {
         }
 
         if (order.mode === 'DELIVERY') {
-            // Hands off the heavy lifting to BullMQ
             await this.routingService.queueOrderForRouting(
                 order.id,
                 order.customerLat,
                 order.customerLng
             );
+        }
+
+        // ─── Send Emails (fire-and-forget) ───
+        if (body.customerEmail) {
+            // 1. Order confirmation email
+            this.resendService.sendOrderConfirmationEmail(body.customerEmail, {
+                id: order.id,
+                customerName: body.customerName,
+                totalAmount: Number(order.totalAmount),
+                mode: order.mode,
+                items: order.orderItems,
+            }).catch(err => this.logger.error('Failed to send confirmation email', err));
+
+            // 2. Welcome email for new guest accounts
+            if (isNewGuestAccount) {
+                this.resendService.sendWelcomeEmail(
+                    body.customerEmail,
+                    body.customerName || 'Customer',
+                ).catch(err => this.logger.error('Failed to send welcome email', err));
+            }
         }
 
         return {
