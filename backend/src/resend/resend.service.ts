@@ -15,7 +15,9 @@ export class ResendService {
         this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     }
 
-    /* ─── Order Confirmation Email ─── */
+    /* ─────────────────────────────────────────────────────
+     * 1. ORDER CONFIRMATION EMAIL
+     * ───────────────────────────────────────────────────── */
     async sendOrderConfirmationEmail(email: string, order: {
         id: string;
         customerName?: string;
@@ -40,8 +42,7 @@ export class ResendService {
                 from: this.fromEmail,
                 to: email,
                 subject: `Order Confirmed! #${shortId} 🍣`,
-                html: `
-                <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #ede6dc;">
+                html: this.wrapTemplate(`
                     <div style="background:linear-gradient(135deg,#FF6A0C,#e55a00);padding:32px 28px;text-align:center;">
                         <h1 style="color:#fff;font-size:24px;margin:0 0 6px;">Order Confirmed!</h1>
                         <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">Thank you${order.customerName ? ', ' + order.customerName : ''}!</p>
@@ -75,11 +76,7 @@ export class ResendService {
                             <tbody>${itemsHtml}</tbody>
                         </table>` : ''}
                         <a href="${trackUrl}" style="display:block;text-align:center;background:#FF6A0C;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Track Your Order →</a>
-                    </div>
-                    <div style="padding:16px 28px;background:#faf8f5;border-top:1px solid #ede6dc;text-align:center;">
-                        <p style="font-size:12px;color:#b09070;margin:0;">Sushi Fusion — Fresh, Bold, Delivered.</p>
-                    </div>
-                </div>`,
+                    </div>`),
             });
             this.logger.log(`Order confirmation email sent to ${email} for #${shortId}`);
         } catch (error) {
@@ -87,7 +84,151 @@ export class ResendService {
         }
     }
 
-    /* ─── Welcome Email (Guest Account Created) ─── */
+    /* ─────────────────────────────────────────────────────
+     * 2. ORDER STATUS UPDATE EMAIL
+     * ───────────────────────────────────────────────────── */
+    async sendOrderStatusEmail(email: string, order: {
+        id: string;
+        customerName?: string;
+        totalAmount: number;
+        status: string;
+    }) {
+        const shortId = order.id.slice(0, 8).toUpperCase();
+        const trackUrl = `${this.frontendUrl}/track/${order.id}`;
+
+        const statusConfig: Record<string, { emoji: string; title: string; message: string; color: string }> = {
+            CONFIRMED: { emoji: '✅', title: 'Order Confirmed', message: 'Your order has been confirmed and will be prepared shortly.', color: '#22c55e' },
+            PREPARING: { emoji: '👨‍🍳', title: 'Being Prepared', message: 'Our chefs are now preparing your delicious order!', color: '#f59e0b' },
+            READY: { emoji: '🎉', title: 'Order Ready', message: 'Your order is ready! It will be on its way soon.', color: '#3b82f6' },
+            READY_FOR_PICKUP: { emoji: '🎉', title: 'Ready for Pickup', message: 'Your order is ready for pickup!', color: '#3b82f6' },
+            OUT_FOR_DELIVERY: { emoji: '🚚', title: 'Out for Delivery', message: 'Your order is on its way to you!', color: '#8b5cf6' },
+            DELIVERED: { emoji: '📦', title: 'Delivered', message: 'Your order has been delivered. Enjoy!', color: '#22c55e' },
+            COMPLETED: { emoji: '🎊', title: 'Order Completed', message: 'Your order has been completed. We hope you enjoyed it!', color: '#22c55e' },
+            CANCELLED: { emoji: '❌', title: 'Order Cancelled', message: 'Your order has been cancelled. If this was unexpected, please contact us.', color: '#ef4444' },
+        };
+
+        const config = statusConfig[order.status];
+        if (!config) {
+            this.logger.warn(`No email template for status: ${order.status}`);
+            return;
+        }
+
+        try {
+            await this.resend.emails.send({
+                from: this.fromEmail,
+                to: email,
+                subject: `${config.emoji} Order #${shortId} — ${config.title}`,
+                html: this.wrapTemplate(`
+                    <div style="background:${config.color};padding:32px 28px;text-align:center;">
+                        <p style="font-size:48px;margin:0 0 8px;">${config.emoji}</p>
+                        <h1 style="color:#fff;font-size:22px;margin:0 0 6px;">${config.title}</h1>
+                        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">Order #${shortId}</p>
+                    </div>
+                    <div style="padding:28px;">
+                        <p style="font-size:15px;color:#3d2c1e;line-height:1.7;margin:0 0 24px;">
+                            Hi${order.customerName ? ' ' + order.customerName : ''},<br/><br/>
+                            ${config.message}
+                        </p>
+                        <a href="${trackUrl}" style="display:block;text-align:center;background:#FF6A0C;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Track Your Order →</a>
+                    </div>`),
+            });
+            this.logger.log(`Status email (${order.status}) sent to ${email} for #${shortId}`);
+        } catch (error) {
+            this.logger.error(`Failed to send status email to ${email}`, error.stack);
+        }
+    }
+
+    /* ─────────────────────────────────────────────────────
+     * 3. REFUND NOTIFICATION EMAIL
+     * ───────────────────────────────────────────────────── */
+    async sendRefundNotificationEmail(email: string, data: {
+        orderId: string;
+        customerName?: string;
+        refundAmount: number;
+        reason?: string;
+    }) {
+        const shortId = data.orderId.slice(0, 8).toUpperCase();
+
+        try {
+            await this.resend.emails.send({
+                from: this.fromEmail,
+                to: email,
+                subject: `💸 Refund Processed — Order #${shortId}`,
+                html: this.wrapTemplate(`
+                    <div style="background:linear-gradient(135deg,#22c55e,#16a34a);padding:32px 28px;text-align:center;">
+                        <p style="font-size:48px;margin:0 0 8px;">💸</p>
+                        <h1 style="color:#fff;font-size:22px;margin:0 0 6px;">Refund Processed</h1>
+                        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">Order #${shortId}</p>
+                    </div>
+                    <div style="padding:28px;">
+                        <p style="font-size:15px;color:#3d2c1e;line-height:1.7;margin:0 0 20px;">
+                            Hi${data.customerName ? ' ' + data.customerName : ''},<br/><br/>
+                            We've processed a refund for your order. The details are below:
+                        </p>
+                        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:24px;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="font-size:13px;color:#6b7280;">Order</span>
+                                <span style="font-size:13px;font-weight:700;color:#1a1108;">#${shortId}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="font-size:13px;color:#6b7280;">Refund Amount</span>
+                                <span style="font-size:15px;font-weight:800;color:#22c55e;">AED ${data.refundAmount.toFixed(2)}</span>
+                            </div>
+                            ${data.reason ? `
+                            <div style="display:flex;justify-content:space-between;">
+                                <span style="font-size:13px;color:#6b7280;">Reason</span>
+                                <span style="font-size:13px;color:#1a1108;">${data.reason}</span>
+                            </div>` : ''}
+                        </div>
+                        <p style="font-size:13px;color:#8a7060;line-height:1.6;margin:0;">
+                            The refund will appear in your original payment method within 5–10 business days.
+                        </p>
+                    </div>`),
+            });
+            this.logger.log(`Refund email sent to ${email} for #${shortId}`);
+        } catch (error) {
+            this.logger.error(`Failed to send refund email to ${email}`, error.stack);
+        }
+    }
+
+    /* ─────────────────────────────────────────────────────
+     * 4. PASSWORD RESET EMAIL
+     * ───────────────────────────────────────────────────── */
+    async sendPasswordResetEmail(email: string, data: {
+        name?: string;
+        resetUrl: string;
+    }) {
+        try {
+            await this.resend.emails.send({
+                from: this.fromEmail,
+                to: email,
+                subject: `🔐 Reset Your Password — Sushi Fusion`,
+                html: this.wrapTemplate(`
+                    <div style="background:linear-gradient(135deg,#6366f1,#4f46e5);padding:32px 28px;text-align:center;">
+                        <p style="font-size:48px;margin:0 0 8px;">🔐</p>
+                        <h1 style="color:#fff;font-size:22px;margin:0 0 6px;">Password Reset</h1>
+                        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">We received a reset request</p>
+                    </div>
+                    <div style="padding:28px;">
+                        <p style="font-size:15px;color:#3d2c1e;line-height:1.7;margin:0 0 20px;">
+                            Hi${data.name ? ' ' + data.name : ''},<br/><br/>
+                            We received a request to reset your password. Click the button below to choose a new one.
+                        </p>
+                        <a href="${data.resetUrl}" style="display:block;text-align:center;background:#6366f1;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;margin-bottom:20px;">Reset Password →</a>
+                        <p style="font-size:12px;color:#a08060;line-height:1.6;margin:0;">
+                            If you didn't request this, you can safely ignore this email. The link expires in 1 hour.
+                        </p>
+                    </div>`),
+            });
+            this.logger.log(`Password reset email sent to ${email}`);
+        } catch (error) {
+            this.logger.error(`Failed to send password reset to ${email}`, error.stack);
+        }
+    }
+
+    /* ─────────────────────────────────────────────────────
+     * 5. WELCOME EMAIL (Guest Account Created)
+     * ───────────────────────────────────────────────────── */
     async sendWelcomeEmail(email: string, name: string) {
         const loginUrl = `${this.frontendUrl}/login`;
         try {
@@ -95,8 +236,7 @@ export class ResendService {
                 from: this.fromEmail,
                 to: email,
                 subject: `Welcome to Sushi Fusion! 🎉`,
-                html: `
-                <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #ede6dc;">
+                html: this.wrapTemplate(`
                     <div style="background:linear-gradient(135deg,#FF6A0C,#e55a00);padding:32px 28px;text-align:center;">
                         <h1 style="color:#fff;font-size:24px;margin:0 0 6px;">Welcome, ${name}!</h1>
                         <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">Your account has been created</p>
@@ -112,11 +252,7 @@ export class ResendService {
                             </p>
                         </div>
                         <a href="${loginUrl}" style="display:block;text-align:center;background:#FF6A0C;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Go to Login →</a>
-                    </div>
-                    <div style="padding:16px 28px;background:#faf8f5;border-top:1px solid #ede6dc;text-align:center;">
-                        <p style="font-size:12px;color:#b09070;margin:0;">Sushi Fusion — Fresh, Bold, Delivered.</p>
-                    </div>
-                </div>`,
+                    </div>`),
             });
             this.logger.log(`Welcome email sent to ${email}`);
         } catch (error) {
@@ -124,82 +260,79 @@ export class ResendService {
         }
     }
 
-    /* ─── Order Status Update Email ─── */
-    async sendOrderStatusEmail(email: string, order: {
-        id: string;
-        customerName?: string;
-        totalAmount: number;
-        status: string;
+    /* ─────────────────────────────────────────────────────
+     * 6. DAILY ORDER SUMMARY EMAIL (for managers)
+     * ───────────────────────────────────────────────────── */
+    async sendDailyOrderSummaryEmail(managerEmail: string, data: {
+        branchName: string;
+        date: string;
+        totalOrders: number;
+        totalRevenue: number;
+        completedOrders: number;
+        cancelledOrders: number;
+        topItems: { name: string; quantity: number }[];
     }) {
-        const shortId = order.id.slice(0, 8).toUpperCase();
-        const trackUrl = `${this.frontendUrl}/track/${order.id}`;
-
-        const statusConfig: Record<string, { emoji: string; title: string; message: string; color: string }> = {
-            CONFIRMED: {
-                emoji: '✅',
-                title: 'Order Confirmed',
-                message: 'Your order has been confirmed and will be prepared shortly.',
-                color: '#22c55e',
-            },
-            PREPARING: {
-                emoji: '👨‍🍳',
-                title: 'Being Prepared',
-                message: 'Our chefs are now preparing your delicious order!',
-                color: '#f59e0b',
-            },
-            READY: {
-                emoji: '🎉',
-                title: 'Order Ready',
-                message: 'Your order is ready! It will be on its way soon.',
-                color: '#3b82f6',
-            },
-            COMPLETED: {
-                emoji: '🎊',
-                title: 'Order Completed',
-                message: 'Your order has been completed. We hope you enjoyed it!',
-                color: '#22c55e',
-            },
-            CANCELLED: {
-                emoji: '❌',
-                title: 'Order Cancelled',
-                message: 'Your order has been cancelled. If this was unexpected, please contact us.',
-                color: '#ef4444',
-            },
-        };
-
-        const config = statusConfig[order.status];
-        if (!config) {
-            this.logger.warn(`No email template for status: ${order.status}`);
-            return;
-        }
+        const topItemsHtml = data.topItems.map(item =>
+            `<tr>
+                <td style="padding:6px 12px;font-size:13px;color:#3d2c1e;border-bottom:1px solid #f0e8df;">${item.name}</td>
+                <td style="padding:6px 12px;font-size:13px;color:#8a7060;text-align:right;border-bottom:1px solid #f0e8df;">${item.quantity} sold</td>
+            </tr>`
+        ).join('');
 
         try {
             await this.resend.emails.send({
                 from: this.fromEmail,
-                to: email,
-                subject: `${config.emoji} Order #${shortId} — ${config.title}`,
-                html: `
-                <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #ede6dc;">
-                    <div style="background:${config.color};padding:32px 28px;text-align:center;">
-                        <p style="font-size:48px;margin:0 0 8px;">${config.emoji}</p>
-                        <h1 style="color:#fff;font-size:22px;margin:0 0 6px;">${config.title}</h1>
-                        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">Order #${shortId}</p>
+                to: managerEmail,
+                subject: `📊 Daily Summary — ${data.branchName} — ${data.date}`,
+                html: this.wrapTemplate(`
+                    <div style="background:linear-gradient(135deg,#1e293b,#0f172a);padding:32px 28px;text-align:center;">
+                        <p style="font-size:48px;margin:0 0 8px;">📊</p>
+                        <h1 style="color:#fff;font-size:22px;margin:0 0 6px;">Daily Order Summary</h1>
+                        <p style="color:rgba(255,255,255,0.7);font-size:14px;margin:0;">${data.branchName} · ${data.date}</p>
                     </div>
                     <div style="padding:28px;">
-                        <p style="font-size:15px;color:#3d2c1e;line-height:1.7;margin:0 0 24px;">
-                            Hi${order.customerName ? ' ' + order.customerName : ''},<br/><br/>
-                            ${config.message}
-                        </p>
-                        <a href="${trackUrl}" style="display:block;text-align:center;background:#FF6A0C;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Track Your Order →</a>
-                    </div>
-                    <div style="padding:16px 28px;background:#faf8f5;border-top:1px solid #ede6dc;text-align:center;">
-                        <p style="font-size:12px;color:#b09070;margin:0;">Sushi Fusion — Fresh, Bold, Delivered.</p>
-                    </div>
-                </div>`,
+                        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+                            <div style="flex:1;min-width:120px;background:#fff8f3;border:1px solid #ffdcc4;border-radius:12px;padding:14px;text-align:center;">
+                                <p style="font-size:11px;color:#a08060;margin:0 0 4px;">ORDERS</p>
+                                <p style="font-size:22px;font-weight:800;color:#FF6A0C;margin:0;">${data.totalOrders}</p>
+                            </div>
+                            <div style="flex:1;min-width:120px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px;text-align:center;">
+                                <p style="font-size:11px;color:#6b7280;margin:0 0 4px;">REVENUE</p>
+                                <p style="font-size:22px;font-weight:800;color:#22c55e;margin:0;">AED ${data.totalRevenue.toFixed(2)}</p>
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+                            <div style="flex:1;min-width:120px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:14px;text-align:center;">
+                                <p style="font-size:11px;color:#6b7280;margin:0 0 4px;">COMPLETED</p>
+                                <p style="font-size:22px;font-weight:800;color:#3b82f6;margin:0;">${data.completedOrders}</p>
+                            </div>
+                            <div style="flex:1;min-width:120px;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px;text-align:center;">
+                                <p style="font-size:11px;color:#6b7280;margin:0 0 4px;">CANCELLED</p>
+                                <p style="font-size:22px;font-weight:800;color:#ef4444;margin:0;">${data.cancelledOrders}</p>
+                            </div>
+                        </div>
+                        ${topItemsHtml ? `
+                        <h3 style="font-size:13px;font-weight:800;color:#1a1108;margin:0 0 12px;">🔥 Top Items Today</h3>
+                        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+                            <tbody>${topItemsHtml}</tbody>
+                        </table>` : ''}
+                        <a href="${this.frontendUrl}/admin" style="display:block;text-align:center;background:#1e293b;color:#fff;padding:14px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;">Open Dashboard →</a>
+                    </div>`),
             });
-            this.logger.log(`Status email (${order.status}) sent to ${email} for #${shortId}`);
+            this.logger.log(`Daily summary email sent to ${managerEmail} for ${data.branchName}`);
         } catch (error) {
-            this.logger.error(`Failed to send status email to ${email}`, error.stack);
+            this.logger.error(`Failed to send daily summary to ${managerEmail}`, error.stack);
         }
+    }
+
+    /* ─── Shared HTML wrapper ─── */
+    private wrapTemplate(innerHtml: string): string {
+        return `
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;border:1px solid #ede6dc;">
+            ${innerHtml}
+            <div style="padding:16px 28px;background:#faf8f5;border-top:1px solid #ede6dc;text-align:center;">
+                <p style="font-size:12px;color:#b09070;margin:0;">Sushi Fusion — Fresh, Bold, Delivered.</p>
+            </div>
+        </div>`;
     }
 }

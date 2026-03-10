@@ -81,6 +81,40 @@ export class OrdersController {
         return order;
     }
 
+    @Post(':id/refund')
+    @HttpCode(HttpStatus.OK)
+    async processRefund(
+        @Param('id') id: string,
+        @Body() body: { amount?: number; reason?: string },
+    ) {
+        const order = await this.prisma.order.findUnique({ where: { id } });
+        if (!order) {
+            return { message: 'Order not found' };
+        }
+
+        const refundAmount = body.amount ?? Number(order.totalAmount);
+
+        // Update order status to CANCELLED if not already
+        if (order.status !== 'CANCELLED') {
+            await this.prisma.order.update({
+                where: { id },
+                data: { status: 'CANCELLED' },
+            });
+        }
+
+        // Send refund notification email
+        if (order.customerEmail) {
+            this.resendService.sendRefundNotificationEmail(order.customerEmail, {
+                orderId: order.id,
+                customerName: order.customerName || undefined,
+                refundAmount,
+                reason: body.reason,
+            }).catch(err => this.logger.error('Failed to send refund email', err));
+        }
+
+        return { message: 'Refund processed', orderId: id, refundAmount };
+    }
+
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async createOrder(@Body() body: any) {

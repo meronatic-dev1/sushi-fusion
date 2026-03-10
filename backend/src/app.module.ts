@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -40,6 +41,7 @@ import { GeocodeModule } from './geocode/geocode.module';
         password: process.env.REDIS_PASSWORD,
       },
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     UsersModule,
     AuthModule,

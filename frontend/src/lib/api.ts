@@ -92,6 +92,9 @@ export const apiCreateOrder = (data: any) =>
 export const getOrder = (id: string) =>
     apiFetch<any>(`/orders/${id}`);
 
+export const processRefund = (id: string, data: { amount?: number; reason?: string }) =>
+    apiFetch<any>(`/orders/${id}/refund`, { method: 'POST', body: JSON.stringify(data) });
+
 // ── Categories ─────────────────────────────────────────────────────────────────
 export const getCategories = () =>
     apiFetch<ApiCategory[]>('/categories');
