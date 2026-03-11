@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import LocationModal from './LocationModal';
 import UserMenu from './UserMenu';
+import { useLocation } from '@/context/LocationContext';
 import type { Language } from '@/lib/i18n';
 import { useSettings } from '@/context/SettingsContext';
 import { Show } from '@clerk/nextjs';
@@ -58,7 +59,7 @@ export default function Header({
 }: HeaderProps) {
     const [activeMode, setActiveMode] = useState<'delivery' | 'pickup' | 'dineIn'>('delivery');
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-    const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+    const { location, setLocation } = useLocation();
     const { settings } = useSettings();
 
     const modes = ['delivery', 'pickup', 'dineIn'] as const;
@@ -69,23 +70,14 @@ export default function Header({
     };
 
     const handleProceed = (data: any) => {
-        if (data.mode === 'Delivery') {
-            setSelectedLocation(data.address || t('header.selectLocation'));
-        } else if (data.mode === 'Pickup') {
-            const summary = [data.city, data.store].filter(Boolean).join(' • ');
-            setSelectedLocation(summary || t('header.selectLocation'));
-        }
-
-        // Persist location data so checkout can read real coordinates
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('selectedLocation', JSON.stringify({
-                lat: data.lat || 0,
-                lng: data.lng || 0,
-                address: data.address || '',
-                mode: data.mode,
-                branchId: data.store || null,
-            }));
-        }
+        // Update the global location context
+        setLocation({
+            lat: data.lat || 0,
+            lng: data.lng || 0,
+            address: data.address || '',
+            mode: data.mode,
+            branchId: data.store || null,
+        });
 
         setIsPopoverOpen(false);
     };
@@ -114,7 +106,7 @@ export default function Header({
                 </div>
 
                 <button className="location-btn" onClick={() => setIsPopoverOpen(true)}>
-                    📍 {selectedLocation || t('header.selectLocation')}
+                    📍 {location?.address || t('header.selectLocation')}
                 </button>
 
                 <div className="topbar-spacer" />
@@ -162,7 +154,7 @@ export default function Header({
                             <polyline points="9 22 9 12 15 12 15 22" />
                         </svg>
                         <span className="mob-location-text">
-                            {selectedLocation || t('header.selectLocation')}
+                            {location?.address || t('header.selectLocation')}
                         </span>
                         <span className="mob-location-arrow">→</span>
                     </button>

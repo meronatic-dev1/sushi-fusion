@@ -23,21 +23,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const [cart, setCart] = useState<{ [key: string]: CartItem }>({});
     const [isCartOpen, setIsCartOpen] = useState(false);
 
-    // Persist cart to localStorage (optional but good UX)
-    useEffect(() => {
-        const savedCart = localStorage.getItem('sushi-cart');
-        if (savedCart) {
-            try {
-                setCart(JSON.parse(savedCart));
-            } catch (e) {
-                console.error('Failed to parse cart');
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('sushi-cart', JSON.stringify(cart));
-    }, [cart]);
+    // No localStorage persistence per user request
 
     const addToCart = (product: Product) => {
         setCart(prev => {

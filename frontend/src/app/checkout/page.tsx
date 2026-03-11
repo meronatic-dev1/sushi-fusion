@@ -5,7 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
+import { useLocation } from '@/context/LocationContext';
 import { apiCreateOrder } from '@/lib/api';
+import { useUser } from '@clerk/nextjs';
 import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4;
@@ -60,36 +62,15 @@ function FInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 export default function CheckoutPage() {
     const { cart, clearCart } = useCart();
     const { settings } = useSettings();
+    const { location } = useLocation();
+    const { user, isSignedIn, isLoaded } = useUser();
+    
     const [step, setStep] = useState<Step>(1);
     const [loginMode, setLoginMode] = useState(false);
     const [orderId, setOrderId] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [promoCode, setPromoCode] = useState('');
     const [promoApplied, setPromoApplied] = useState(false);
-
-    // Read real coordinates from LocationModal selection
-    const [customerLat, setCustomerLat] = useState(25.2048);
-    const [customerLng, setCustomerLng] = useState(55.2708);
-    const [selectedAddress, setSelectedAddress] = useState('');
-    const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('selectedLocation');
-            if (stored) {
-                try {
-                    const loc = JSON.parse(stored);
-                    if (loc.lat) setCustomerLat(loc.lat);
-                    if (loc.lng) setCustomerLng(loc.lng);
-                    if (loc.address) setSelectedAddress(loc.address);
-                    if (loc.branchId) setSelectedBranchId(loc.branchId);
-                } catch (e) {
-                    // ignore parse errors
-                }
-            }
-        }
-    }, []);
-    const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 
     // Form states
     const [guestName, setGuestName] = useState('');
@@ -99,6 +80,43 @@ export default function CheckoutPage() {
     const [city, setCity] = useState('');
     const [postcode, setPostcode] = useState('');
     const [instructions, setInstructions] = useState('');
+
+    // Persist real coordinates and address from context
+    const [customerLat, setCustomerLat] = useState(25.2048);
+    const [customerLng, setCustomerLng] = useState(55.2708);
+    const [selectedAddress, setSelectedAddress] = useState('');
+    const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+
+    // Auto-fill from LocationContext
+    useEffect(() => {
+        if (location) {
+            setCustomerLat(location.lat);
+            setCustomerLng(location.lng);
+            setSelectedAddress(location.address);
+            setSelectedBranchId(location.branchId);
+            // Autofill the street field with the picked address
+            setStreet(location.address);
+        }
+    }, [location]);
+
+    // Auto-fill from Clerk User & Auto-skip Step 1
+    useEffect(() => {
+        if (isLoaded && isSignedIn && user) {
+            setGuestName(user.fullName || '');
+            setGuestEmail(user.primaryEmailAddress?.emailAddress || '');
+            // Some phone numbers might be in user.phoneNumbers
+            if (user.phoneNumbers?.length > 0) {
+              setGuestPhone(user.phoneNumbers[0].phoneNumber);
+            }
+            
+            // If user is signed in and we are on step 1, skip it
+            if (step === 1) {
+                setStep(2);
+            }
+        }
+    }, [isLoaded, isSignedIn, user, step]);
+
+    const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
@@ -239,28 +257,30 @@ export default function CheckoutPage() {
                                 subtitle="We'll use this to send your confirmation"
                             >
                                 {/* Guest / Login toggle */}
-                                <div style={{
-                                    display: 'grid', gridTemplateColumns: '1fr 1fr',
-                                    background: '#f2ede6', borderRadius: 12, padding: 4, marginBottom: 24,
-                                }}>
-                                    {[
-                                        { k: false, label: 'Guest Checkout', icon: '✨' },
-                                        { k: true, label: 'Sign In', icon: '🔑' },
-                                    ].map(({ k, label, icon }) => (
-                                        <button key={label} onClick={() => setLoginMode(k)} style={{
-                                            padding: '10px 12px', borderRadius: 9,
-                                            border: 'none', cursor: 'pointer',
-                                            fontFamily: '"DM Sans", sans-serif',
-                                            fontSize: 13, fontWeight: 700,
-                                            transition: 'all 0.2s',
-                                            background: loginMode === k ? '#fff' : 'transparent',
-                                            color: loginMode === k ? '#FF6A0C' : '#a08060',
-                                            boxShadow: loginMode === k ? '0 2px 10px rgba(0,0,0,0.08)' : 'none',
-                                        }}>
-                                            {icon} {label}
-                                        </button>
-                                    ))}
-                                </div>
+                                {!isSignedIn && (
+                                    <div style={{
+                                        display: 'grid', gridTemplateColumns: '1fr 1fr',
+                                        background: '#f2ede6', borderRadius: 12, padding: 4, marginBottom: 24,
+                                    }}>
+                                        {[
+                                            { k: false, label: 'Guest Checkout', icon: '✨' },
+                                            { k: true, label: 'Sign In', icon: '🔑' },
+                                        ].map(({ k, label, icon }) => (
+                                            <button key={label} onClick={() => setLoginMode(k)} style={{
+                                                padding: '10px 12px', borderRadius: 9,
+                                                border: 'none', cursor: 'pointer',
+                                                fontFamily: '"DM Sans", sans-serif',
+                                                fontSize: 13, fontWeight: 700,
+                                                transition: 'all 0.2s',
+                                                background: loginMode === k ? '#fff' : 'transparent',
+                                                color: loginMode === k ? '#FF6A0C' : '#a08060',
+                                                boxShadow: loginMode === k ? '0 2px 10px rgba(0,0,0,0.08)' : 'none',
+                                            }}>
+                                                {icon} {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
 
                                 {!loginMode ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
