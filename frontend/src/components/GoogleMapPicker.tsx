@@ -94,8 +94,13 @@ function MapInner({
     autocompleteEl.style.fontFamily = '"DM Sans", sans-serif';
 
     const handlePlaceSelect = async (e: any) => {
-      const selectedPlace = e.place || e.detail?.place;
-      if (!selectedPlace) return;
+      console.log('Place select event triggered:', e.type, e);
+      const selectedPlace = e.place || e.detail?.place || e.target?.place;
+      
+      if (!selectedPlace) {
+        console.error('No place object found in event or target.');
+        return;
+      }
 
       try {
         await selectedPlace.fetchFields({ 
@@ -141,9 +146,11 @@ function MapInner({
     };
 
     autocompleteEl.addEventListener('gmp-placeselect', handlePlaceSelect);
+    autocompleteEl.addEventListener('gmp-select', handlePlaceSelect);
 
     return () => {
       autocompleteEl.removeEventListener('gmp-placeselect', handlePlaceSelect);
+      autocompleteEl.removeEventListener('gmp-select', handlePlaceSelect);
     };
   }, [placesLibrary, map, setMarkerPos, onLocationSelect]);
 
