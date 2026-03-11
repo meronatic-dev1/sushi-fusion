@@ -93,26 +93,37 @@ function MapInner({
     autocompleteEl.style.fontSize = '14px';
     autocompleteEl.style.fontFamily = '"DM Sans", sans-serif';
 
-    const handlePlaceSelect = (e: any) => {
-      const place = e.place; 
-      if (!place) return;
+    const handlePlaceSelect = async (e: any) => {
+      const selectedPlace = e.place || e.detail?.place;
+      if (!selectedPlace) return;
 
-      place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] })
-        .then(() => {
-           if (!place.location) return;
-           const lat = place.location.lat();
-           const lng = place.location.lng();
-           const formatted = place.formattedAddress || place.displayName || '';
-
-           setMarkerPos({ lat, lng });
-           setAddress(formatted);
-           onLocationSelect({ lat, lng, address: formatted });
-
-           if (map) {
-             map.panTo({ lat, lng });
-             map.setZoom(16);
-           }
+      try {
+        await selectedPlace.fetchFields({ 
+          fields: ['location', 'formattedAddress', 'displayName'] 
         });
+
+        if (!selectedPlace.location) return;
+
+        const lat = typeof selectedPlace.location.lat === 'function' 
+          ? selectedPlace.location.lat() 
+          : selectedPlace.location.lat;
+        const lng = typeof selectedPlace.location.lng === 'function' 
+          ? selectedPlace.location.lng() 
+          : selectedPlace.location.lng;
+        
+        const formatted = selectedPlace.formattedAddress || selectedPlace.displayName || '';
+
+        setMarkerPos({ lat, lng });
+        setAddress(formatted);
+        onLocationSelect({ lat, lng, address: formatted });
+
+        if (map) {
+          map.panTo({ lat, lng });
+          map.setZoom(16);
+        }
+      } catch (error) {
+        console.error('Error selecting place:', error);
+      }
     };
 
     autocompleteEl.addEventListener('gmp-placeselect', handlePlaceSelect);
