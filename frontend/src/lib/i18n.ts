@@ -12,6 +12,7 @@ const translations: Translations = {
     'header.searchPlaceholder': 'Search menu...',
     'header.login': 'LOGIN',
     'header.logout': 'Logout',
+    'header.myOrders': 'My Orders',
     'header.myAccount': 'My Account',
 
     // Categories (chips)
@@ -82,6 +83,7 @@ const translations: Translations = {
     'header.searchPlaceholder': 'ابحث في القائمة...',
     'header.login': 'تسجيل الدخول',
     'header.logout': 'تسجيل الخروج',
+    'header.myOrders': 'طلباتي',
     'header.myAccount': 'حسابي',
 
     // Categories (chips)
