@@ -89,6 +89,7 @@ export default function CheckoutPage() {
 
     // Auto-fill from LocationContext
     useEffect(() => {
+        console.log('CheckoutPage: Received location from context:', location);
         if (location) {
             setCustomerLat(location.lat);
             setCustomerLng(location.lng);

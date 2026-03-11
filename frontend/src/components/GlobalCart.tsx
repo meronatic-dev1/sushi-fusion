@@ -3,6 +3,7 @@
 import React from 'react';
 import { useCart } from '@/context/CartContext';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export default function GlobalCart({ t }: { t: (key: string) => string }) {
     const { cart, isCartOpen, updateQty, setIsCartOpen } = useCart();
@@ -70,11 +71,11 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
                                 <span>{t('cart.total')}</span>
                                 <span style={{ color: 'var(--o)' }}>AED {total}</span>
                             </div>
-                            <a href="/checkout" style={{ display: 'block', textDecoration: 'none' }}>
+                            <Link href="/checkout" style={{ display: 'block', textDecoration: 'none' }}>
                                 <button className="checkout-btn" style={{ width: '100%', padding: 14, background: 'var(--o)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 800, cursor: 'pointer', marginTop: 14, transition: 'background 0.2s' }}>
                                     {t('cart.checkout')}
                                 </button>
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 )}

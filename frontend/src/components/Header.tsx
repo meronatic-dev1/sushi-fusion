@@ -70,6 +70,7 @@ export default function Header({
     };
 
     const handleProceed = (data: any) => {
+        console.log('Header: Proceeding with location data:', data);
         // Update the global location context
         setLocation({
             lat: data.lat || 0,

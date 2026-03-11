@@ -21,6 +21,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     const [location, setLocationState] = useState<LocationData | null>(null);
 
     const setLocation = (data: LocationData) => {
+        console.log('LocationContext: Setting global location:', data);
         setLocationState(data);
     };
 
