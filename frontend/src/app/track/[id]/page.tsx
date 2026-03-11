@@ -11,14 +11,25 @@ const STATUS_STEPS = [
     { key: 'PENDING', label: 'Pending', icon: <Clock size={18} />, desc: 'Order received' },
     { key: 'CONFIRMED', label: 'Confirmed', icon: <Check size={18} />, desc: 'Order accepted' },
     { key: 'PREPARING', label: 'Preparing', icon: <ChefHat size={18} />, desc: 'Chefs are cooking' },
-    { key: 'READY', label: 'Ready', icon: <Package size={18} />, desc: 'Ready for pickup/delivery' },
-    { key: 'COMPLETED', label: 'Completed', icon: <Truck size={18} />, desc: 'Delivered!' },
+    { key: 'READY', label: 'Ready', icon: <Package size={18} />, desc: 'Your order is ready!' },
+    { key: 'DELIVERING', label: 'Delivering', icon: <Truck size={18} />, desc: 'On its way to you' },
+    { key: 'COMPLETED', label: 'Completed', icon: <Check size={18} />, desc: 'Delivered!' },
 ];
 
 function getStepIndex(status: string) {
-    if (status === 'CANCELLED') return -1;
-    const idx = STATUS_STEPS.findIndex(s => s.key === status);
-    return idx >= 0 ? idx : 0;
+    if (!status) return 0;
+    const s = status.toUpperCase();
+    if (s === 'CANCELLED') return -1;
+    
+    // Mapping backend statuses to UI steps
+    if (s === 'ROUTING' || s === 'PENDING' || s === 'LONG_DISTANCE') return 0;
+    if (s === 'CONFIRMED' || s === 'ACCEPTED') return 1;
+    if (s === 'PREPARING' || s === 'COOKING') return 2;
+    if (s === 'READY' || s === 'READY_FOR_PICKUP' || s === 'READY_FOR_DELIVERY') return 3;
+    if (s === 'OUT_FOR_DELIVERY' || s === 'DELIVERING' || s === 'SHIPPED') return 4;
+    if (s === 'COMPLETED' || s === 'DELIVERED') return 5;
+    
+    return 0;
 }
 
 export default function TrackOrderPage() {
