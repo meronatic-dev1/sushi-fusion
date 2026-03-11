@@ -20,7 +20,6 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1004.0",
     "@clerk/clerk-sdk-node": "^4.13.23",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.0",
@@ -43,6 +42,7 @@
     "cache-manager-redis-yet": "^5.1.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
+    "cloudinary": "^2.9.0",
     "multer": "^2.1.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -51,6 +51,7 @@
     "resend": "^6.9.3",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
+    "streamifier": "^0.1.1",
     "stripe": "^20.4.0"
   },
   "devDependencies": {
@@ -65,6 +66,7 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^22.10.7",
     "@types/passport-jwt": "^4.0.1",
+    "@types/streamifier": "^0.1.2",
     "@types/supertest": "^6.0.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",

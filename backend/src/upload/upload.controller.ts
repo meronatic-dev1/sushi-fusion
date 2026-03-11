@@ -1,10 +1,10 @@
 import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { S3Service } from './s3.service';
+import { CloudinaryService } from './cloudinary.service';
 
 @Controller('upload')
 export class UploadController {
-    constructor(private readonly s3Service: S3Service) { }
+    constructor(private readonly cloudinaryService: CloudinaryService) { }
 
     @Post()
     @UseInterceptors(FileInterceptor('file'))
@@ -14,13 +14,13 @@ export class UploadController {
         }
 
         try {
-            const result = await this.s3Service.uploadImage(file);
+            const result = await this.cloudinaryService.uploadImage(file);
             return {
                 url: result.url,
                 public_id: result.public_id,
             };
         } catch (error: any) {
-            console.error('S3 upload failed:', error);
+            console.error('Cloudinary upload failed:', error);
             throw new BadRequestException(`Image upload failed: ${error.message}`);
         }
     }
