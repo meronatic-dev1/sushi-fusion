@@ -126,8 +126,17 @@ export default function CheckoutPage() {
     const DISCOUNT = promoApplied ? Math.round(SUBTOTAL * 0.1) : 0;
     const TOTAL = SUBTOTAL + DELIVERY + TAX - DISCOUNT;
 
-    const next = () => setStep(s => Math.min(s + 1, 4) as Step);
-    const back = () => setStep(s => Math.max(s - 1, 1) as Step);
+    const next = () => {
+        if (step === 1) setStep(2);
+        else setStep(s => Math.min(s + 1, 4) as Step);
+    };
+    const back = () => {
+        if (step === 1) {
+            window.location.href = '/';
+            return;
+        }
+        setStep(s => Math.max(s - 1, 1) as Step);
+    };
 
     const handlePay = async () => {
         if (cartItems.length === 0) return alert('Your cart is empty');

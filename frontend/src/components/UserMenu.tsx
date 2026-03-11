@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useUser, useClerk } from '@clerk/nextjs';
-import { LogOut, User, ChevronDown } from 'lucide-react';
+import Link from 'next/link';
+import { LogOut, User, ChevronDown, Package } from 'lucide-react';
 import { Language } from '@/lib/i18n';
 
 interface UserMenuProps {
@@ -103,6 +104,34 @@ export default function UserMenu({ language, t }: UserMenuProps) {
                 </div>
 
                 <div style={{ padding: '6px' }}>
+                    <Link href="/track" style={{ textDecoration: 'none' }}>
+                        <button 
+                            className="user-menu-item"
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '10px 12px',
+                                border: 'none',
+                                background: 'transparent',
+                                borderRadius: '10px',
+                                cursor: 'pointer',
+                                color: 'var(--d)',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                textAlign: language === 'ar' ? 'right' : 'left',
+                                flexDirection: language === 'ar' ? 'row-reverse' : 'row',
+                                transition: 'background 0.2s',
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.04)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            <Package size={16} />
+                            {t('header.myOrders') || 'My Orders'}
+                        </button>
+                    </Link>
+
                     <button 
                         className="user-menu-item"
                         style={{
