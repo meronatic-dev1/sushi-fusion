@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import LocationModal from './LocationModal';
+import UserMenu from './UserMenu';
 import type { Language } from '@/lib/i18n';
 import { useSettings } from '@/context/SettingsContext';
+import { SignedIn, SignedOut } from '@clerk/nextjs';
 
 interface HeaderProps {
     cartCount: number;
@@ -135,7 +137,12 @@ export default function Header({
                     {language === 'en' ? 'عربي' : 'EN'}
                 </button>
 
-                <Link href="/login" className="login-btn">{t('header.login')}</Link>
+                <SignedOut>
+                    <Link href="/login" className="login-btn">{t('header.login')}</Link>
+                </SignedOut>
+                <SignedIn>
+                    <UserMenu language={language} t={t} />
+                </SignedIn>
             </header>
 
             {/* ╔══════════════════════════════════════════╗

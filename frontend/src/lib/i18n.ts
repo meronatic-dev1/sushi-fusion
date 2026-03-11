@@ -11,6 +11,8 @@ const translations: Translations = {
     'header.selectLocation': 'Select Location →',
     'header.searchPlaceholder': 'Search menu...',
     'header.login': 'LOGIN',
+    'header.logout': 'Logout',
+    'header.myAccount': 'My Account',
 
     // Categories (chips)
     'category.best-sellers': 'Best Sellers',
@@ -79,6 +81,8 @@ const translations: Translations = {
     'header.selectLocation': 'اختر الموقع →',
     'header.searchPlaceholder': 'ابحث في القائمة...',
     'header.login': 'تسجيل الدخول',
+    'header.logout': 'تسجيل الخروج',
+    'header.myAccount': 'حسابي',
 
     // Categories (chips)
     'category.best-sellers': 'الأكثر مبيعاً',
