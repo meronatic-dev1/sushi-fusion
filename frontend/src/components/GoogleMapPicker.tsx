@@ -78,7 +78,7 @@ function MapInner({
     if (!placesLibrary || !autocompleteContainerRef.current) return;
 
     // Create the new PlaceAutocompleteElement
-    const autocompleteEl = new placesLibrary.PlaceAutocompleteElement({
+    const autocompleteEl = new (placesLibrary as any).PlaceAutocompleteElement({
       componentRestrictions: { country: ['ae'] },
       requestedLanguage: 'en',
     });
