@@ -102,14 +102,27 @@ function MapInner({
           fields: ['location', 'formattedAddress', 'displayName'] 
         });
 
-        if (!selectedPlace.location) return;
+        if (!selectedPlace.location) {
+          console.warn('Selected place has no location data.');
+          return;
+        }
 
-        const lat = typeof selectedPlace.location.lat === 'function' 
+        const rawLat = typeof selectedPlace.location.lat === 'function' 
           ? selectedPlace.location.lat() 
           : selectedPlace.location.lat;
-        const lng = typeof selectedPlace.location.lng === 'function' 
+        const rawLng = typeof selectedPlace.location.lng === 'function' 
           ? selectedPlace.location.lng() 
           : selectedPlace.location.lng;
+        
+        const lat = Number(rawLat);
+        const lng = Number(rawLng);
+
+        if (isNaN(lat) || isNaN(lng)) {
+          console.error('Invalid coordinates extracted:', { lat, lng });
+          return;
+        }
+
+        console.log('Moving pin to:', { lat, lng });
         
         const formatted = selectedPlace.formattedAddress || selectedPlace.displayName || '';
 
@@ -118,6 +131,7 @@ function MapInner({
         onLocationSelect({ lat, lng, address: formatted });
 
         if (map) {
+          console.log('Panning map to selection');
           map.panTo({ lat, lng });
           map.setZoom(16);
         }
@@ -200,6 +214,7 @@ function MapInner({
           style={{ width: '100%', height: '100%', borderRadius: 14 }}
         >
           <AdvancedMarker 
+            key={`${markerPos.lat}-${markerPos.lng}`}
             position={markerPos}
             draggable={true}
             onDragEnd={handleMarkerDragEnd}
