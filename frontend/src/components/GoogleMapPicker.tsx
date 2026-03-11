@@ -172,7 +172,6 @@ function MapInner({
         style={{ 
           width: '100%', 
           borderRadius: 12, 
-          overflow: 'hidden',
           background: '#faf8f5',
           border: '1.5px solid #e8ddd2',
         }} 
@@ -246,7 +245,7 @@ export default function GoogleMapPicker(props: GoogleMapPickerProps) {
 
   return (
     <div style={{ height: props.height || 320, width: '100%' }}>
-      <APIProvider apiKey={apiKey} libraries={['places', 'marker', 'geocoding']}>
+      <APIProvider apiKey={apiKey} libraries={['places', 'marker', 'geocoding']} version="beta">
         <MapInner 
           markerPos={markerPos} 
           setMarkerPos={setMarkerPos}
