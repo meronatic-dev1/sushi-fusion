@@ -154,6 +154,13 @@ function MapInner({
     };
   }, [placesLibrary, map, setMarkerPos, onLocationSelect]);
 
+  // Force map to pan when markerPos state updates
+  useEffect(() => {
+    if (map && markerPos) {
+      map.panTo(markerPos);
+    }
+  }, [markerPos, map]);
+
   const handleMapClick = useCallback((e: any) => {
     if (!e.detail.latLng) return;
     const lat = e.detail.latLng.lat;
@@ -212,8 +219,8 @@ function MapInner({
       <div style={mapWrapperStyle(typeof window !== 'undefined' ? '100%' : 320)}>
         <Map
           mapId="sushi_fusion_map"
-          defaultCenter={markerPos}
-          defaultZoom={initialZoom}
+          center={markerPos}
+          zoom={initialZoom}
           gestureHandling={'greedy'}
           disableDefaultUI={true}
           zoomControl={true}
@@ -221,7 +228,7 @@ function MapInner({
           style={{ width: '100%', height: '100%', borderRadius: 14 }}
         >
           <AdvancedMarker 
-            key={`${markerPos.lat}-${markerPos.lng}`}
+            key={`marker-${markerPos.lat}-${markerPos.lng}`}
             position={markerPos}
             draggable={true}
             onDragEnd={handleMarkerDragEnd}
