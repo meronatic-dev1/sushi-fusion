@@ -43,7 +43,8 @@ function MapInner({
   const [isLocating, setIsLocating] = useState(false);
 
   const geocoderRef = useRef<google.maps.Geocoder | null>(null);
-  const autocompleteContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
 
   // Initialize Geocoder
   useEffect(() => {
@@ -73,86 +74,51 @@ function MapInner({
     [onLocationSelect]
   );
 
-  // Initialize PlaceAutocompleteElement
+  // Initialize Classic Autocomplete
   useEffect(() => {
-    if (!placesLibrary || !autocompleteContainerRef.current) return;
+    if (!placesLibrary || !inputRef.current) return;
 
-    // Create the new PlaceAutocompleteElement
-    const autocompleteEl = new (placesLibrary as any).PlaceAutocompleteElement({
-      componentRestrictions: { country: ['ae'] },
-      requestedLanguage: 'en',
+    const widget = new placesLibrary.Autocomplete(inputRef.current, {
+      componentRestrictions: { country: 'ae' },
+      fields: ['geometry', 'formatted_address', 'name'],
     });
 
-    // Replace the container contents with the new element
-    autocompleteContainerRef.current.innerHTML = '';
-    autocompleteContainerRef.current.appendChild(autocompleteEl);
+    setAutocomplete(widget);
+  }, [placesLibrary]);
 
-    // Style the input slightly to match previous aesthetics
-    autocompleteEl.style.width = '100%';
-    autocompleteEl.style.boxSizing = 'border-box';
-    autocompleteEl.style.fontSize = '14px';
-    autocompleteEl.style.fontFamily = '"DM Sans", sans-serif';
+  // Handle Autocomplete Place Selection
+  useEffect(() => {
+    if (!autocomplete) return;
 
-    const handlePlaceSelect = async (e: any) => {
-      console.log('Place select event triggered:', e.type, e);
-      const selectedPlace = e.place || e.detail?.place || e.target?.place;
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
       
-      if (!selectedPlace) {
-        console.error('No place object found in event or target.');
+      if (!place.geometry || !place.geometry.location) {
+        console.warn('Selected place has no location data.');
         return;
       }
 
-      try {
-        await selectedPlace.fetchFields({ 
-          fields: ['location', 'formattedAddress', 'displayName'] 
-        });
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      const formatted = place.formatted_address || place.name || '';
 
-        if (!selectedPlace.location) {
-          console.warn('Selected place has no location data.');
-          return;
-        }
+      console.log('Moving pin to:', { lat, lng });
 
-        const rawLat = typeof selectedPlace.location.lat === 'function' 
-          ? selectedPlace.location.lat() 
-          : selectedPlace.location.lat;
-        const rawLng = typeof selectedPlace.location.lng === 'function' 
-          ? selectedPlace.location.lng() 
-          : selectedPlace.location.lng;
-        
-        const lat = Number(rawLat);
-        const lng = Number(rawLng);
+      setMarkerPos({ lat, lng });
+      setAddress(formatted);
+      onLocationSelect({ lat, lng, address: formatted });
 
-        if (isNaN(lat) || isNaN(lng)) {
-          console.error('Invalid coordinates extracted:', { lat, lng });
-          return;
-        }
-
-        console.log('Moving pin to:', { lat, lng });
-        
-        const formatted = selectedPlace.formattedAddress || selectedPlace.displayName || '';
-
-        setMarkerPos({ lat, lng });
-        setAddress(formatted);
-        onLocationSelect({ lat, lng, address: formatted });
-
-        if (map) {
-          console.log('Panning map to selection');
-          map.panTo({ lat, lng });
-          map.setZoom(16);
-        }
-      } catch (error) {
-        console.error('Error selecting place:', error);
+      if (map) {
+        console.log('Panning map to selection');
+        map.panTo({ lat, lng });
+        map.setZoom(16);
       }
-    };
-
-    autocompleteEl.addEventListener('gmp-placeselect', handlePlaceSelect);
-    autocompleteEl.addEventListener('gmp-select', handlePlaceSelect);
+    });
 
     return () => {
-      autocompleteEl.removeEventListener('gmp-placeselect', handlePlaceSelect);
-      autocompleteEl.removeEventListener('gmp-select', handlePlaceSelect);
+      google.maps.event.removeListener(listener);
     };
-  }, [placesLibrary, map, setMarkerPos, onLocationSelect]);
+  }, [autocomplete, map, setMarkerPos, onLocationSelect]);
 
   // Force map to pan when markerPos state updates
   useEffect(() => {
@@ -206,13 +172,23 @@ function MapInner({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
       {/* Search container */}
-      <div 
-        ref={autocompleteContainerRef} 
+      <input 
+        ref={inputRef}
+        type="text"
+        placeholder="Search for a location..."
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.preventDefault(); // Prevent modal form submission
+        }}
         style={{ 
           width: '100%', 
           borderRadius: 12, 
           background: '#faf8f5',
           border: '1.5px solid #e8ddd2',
+          padding: '12px 14px',
+          fontSize: '14px',
+          fontFamily: '"DM Sans", sans-serif',
+          outline: 'none',
+          boxSizing: 'border-box'
         }} 
       />
 
