@@ -191,66 +191,42 @@ export default function AdminLoginPage() {
                         appearance={{
                             variables: {
                                 colorPrimary: '#FF6A0C',
-                                colorBackground: 'rgba(255,255,255,0.05)',
+                                colorBackground: '#1a1a24',
                                 colorText: '#fff',
-                                colorTextSecondary: 'rgba(255,255,255,0.5)',
+                                colorTextSecondary: 'rgba(255,255,255,0.6)',
                                 colorInputBackground: 'rgba(255,255,255,0.05)',
                                 colorInputText: '#fff',
-                                borderRadius: '10px',
+                                borderRadius: '12px',
                             },
                             elements: {
                                 card: { background: 'transparent', boxShadow: 'none', padding: 0, width: '100%' },
                                 formFieldLabel: {
                                     fontSize: 12, fontWeight: 600,
-                                    color: 'rgba(255,255,255,0.5)',
-                                    letterSpacing: '0.06em', textTransform: 'uppercase',
-                                    fontFamily: 'inherit'
+                                    color: 'rgba(255,255,255,0.6)',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.04em'
                                 },
                                 formFieldInput: {
                                     border: '1px solid rgba(255,255,255,0.1)',
-                                    padding: '13px 14px',
-                                    fontSize: 14, color: '#fff',
-                                    transition: 'border-color 0.2s, background 0.2s',
-                                    outline: 'none',
-                                    fontFamily: 'inherit',
                                     backgroundColor: 'rgba(255,255,255,0.05)',
-                                },
-                                formFieldInput__focus: {
-                                    borderColor: 'rgba(255,106,12,0.5)',
-                                    backgroundColor: 'rgba(255,106,12,0.05)',
+                                    color: '#fff',
                                 },
                                 formButtonPrimary: {
-                                    background: 'linear-gradient(135deg, #FF6A0C 0%, #ff8c42 100%)',
-                                    boxShadow: '0 8px 24px rgba(255,106,12,0.35)',
                                     height: 52,
                                     fontSize: 14,
                                     fontWeight: 700,
-                                    letterSpacing: '0.04em',
-                                    textTransform: 'none',
-                                    fontFamily: 'inherit',
+                                    background: 'linear-gradient(135deg, #FF6A0C 0%, #ff8c42 100%)',
                                 },
                                 headerTitle: { display: 'none' },
                                 headerSubtitle: { display: 'none' },
                                 footer: { display: 'none' },
                                 dividerLine: { background: 'rgba(255,255,255,0.1)' },
-                                dividerText: { color: 'rgba(255,255,255,0.4)', fontSize: 13 },
+                                dividerText: { color: 'rgba(255,255,255,0.4)' },
                                 socialButtonsBlockButton: {
                                     border: '1px solid rgba(255,255,255,0.1)',
                                     background: 'rgba(255,255,255,0.05)',
                                     color: '#fff',
-                                    height: 48,
                                 },
-                                socialButtonsBlockButtonText: {
-                                    fontWeight: 600,
-                                    fontFamily: 'inherit'
-                                },
-                                formFieldAction: {
-                                    color: '#FF6A0C',
-                                    textDecoration: 'none',
-                                    fontWeight: 500,
-                                    opacity: 0.8,
-                                    fontSize: 12
-                                }
                             },
                         }}
                     />

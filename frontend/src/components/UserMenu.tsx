@@ -132,6 +132,39 @@ export default function UserMenu({ language, t }: UserMenuProps) {
                         </button>
                     </Link>
 
+                    {(user?.publicMetadata?.role === 'admin' || user?.publicMetadata?.role === 'branch_manager') && (
+                        <Link href="/admin" style={{ textDecoration: 'none' }}>
+                            <button 
+                                className="user-menu-item"
+                                style={{
+                                    width: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '10px 12px',
+                                    border: 'none',
+                                    background: 'rgba(255, 106, 12, 0.05)',
+                                    borderRadius: '10px',
+                                    cursor: 'pointer',
+                                    color: 'var(--o)',
+                                    fontSize: '13px',
+                                    fontWeight: 700,
+                                    textAlign: language === 'ar' ? 'right' : 'left',
+                                    flexDirection: language === 'ar' ? 'row-reverse' : 'row',
+                                    transition: 'background 0.2s',
+                                    marginBottom: '4px'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,106,12,0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,106,12,0.05)'}
+                            >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                                </svg>
+                                {t('header.adminDashboard') || 'Admin Dashboard'}
+                            </button>
+                        </Link>
+                    )}
+
                     <button 
                         className="user-menu-item"
                         style={{

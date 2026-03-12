@@ -14,6 +14,7 @@ const translations: Translations = {
     'header.logout': 'Logout',
     'header.myOrders': 'My Orders',
     'header.myAccount': 'My Account',
+    'header.adminDashboard': 'Admin Dashboard',
 
     // Categories (chips)
     'category.best-sellers': 'Best Sellers',
@@ -85,6 +86,7 @@ const translations: Translations = {
     'header.logout': 'تسجيل الخروج',
     'header.myOrders': 'طلباتي',
     'header.myAccount': 'حسابي',
+    'header.adminDashboard': 'لوحة الإدارة',
 
     // Categories (chips)
     'category.best-sellers': 'الأكثر مبيعاً',
