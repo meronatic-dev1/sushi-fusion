@@ -195,10 +195,22 @@ export default function AdminLoginPage() {
                                 colorPrimary: '#FF6A0C',
                                 colorBackground: '#1a1a24',
                                 colorText: '#fff',
-                                colorTextSecondary: 'rgba(255,255,255,0.6)',
+                                colorTextSecondary: 'rgba(255,255,255,0.7)',
                                 colorInputBackground: 'rgba(255,255,255,0.05)',
                                 colorInputText: '#fff',
                                 borderRadius: '12px',
+                            },
+                            elements: {
+                                card: { background: '#1a1a24', border: '1px solid rgba(255,255,255,0.08)' },
+                                headerTitle: { color: '#fff' },
+                                headerSubtitle: { color: 'rgba(255,255,255,0.6)' },
+                                formFieldLabel: { color: '#fff', opacity: 0.9 },
+                                footerActionLink: { color: '#FF6A0C' },
+                                identityPreviewText: { color: '#fff' },
+                                breadcrumbItem: { color: 'rgba(255,255,255,0.6)' },
+                                footerActionText: { color: 'rgba(255,255,255,0.6)' },
+                                userButtonPopoverActionButtonText: { color: '#fff' },
+                                rootBox: { width: '100%' },
                             },
                         }}
                     />
