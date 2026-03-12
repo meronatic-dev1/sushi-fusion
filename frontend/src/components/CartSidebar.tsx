@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Product } from '@/lib/data';
+import { useRouter } from 'next/navigation';
+import { Product, DELIVERY_FEE } from '@/lib/data';
 
 export interface CartItem extends Product {
     qty: number;
@@ -16,8 +17,10 @@ interface CartSidebarProps {
 }
 
 export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: CartSidebarProps) {
+    const router = useRouter();
     const items = Object.entries(cart).filter(([, v]) => v.qty > 0);
-    const total = items.reduce((a, [, v]) => a + v.price * v.qty, 0);
+    const subtotal = items.reduce((a, [, v]) => a + v.price * v.qty, 0);
+    const total = subtotal + DELIVERY_FEE;
 
     const renderHeader = () => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1px solid var(--b)', paddingBottom: 10 }}>
@@ -61,7 +64,7 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <div className="cart-item-name">{name}</div>
-                                    <div className="cart-item-price">AED {(item.price * item.qty).toFixed(0)}</div>
+                                    <div className="cart-item-price">AED {(item.price * item.qty).toFixed(2)}</div>
                                     <div className="cart-item-qty">
                                         <button className="qty-btn" onClick={() => onUpdateQty(name, -1)}>
                                             −
@@ -78,17 +81,25 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
                     <div className="cart-summary">
                         <div className="cart-row">
                             <span>{t('cart.subtotal')}</span>
-                            <span>AED {total}</span>
+                            <span>AED {subtotal.toFixed(2)}</span>
                         </div>
                         <div className="cart-row">
                             <span>{t('cart.delivery')}</span>
-                            <span style={{ color: '#22c55e', fontWeight: 600 }}>{t('cart.deliveryFree')}</span>
+                            <span style={{ fontWeight: 600 }}>AED {DELIVERY_FEE.toFixed(2)}</span>
                         </div>
                         <div className="cart-row total">
                             <span>{t('cart.total')}</span>
-                            <span style={{ color: 'var(--o)' }}>AED {total}</span>
+                            <span style={{ color: 'var(--o)' }}>AED {total.toFixed(2)}</span>
                         </div>
-                        <button className="checkout-btn">{t('cart.checkout')}</button>
+                        <button 
+                            className="checkout-btn"
+                            onClick={() => {
+                                onClose();
+                                router.push('/checkout');
+                            }}
+                        >
+                            {t('cart.checkout')}
+                        </button>
                     </div>
                 </div>
             </div>

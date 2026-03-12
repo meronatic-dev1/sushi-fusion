@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useLocation } from '@/context/LocationContext';
 import { apiCreateOrder, apiCreatePaymentIntent } from '@/lib/api';
+import { DELIVERY_FEE } from '@/lib/data';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -171,6 +172,9 @@ export default function CheckoutPage() {
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
     const [guestEmail, setGuestEmail] = useState('');
+    const [loginEmail, setLoginEmail] = useState('');
+    const [loginPassword, setLoginPassword] = useState('');
+    const [loginPhone, setLoginPhone] = useState('');
     const [street, setStreet] = useState('');
     const [city, setCity] = useState('');
     const [postcode, setPostcode] = useState('');
@@ -216,7 +220,7 @@ export default function CheckoutPage() {
 
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
-    const DELIVERY = 15;
+    const DELIVERY = DELIVERY_FEE;
     const TAX = +(SUBTOTAL * 0.05).toFixed(2);
     const DISCOUNT = promoApplied ? Math.round(SUBTOTAL * 0.1) : 0;
     const TOTAL = SUBTOTAL + DELIVERY + TAX - DISCOUNT;
@@ -437,15 +441,38 @@ export default function CheckoutPage() {
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                         <Field label="Email">
-                                            <FInput type="email" placeholder="you@example.com" />
+                                            <FInput 
+                                                type="email" 
+                                                placeholder="you@example.com"
+                                                value={loginEmail}
+                                                onChange={e => setLoginEmail(e.target.value)}
+                                            />
+                                        </Field>
+                                        <Field label="Phone Number">
+                                            <FInput 
+                                                placeholder="+971 50 000 0000"
+                                                value={loginPhone}
+                                                onChange={e => setLoginPhone(e.target.value)}
+                                            />
                                         </Field>
                                         <Field label="Password" hint={<><Link href="/forgot-password" style={{ color: '#FF6A0C', fontWeight: 600, fontSize: 11 }}>Forgot?</Link></>}>
-                                            <FInput type="password" placeholder="••••••••" />
+                                            <FInput 
+                                                type="password" 
+                                                placeholder="••••••••"
+                                                value={loginPassword}
+                                                onChange={e => setLoginPassword(e.target.value)}
+                                            />
                                         </Field>
                                     </div>
                                 )}
 
-                                <ActionButton onClick={next} style={{ marginTop: 8 }}>
+                                <ActionButton 
+                                    onClick={next} 
+                                    style={{ marginTop: 8 }}
+                                    disabled={!loginMode 
+                                        ? (!guestName.trim() || !guestPhone.trim() || !guestEmail.trim())
+                                        : (!loginEmail.trim() || !loginPhone.trim() || !loginPassword.trim())}
+                                >
                                     Continue to Delivery <ChevronRight size={16} />
                                 </ActionButton>
                             </SectionCard>
@@ -508,7 +535,11 @@ export default function CheckoutPage() {
 
                                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                                     <BackButton onClick={back} />
-                                    <ActionButton onClick={next} style={{ flex: 1 }}>
+                                    <ActionButton 
+                                        onClick={next} 
+                                        style={{ flex: 1 }}
+                                        disabled={!street.trim() || !city.trim() || !postcode.trim()}
+                                    >
                                         Continue to Payment <ChevronRight size={16} />
                                     </ActionButton>
                                 </div>
@@ -716,7 +747,7 @@ export default function CheckoutPage() {
                                         <p style={{ fontSize: 11, color: '#b09070', margin: 0 }}>× {item.qty}</p>
                                     </div>
                                     <p style={{ fontSize: 13, fontWeight: 800, color: '#1a1108', flexShrink: 0 }}>
-                                        AED {item.price * item.qty}
+                                        AED {(item.price * item.qty).toFixed(2)}
                                     </p>
                                 </div>
                             ))}
@@ -725,9 +756,9 @@ export default function CheckoutPage() {
                         {/* Totals */}
                         <div style={{ padding: '14px 20px', borderTop: '1px solid #f0e8df', display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {[
-                                { label: 'Subtotal', value: `AED ${SUBTOTAL}` },
-                                { label: 'Delivery fee', value: `AED ${DELIVERY}` },
-                                { label: 'VAT (5%)', value: `AED ${TAX}` },
+                                { label: 'Subtotal', value: `AED ${SUBTOTAL.toFixed(2)}` },
+                                { label: 'Delivery fee', value: `AED ${DELIVERY.toFixed(2)}` },
+                                { label: 'VAT (5%)', value: `AED ${TAX.toFixed(2)}` },
                             ].map(row => (
                                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ fontSize: 13, color: '#a08060' }}>{row.label}</span>
@@ -737,7 +768,7 @@ export default function CheckoutPage() {
                             {DISCOUNT > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>Promo (10% off)</span>
-                                    <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>−AED {DISCOUNT}</span>
+                                    <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>−AED {DISCOUNT.toFixed(2)}</span>
                                 </div>
                             )}
                             <div style={{ borderTop: '1.5px solid #ede6dc', paddingTop: 10, marginTop: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -869,29 +900,32 @@ function SectionCard({ icon, title, subtitle, children }: {
 }
 
 /* ─── Primary action button ─── */
-function ActionButton({ onClick, children, loading, style }: {
-    onClick: () => void; children: React.ReactNode; loading?: boolean; style?: React.CSSProperties;
+function ActionButton({ onClick, children, loading, style, disabled }: {
+    onClick: () => void; children: React.ReactNode; loading?: boolean; style?: React.CSSProperties; disabled?: boolean;
 }) {
     const [hov, setHov] = useState(false);
+    const isDisabled = loading || disabled;
+    
     return (
         <button
             onClick={onClick}
-            disabled={loading}
+            disabled={isDisabled}
             onMouseEnter={() => setHov(true)}
             onMouseLeave={() => setHov(false)}
             style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 padding: '14px 24px',
-                background: loading ? '#f0a070' : hov ? '#e55a00' : '#FF6A0C',
+                background: isDisabled ? '#f0a070' : hov ? '#e55a00' : '#FF6A0C',
                 border: 'none', borderRadius: 12,
                 color: '#fff', fontSize: 14, fontWeight: 700,
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: isDisabled ? 'not-allowed' : 'pointer',
                 fontFamily: '"DM Sans", sans-serif',
                 transition: 'all 0.18s',
-                boxShadow: hov && !loading ? '0 6px 24px rgba(255,106,12,0.4)' : '0 3px 12px rgba(255,106,12,0.25)',
-                transform: hov && !loading ? 'translateY(-1px)' : 'translateY(0)',
+                boxShadow: hov && !isDisabled ? '0 6px 24px rgba(255,106,12,0.4)' : '0 3px 12px rgba(255,106,12,0.25)',
+                transform: hov && !isDisabled ? 'translateY(-1px)' : 'translateY(0)',
                 letterSpacing: '0.01em',
                 width: '100%',
+                opacity: isDisabled ? 0.7 : 1,
                 ...style,
             }}
         >

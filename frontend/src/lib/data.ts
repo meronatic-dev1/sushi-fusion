@@ -10,5 +10,6 @@ export interface Product {
 }
 
 export const MENU: { [key: string]: Product[] } = {};
-
 export const CATEGORIES: { id: string; name: string; icon: string }[] = [];
+
+export const DELIVERY_FEE = 15;
