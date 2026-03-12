@@ -25,7 +25,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const { user, isLoaded } = useUser();
 
-    if (pathname === '/admin/login') return <>{children}</>;
+    if (pathname.startsWith('/admin/login')) return <>{children}</>;
 
     // Determine user role from Clerk public metadata
     const userRole = (user?.publicMetadata?.role as string || 'customer').toLowerCase();

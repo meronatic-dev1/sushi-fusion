@@ -186,8 +186,21 @@ export default function AdminLoginPage() {
 
                     {/* Clerk SignIn Component heavily customized to match the original design */}
                     <SignIn
+                        path="/admin/login"
+                        routing="path"
                         forceRedirectUrl="/admin"
                         fallbackRedirectUrl="/admin"
+                        appearance={{
+                            variables: {
+                                colorPrimary: '#FF6A0C',
+                                colorBackground: '#1a1a24',
+                                colorText: '#fff',
+                                colorTextSecondary: 'rgba(255,255,255,0.6)',
+                                colorInputBackground: 'rgba(255,255,255,0.05)',
+                                colorInputText: '#fff',
+                                borderRadius: '12px',
+                            },
+                        }}
                     />
 
                     {/* Security note */}
