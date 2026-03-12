@@ -69,11 +69,20 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
     const stripe = useStripe();
     const elements = useElements();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isReady, setIsReady] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!stripe || !elements) {
+            console.warn('Stripe or Elements not loaded.');
+            return;
+        }
+
+        const paymentElement = elements.getElement(PaymentElement);
+        if (!paymentElement) {
+            setErrorMessage('Payment form is not ready. Please refresh or check your internet connection.');
+            console.error('PaymentElement NOT mounted when handleSubmit called.');
             return;
         }
 
@@ -83,45 +92,66 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
         const { error } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                // Return URL isn't strictly required if redirect: 'if_required' is used and 
-                // the payment method doesn't mandate redirects (like standard cards). 
-                // However, it's good practice.
                 return_url: `${window.location.origin}/checkout`, 
             },
             redirect: 'if_required',
         });
 
         if (error) {
+            console.error('Stripe Confirmation Error:', error);
             setErrorMessage(error.message || 'An unknown error occurred');
             setProcessing(false);
         } else {
-            // Success! No redirect occurred, payment is confirmed.
             onPaymentSuccess();
         }
     };
 
     return (
         <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <PaymentElement options={{ layout: 'tabs' }} />
-            {errorMessage && <div style={{ color: '#ef4444', fontSize: 13, padding: '8px', background: '#fee2e2', borderRadius: 8 }}>{errorMessage}</div>}
+            <PaymentElement 
+                options={{ layout: 'tabs' }} 
+                onReady={() => setIsReady(true)}
+                onChange={(event) => {
+                    if (event.error) {
+                        setErrorMessage(event.error.message);
+                    } else {
+                        setErrorMessage(null);
+                    }
+                }}
+            />
+            
+            {errorMessage && (
+                <div style={{ 
+                    color: '#ef4444', 
+                    fontSize: 13, 
+                    padding: '10px 14px', 
+                    background: '#fee2e2', 
+                    borderRadius: 10,
+                    border: '1px solid #fecaca',
+                    lineHeight: 1.4
+                }}>
+                    <strong>Note:</strong> {errorMessage}
+                </div>
+            )}
             
             <button
                 type="submit"
-                disabled={!stripe}
+                disabled={!stripe || !isReady}
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     padding: '14px 24px',
-                    background: !stripe ? '#f0a070' : '#FF6A0C',
+                    background: (!stripe || !isReady) ? '#f0a070' : '#FF6A0C',
                     border: 'none', borderRadius: 12,
                     color: '#fff', fontSize: 14, fontWeight: 700,
-                    cursor: !stripe ? 'not-allowed' : 'pointer',
+                    cursor: (!stripe || !isReady) ? 'not-allowed' : 'pointer',
                     fontFamily: '"DM Sans", sans-serif',
                     transition: 'all 0.18s',
                     boxShadow: '0 3px 12px rgba(255,106,12,0.25)',
-                    marginTop: '8px'
+                    marginTop: '8px',
+                    opacity: (!stripe || !isReady) ? 0.7 : 1
                 }}
             >
-                Pay AED {total.toFixed(2)} <Lock size={14} />
+                {!isReady ? 'Loading Form...' : `Pay AED ${total.toFixed(2)}`} <Lock size={14} />
             </button>
         </form>
     );
