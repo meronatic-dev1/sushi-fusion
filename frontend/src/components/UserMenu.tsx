@@ -132,7 +132,7 @@ export default function UserMenu({ language, t }: UserMenuProps) {
                         </button>
                     </Link>
 
-                    {(user?.publicMetadata?.role === 'admin' || user?.publicMetadata?.role === 'branch_manager') && (
+                    {(['admin', 'branch_manager'].includes(String(user?.publicMetadata?.role || '').toLowerCase())) && (
                         <Link href="/admin" style={{ textDecoration: 'none' }}>
                             <button 
                                 className="user-menu-item"

@@ -18,9 +18,10 @@ export default clerkMiddleware(async (auth, req) => {
     const client = await clerkClient()
     const user = await client.users.getUser(userId)
     const role = user.publicMetadata?.role as string | undefined
+    const normalizedRole = role?.toLowerCase()
 
     // If not an admin or branch manager, redirect to homepage (unauthorized)
-    if (role !== 'admin' && role !== 'branch_manager') {
+    if (normalizedRole !== 'admin' && normalizedRole !== 'branch_manager') {
       return NextResponse.redirect(new URL('/', req.url))
     }
   }
