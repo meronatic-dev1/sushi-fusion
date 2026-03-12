@@ -70,6 +70,7 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
     const elements = useElements();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isReady, setIsReady] = useState(false);
+    const [isComplete, setIsComplete] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -112,11 +113,7 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
                 options={{ layout: 'tabs' }} 
                 onReady={() => setIsReady(true)}
                 onChange={(event) => {
-                    if (event.error) {
-                        setErrorMessage(event.error.message);
-                    } else {
-                        setErrorMessage(null);
-                    }
+                    setIsComplete(event.complete);
                 }}
             />
             
@@ -136,19 +133,19 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
             
             <button
                 type="submit"
-                disabled={!stripe || !isReady}
+                disabled={!stripe || !isReady || !isComplete}
                 style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     padding: '14px 24px',
-                    background: (!stripe || !isReady) ? '#f0a070' : '#FF6A0C',
+                    background: (!stripe || !isReady || !isComplete) ? '#f0a070' : '#FF6A0C',
                     border: 'none', borderRadius: 12,
                     color: '#fff', fontSize: 14, fontWeight: 700,
-                    cursor: (!stripe || !isReady) ? 'not-allowed' : 'pointer',
+                    cursor: (!stripe || !isReady || !isComplete) ? 'not-allowed' : 'pointer',
                     fontFamily: '"DM Sans", sans-serif',
                     transition: 'all 0.18s',
                     boxShadow: '0 3px 12px rgba(255,106,12,0.25)',
                     marginTop: '8px',
-                    opacity: (!stripe || !isReady) ? 0.7 : 1
+                    opacity: (!stripe || !isReady || !isComplete) ? 0.7 : 1
                 }}
             >
                 {!isReady ? 'Loading Form...' : `Pay AED ${total.toFixed(2)}`} <Lock size={14} />
