@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { useCart } from '@/context/CartContext';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { DELIVERY_FEE } from '@/lib/data';
 import Link from 'next/link';
 
 export default function GlobalCart({ t }: { t: (key: string) => string }) {
     const { cart, isCartOpen, updateQty, setIsCartOpen } = useCart();
     const pathname = usePathname();
+    const router = useRouter();
 
     // Do not render the cart sidebar on admin pages
     if (pathname?.startsWith('/admin')) {
@@ -15,7 +17,8 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
     }
 
     const items = Object.entries(cart).filter(([, v]) => v.qty > 0);
-    const total = items.reduce((a, [, v]) => a + (v.price * v.qty), 0);
+    const subtotal = items.reduce((a, [, v]) => a + (v.price * v.qty), 0);
+    const total = subtotal + DELIVERY_FEE;
     const onClose = () => setIsCartOpen(false);
 
     const renderHeader = () => (
@@ -48,7 +51,7 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{name}</div>
-                                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--o)' }}>AED {(item.price * item.qty).toFixed(0)}</div>
+                                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--o)' }}>AED {(item.price * item.qty).toFixed(2)}</div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5 }}>
                                             <button onClick={() => updateQty(name, -1)} style={{ width: 22, height: 22, border: '1px solid var(--b)', background: 'transparent', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>−</button>
                                             <span style={{ fontSize: 13, fontWeight: 700, minWidth: 16, textAlign: 'center' }}>{item.qty}</span>
@@ -61,21 +64,26 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
                         <div className="cart-summary" style={{ borderTop: '1px solid var(--b)', paddingTop: 14, marginTop: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)', marginBottom: 6 }}>
                                 <span>{t('cart.subtotal')}</span>
-                                <span>AED {total}</span>
+                                <span>AED {subtotal.toFixed(2)}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)', marginBottom: 6 }}>
                                 <span>{t('cart.delivery')}</span>
-                                <span style={{ color: '#22c55e', fontWeight: 600 }}>{t('cart.deliveryFree')}</span>
+                                <span style={{ fontWeight: 600 }}>AED {DELIVERY_FEE.toFixed(2)}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 800, marginTop: 4, paddingTop: 8, borderTop: '1px solid var(--b)' }}>
                                 <span>{t('cart.total')}</span>
-                                <span style={{ color: 'var(--o)' }}>AED {total}</span>
+                                <span style={{ color: 'var(--o)' }}>AED {total.toFixed(2)}</span>
                             </div>
-                            <Link href="/checkout" style={{ display: 'block', textDecoration: 'none' }}>
-                                <button className="checkout-btn" style={{ width: '100%', padding: 14, background: 'var(--o)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 800, cursor: 'pointer', marginTop: 14, transition: 'background 0.2s' }}>
-                                    {t('cart.checkout')}
-                                </button>
-                            </Link>
+                            <button 
+                                className="checkout-btn" 
+                                onClick={() => {
+                                    onClose();
+                                    router.push('/checkout');
+                                }}
+                                style={{ width: '100%', padding: 14, background: 'var(--o)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 800, cursor: 'pointer', marginTop: 14, transition: 'background 0.2s' }}
+                            >
+                                {t('cart.checkout')}
+                            </button>
                         </div>
                     </div>
                 )}
