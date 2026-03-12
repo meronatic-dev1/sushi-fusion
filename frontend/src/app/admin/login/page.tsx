@@ -188,47 +188,6 @@ export default function AdminLoginPage() {
                     <SignIn
                         forceRedirectUrl="/admin"
                         fallbackRedirectUrl="/admin"
-                        appearance={{
-                            variables: {
-                                colorPrimary: '#FF6A0C',
-                                colorBackground: '#1a1a24',
-                                colorText: '#fff',
-                                colorTextSecondary: 'rgba(255,255,255,0.6)',
-                                colorInputBackground: 'rgba(255,255,255,0.05)',
-                                colorInputText: '#fff',
-                                borderRadius: '12px',
-                            },
-                            elements: {
-                                card: { background: 'transparent', boxShadow: 'none', padding: 0, width: '100%' },
-                                formFieldLabel: {
-                                    fontSize: 12, fontWeight: 600,
-                                    color: 'rgba(255,255,255,0.6)',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '0.04em'
-                                },
-                                formFieldInput: {
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    backgroundColor: 'rgba(255,255,255,0.05)',
-                                    color: '#fff',
-                                },
-                                formButtonPrimary: {
-                                    height: 52,
-                                    fontSize: 14,
-                                    fontWeight: 700,
-                                    background: 'linear-gradient(135deg, #FF6A0C 0%, #ff8c42 100%)',
-                                },
-                                headerTitle: { display: 'none' },
-                                headerSubtitle: { display: 'none' },
-                                footer: { display: 'none' },
-                                dividerLine: { background: 'rgba(255,255,255,0.1)' },
-                                dividerText: { color: 'rgba(255,255,255,0.4)' },
-                                socialButtonsBlockButton: {
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    color: '#fff',
-                                },
-                            },
-                        }}
                     />
 
                     {/* Security note */}

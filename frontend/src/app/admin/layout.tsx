@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (pathname === '/admin/login') return <>{children}</>;
 
     // Determine user role from Clerk public metadata
-    const userRole = (user?.publicMetadata?.role as string) || 'customer';
+    const userRole = (user?.publicMetadata?.role as string || 'customer').toLowerCase();
     
     // Filter Navigation Items based on Role
     const filteredNavItems = NAV_ITEMS.filter(item => {

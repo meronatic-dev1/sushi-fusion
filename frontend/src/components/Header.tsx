@@ -6,8 +6,8 @@ import LocationModal from './LocationModal';
 import UserMenu from './UserMenu';
 import { useLocation } from '@/context/LocationContext';
 import type { Language } from '@/lib/i18n';
+import { useUser } from '@clerk/nextjs';
 import { useSettings } from '@/context/SettingsContext';
-import { Show } from '@clerk/nextjs';
 
 interface HeaderProps {
     cartCount: number;
@@ -57,6 +57,7 @@ export default function Header({
     onToggleLanguage,
     t,
 }: HeaderProps) {
+    const { isSignedIn, isLoaded } = useUser();
     const [activeMode, setActiveMode] = useState<'delivery' | 'pickup' | 'dineIn'>('delivery');
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const { location, setLocation } = useLocation();
@@ -130,12 +131,13 @@ export default function Header({
                     {language === 'en' ? 'عربي' : 'EN'}
                 </button>
 
-                <Show when="signed-out">
-                    <Link href="/login" className="login-btn">{t('header.login')}</Link>
-                </Show>
-                <Show when="signed-in">
-                    <UserMenu language={language} t={t} />
-                </Show>
+                {isLoaded && (
+                    isSignedIn ? (
+                        <UserMenu language={language} t={t} />
+                    ) : (
+                        <Link href="/login" className="login-btn">{t('header.login')}</Link>
+                    )
+                )}
             </header>
 
             {/* ╔══════════════════════════════════════════╗
