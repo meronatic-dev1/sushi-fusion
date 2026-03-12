@@ -1,4 +1,4 @@
-import { Controller, Post, Headers, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Headers, Req, BadRequestException, Body } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { Request } from 'express';
@@ -6,6 +6,14 @@ import { Request } from 'express';
 @Controller('stripe')
 export class StripeController {
     constructor(private readonly stripeService: StripeService) { }
+
+    @Post('create-payment-intent')
+    async createPaymentIntent(@Body() body: { amount: number }) {
+        if (!body.amount || body.amount <= 0) {
+            throw new BadRequestException('Invalid amount');
+        }
+        return this.stripeService.createPaymentIntent(body.amount);
+    }
 
     @Post('webhook')
     async handleWebhook(

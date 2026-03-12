@@ -89,6 +89,9 @@ export const updateOrderStatus = (id: string, status: string) =>
 export const apiCreateOrder = (data: any) =>
     apiFetch<any>('/orders', { method: 'POST', body: JSON.stringify(data) });
 
+export const apiCreatePaymentIntent = (amount: number) =>
+    apiFetch<{ clientSecret: string }>('/stripe/create-payment-intent', { method: 'POST', body: JSON.stringify({ amount }) });
+
 export const getOrder = (id: string) =>
     apiFetch<any>(`/orders/${id}`);
 

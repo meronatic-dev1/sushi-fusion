@@ -6,9 +6,14 @@ import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useLocation } from '@/context/LocationContext';
-import { apiCreateOrder } from '@/lib/api';
+import { apiCreateOrder, apiCreatePaymentIntent } from '@/lib/api';
 import { useUser } from '@clerk/nextjs';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles } from 'lucide-react';
+
+// Make sure to call `loadStripe` outside of a component’s render to avoid recreating the `Stripe` object on every render.
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -56,6 +61,69 @@ function FInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
                 ...props.style,
             }}
         />
+    );
+}
+
+/* ─── Stripe Payment Form Wrapper ─── */
+function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: number, onPaymentSuccess: () => void, setProcessing: (p: boolean) => void }) {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!stripe || !elements) {
+            return;
+        }
+
+        setProcessing(true);
+        setErrorMessage(null);
+
+        const { error } = await stripe.confirmPayment({
+            elements,
+            confirmParams: {
+                // Return URL isn't strictly required if redirect: 'if_required' is used and 
+                // the payment method doesn't mandate redirects (like standard cards). 
+                // However, it's good practice.
+                return_url: `${window.location.origin}/checkout`, 
+            },
+            redirect: 'if_required',
+        });
+
+        if (error) {
+            setErrorMessage(error.message || 'An unknown error occurred');
+            setProcessing(false);
+        } else {
+            // Success! No redirect occurred, payment is confirmed.
+            onPaymentSuccess();
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <PaymentElement options={{ layout: 'tabs' }} />
+            {errorMessage && <div style={{ color: '#ef4444', fontSize: 13, padding: '8px', background: '#fee2e2', borderRadius: 8 }}>{errorMessage}</div>}
+            
+            <button
+                type="submit"
+                disabled={!stripe}
+                style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    padding: '14px 24px',
+                    background: !stripe ? '#f0a070' : '#FF6A0C',
+                    border: 'none', borderRadius: 12,
+                    color: '#fff', fontSize: 14, fontWeight: 700,
+                    cursor: !stripe ? 'not-allowed' : 'pointer',
+                    fontFamily: '"DM Sans", sans-serif',
+                    transition: 'all 0.18s',
+                    boxShadow: '0 3px 12px rgba(255,106,12,0.25)',
+                    marginTop: '8px'
+                }}
+            >
+                Pay AED {total.toFixed(2)} <Lock size={14} />
+            </button>
+        </form>
     );
 }
 
@@ -138,7 +206,18 @@ export default function CheckoutPage() {
         setStep(s => Math.max(s - 1, 1) as Step);
     };
 
-    const handlePay = async () => {
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+    // Fetch PaymentIntent when transitioning to Step 3
+    useEffect(() => {
+        if (step === 3 && !clientSecret && TOTAL > 0) {
+            apiCreatePaymentIntent(TOTAL)
+                .then(res => setClientSecret(res.clientSecret))
+                .catch(err => alert('Failed to initialize payment: ' + err.message));
+        }
+    }, [step, TOTAL, clientSecret]);
+
+    const handleOrderCreation = async () => {
         if (cartItems.length === 0) return alert('Your cart is empty');
         setIsProcessing(true);
 
@@ -174,8 +253,7 @@ export default function CheckoutPage() {
             clearCart();
             next();
         } catch (e: any) {
-            alert(e.message || 'Payment failed');
-        } finally {
+            alert(e.message || 'Order creation failed');
             setIsProcessing(false);
         }
     };
@@ -442,17 +520,22 @@ export default function CheckoutPage() {
                                     ))}
                                 </div>
 
-                                {/* Stripe placeholder */}
+                                {/* Stripe Payment Element */}
                                 <div style={{
-                                    border: '1.5px dashed #ddd0c2',
-                                    borderRadius: 14, padding: '36px 20px',
-                                    textAlign: 'center',
-                                    background: 'repeating-linear-gradient(45deg, #faf8f5, #faf8f5 8px, #f7f3ee 8px, #f7f3ee 16px)',
+                                    border: '1px solid #ddd0c2',
+                                    borderRadius: 14, padding: '24px 20px',
+                                    background: '#fff',
                                     marginBottom: 20,
                                 }}>
-                                    <CreditCard size={28} style={{ color: '#d4c4b0', marginBottom: 10 }} />
-                                    <p style={{ fontSize: 13, fontWeight: 700, color: '#b0997e', margin: '0 0 4px' }}>Stripe Card Form</p>
-                                    <p style={{ fontSize: 11, color: '#c4b5a5', margin: 0 }}>PCI-DSS compliant · Visa, Mastercard, Amex</p>
+                                    {clientSecret ? (
+                                        <Elements options={{ clientSecret, appearance: { theme: 'stripe' } }} stripe={stripePromise}>
+                                            <StripePaymentForm total={TOTAL} onPaymentSuccess={handleOrderCreation} setProcessing={setIsProcessing} />
+                                        </Elements>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '20px 0', color: '#a08060', fontSize: 14 }}>
+                                            Preparing payment...
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Trust badges */}
@@ -464,9 +547,8 @@ export default function CheckoutPage() {
 
                                 <div style={{ display: 'flex', gap: 10 }}>
                                     <BackButton onClick={back} />
-                                    <ActionButton onClick={handlePay} loading={isProcessing} style={{ flex: 1 }}>
-                                        {isProcessing ? 'Processing…' : <>Pay AED {TOTAL.toFixed(2)} <Lock size={14} /></>}
-                                    </ActionButton>
+                                    {/* ActionButton is handled inside the StripePaymentForm to trigger standard form submission */}
+                                    <div style={{ flex: 1 }}></div>
                                 </div>
                             </SectionCard>
                         </div>
