@@ -30,6 +30,8 @@ export class MenuItemsController {
             imageUrl?: string;
             isAvailable?: boolean;
             categoryId: string;
+            dietary?: string[];
+            allergens?: string[];
         },
     ) {
         return this.menuItemsService.create(body);
@@ -46,6 +48,8 @@ export class MenuItemsController {
             imageUrl?: string;
             isAvailable?: boolean;
             categoryId?: string;
+            dietary?: string[];
+            allergens?: string[];
         },
     ) {
         return this.menuItemsService.update(id, body);

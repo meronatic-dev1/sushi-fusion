@@ -64,6 +64,8 @@ model MenuItem {
   salesCount  Int         @default(0)
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
+  dietary     String[]    @default([])
+  allergens   String[]    @default([])
   orderItems  OrderItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt

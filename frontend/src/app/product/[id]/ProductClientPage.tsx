@@ -11,6 +11,14 @@ import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
 import { getMenuItems } from '@/lib/api';
 
+const DIETARY_DESCS: Record<string, string> = {
+    'Vegan': 'Plant-based ingredients only. No dairy, eggs, or animal by-products.',
+    'Spicy': 'Contains chili or hot spices. Please ask our staff for heat levels.',
+    'Vegetarian': 'Meat-free ingredients. May contain dairy or eggs.',
+    'Gluten-Free': 'Prepared without gluten-containing ingredients.',
+    'Halal': 'Prepared according to Halal standards.',
+};
+
 export default function ProductClientPage({ id }: { id: string }) {
     const router = useRouter();
     const { cartCount, addToCart, setIsCartOpen } = useCart();
@@ -40,6 +48,8 @@ export default function ProductClientPage({ id }: { id: string }) {
                         price: apiItem.price,
                         emoji: 'fire',
                         imgSrc: apiItem.imageUrl || undefined,
+                        dietary: apiItem.dietary || [],
+                        allergens: apiItem.allergens || [],
                     });
                     setLoading(false);
                     return;
@@ -139,6 +149,40 @@ export default function ProductClientPage({ id }: { id: string }) {
                                         <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--o)', letterSpacing: '-0.02em' }}>AED {product.price}</div>
                                     </div>
                                 </div>
+
+                                {product.dietary && product.dietary.length > 0 && (
+                                    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'rgba(255,106,12,0.03)', borderRadius: 12, border: '1px solid rgba(255,106,12,0.08)' }}>
+                                        <h4 style={{ margin: '0 0 10px 0', fontSize: 14, fontWeight: 800, color: 'var(--d)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Dietary Info</h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                            {product.dietary.map(tag => (
+                                                <div key={tag} style={{ display: 'flex', gap: 10 }}>
+                                                    <div style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--o)', color: '#fff', fontSize: 10, fontWeight: 800, height: 'fit-content', flexShrink: 0 }}>
+                                                        {tag}
+                                                    </div>
+                                                    <p style={{ margin: 0, fontSize: 13, color: 'var(--g)', lineHeight: 1.4 }}>
+                                                        {DIETARY_DESCS[tag] || 'Informative tag for this product.'}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {product.allergens && product.allergens.length > 0 && (
+                                    <div style={{ marginBottom: 28, padding: '16px 20px', background: 'rgba(248,113,113,0.03)', borderRadius: 12, border: '1px solid rgba(248,113,113,0.1)' }}>
+                                        <h4 style={{ margin: '0 0 10px 0', fontSize: 14, fontWeight: 800, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Allergen Warning</h4>
+                                        <p style={{ margin: '0 0 8px 0', fontSize: 13, color: 'var(--g)' }}>
+                                            This product contains:
+                                        </p>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                            {product.allergens.map(allergen => (
+                                                <span key={allergen} style={{ fontSize: 13, fontWeight: 700, color: '#f87171' }}>
+                                                    • {allergen}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <button
                                     onClick={handleAdd}

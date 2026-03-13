@@ -29,6 +29,8 @@ export interface ApiMenuItem {
     isAvailable: boolean;
     categoryId: string;
     category?: ApiCategory;
+    dietary: string[];
+    allergens: string[];
     createdAt: string;
     updatedAt: string;
 }
@@ -133,6 +135,8 @@ export const createMenuItem = (data: {
     imageUrl?: string;
     isAvailable?: boolean;
     categoryId: string;
+    dietary?: string[];
+    allergens?: string[];
 }) =>
     apiFetch<ApiMenuItem>('/menu-items', { method: 'POST', body: JSON.stringify(data) });
 
@@ -143,6 +147,8 @@ export const updateMenuItem = (id: string, data: {
     imageUrl?: string;
     isAvailable?: boolean;
     categoryId?: string;
+    dietary?: string[];
+    allergens?: string[];
 }) =>
     apiFetch<ApiMenuItem>(`/menu-items/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 

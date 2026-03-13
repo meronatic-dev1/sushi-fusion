@@ -8,6 +8,8 @@ export interface Product {
     tag?: string;
     vip?: boolean;
     imgSrc?: string;
+    dietary?: string[];
+    allergens?: string[];
 }
 
 export const MENU: { [key: string]: Product[] } = {};

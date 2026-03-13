@@ -36,6 +36,8 @@ export class MenuItemsService {
         imageUrl?: string;
         isAvailable?: boolean;
         categoryId: string;
+        dietary?: string[];
+        allergens?: string[];
     }) {
         return this.prisma.menuItem.create({
             data,
@@ -52,6 +54,8 @@ export class MenuItemsService {
             imageUrl?: string;
             isAvailable?: boolean;
             categoryId?: string;
+            dietary?: string[];
+            allergens?: string[];
         },
     ) {
         return this.prisma.menuItem.update({
