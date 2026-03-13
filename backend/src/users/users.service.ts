@@ -66,4 +66,26 @@ export class UsersService {
             where: { id },
         });
     }
+
+    async syncUser(data: { id: string, email: string, name: string, phone?: string }) {
+        const existing = await this.findById(data.id);
+        if (existing) {
+            return this.update(data.id, {
+                email: data.email,
+                name: data.name,
+                phone: data.phone ?? existing.phone,
+            });
+        }
+
+        return this.prisma.user.create({
+            data: {
+                id: data.id,
+                email: data.email,
+                name: data.name,
+                phone: data.phone || null,
+                password: 'synced-from-clerk',
+                role: 'CUSTOMER',
+            },
+        });
+    }
 }

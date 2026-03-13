@@ -7,6 +7,7 @@ import { SettingsProvider } from '@/context/SettingsContext';
 import { LocationProvider } from '@/context/LocationContext';
 import GlobalCart from '@/components/GlobalCart';
 import { t as translate, type Language } from '@/lib/i18n';
+import UserSync from '@/components/UserSync';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
     const [language, setLanguage] = useState<Language>('en');
@@ -21,6 +22,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     return (
         <SettingsProvider>
+            <UserSync />
             <LocationProvider>
                 <CartProvider>
                     {/* 
