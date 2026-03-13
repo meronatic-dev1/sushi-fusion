@@ -201,6 +201,8 @@ export default function CustomerLoginPage() {
 
                         {/* Clerk SignIn Component */}
                         <SignIn
+                            path="/login"
+                            routing="path"
                             forceRedirectUrl="/"
                             fallbackRedirectUrl="/"
                         />
