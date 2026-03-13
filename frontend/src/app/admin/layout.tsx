@@ -13,6 +13,8 @@ import {
 import { io, Socket } from 'socket.io-client';
 import { API } from '@/lib/api';
 
+import { useSettings } from '@/context/SettingsContext';
+
 const NAV_ITEMS = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
     { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
@@ -28,6 +30,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const router = useRouter();
     const { user, isLoaded } = useUser();
+    const { settings } = useSettings();
 
     // ── Notification state ──
     const [notifications, setNotifications] = useState<{ id: string; customer: string; total: string; time: Date }[]>([]);
@@ -62,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
                 new Notification('🍣 New Order Received!', {
                     body: `${order.customerName || 'Guest'} placed an order for AED ${(order.totalAmount || 0).toFixed(2)}`,
-                    icon: '/sushi-fusion-logo.png',
+                    icon: settings?.logoUrl || '/sushi-fusion-logo.png',
                 });
             }
         });
@@ -91,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }
 
         return () => { socket.disconnect(); };
-    }, []);
+    }, [settings?.logoUrl]);
 
     // Close dropdown on outside click
     useEffect(() => {

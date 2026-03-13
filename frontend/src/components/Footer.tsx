@@ -2,12 +2,14 @@
 
 import React from 'react';
 import { CATEGORIES } from '@/lib/data';
+import { useSettings } from '@/context/SettingsContext';
 
 interface FooterProps {
   onSelectCategory?: (id: string) => void;
 }
 
 export default function Footer({ onSelectCategory }: FooterProps) {
+  const { settings } = useSettings();
   const year = new Date().getFullYear();
   const mid = Math.ceil(CATEGORIES.length / 2);
   const menuCol1 = CATEGORIES.slice(0, mid);
@@ -19,7 +21,7 @@ export default function Footer({ onSelectCategory }: FooterProps) {
         <div className="footer-divider footer-divider-top" />
         <div className="footer-logo-wrap">
           <div className="footer-logo">
-            <img src="/sushi-fusion-logo.png" alt="Sushi Fusion" />
+            <img src={settings.logoUrl || '/sushi-fusion-logo.png'} alt="Sushi Fusion" />
           </div>
         </div>
         <div className="footer-divider footer-divider-bottom" />

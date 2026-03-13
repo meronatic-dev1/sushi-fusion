@@ -3,8 +3,37 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SignIn } from "@clerk/nextjs";
+import { useSettings } from "@/context/SettingsContext";
+import { useEffect, useState } from "react";
+import { getAnalyticsDashboard, DashboardData } from "@/lib/api";
 
 export default function AdminLoginPage() {
+    const { settings } = useSettings();
+    const [stats, setStats] = useState<{ label: string; value: string; change: string; up: boolean | null }[]>([
+        { label: 'Total Orders Today', value: '...', change: '', up: null },
+        { label: 'Revenue This Week', value: '...', change: '', up: null },
+        { label: 'Active Menu Items', value: '...', change: '', up: null },
+    ]);
+
+    useEffect(() => {
+        getAnalyticsDashboard()
+            .then((data: DashboardData) => {
+                setStats([
+                    { label: 'Total Orders', value: data.kpis.orders.toString(), change: 'Live', up: true },
+                    { label: 'Total Revenue', value: `AED ${data.kpis.revenue.toFixed(0)}`, change: 'Live', up: true },
+                    { label: 'Customers', value: data.kpis.customers.toString(), change: 'Live', up: null },
+                ]);
+            })
+            .catch(err => {
+                console.error('Failed to load login page stats:', err);
+                // Fallback to static numbers if API fails
+                setStats([
+                    { label: 'Total Orders Today', value: '284', change: '+12%', up: true },
+                    { label: 'Revenue This Week', value: 'AED 18,420', change: '+8.3%', up: true },
+                    { label: 'Active Menu Items', value: '64', change: '2 updated', up: null },
+                ]);
+            });
+    }, []);
     return (
         <div style={{
             minHeight: '100vh',
@@ -58,14 +87,14 @@ export default function AdminLoginPage() {
                     <div style={{
                         width: 42, height: 42,
                         borderRadius: '10px',
-                        background: 'linear-gradient(135deg, #FF6A0C, #ff9a5c)',
+                        background: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         boxShadow: '0 4px 16px rgba(255,106,12,0.4)',
                         overflow: 'hidden',
                         flexShrink: 0,
                     }}>
-                        <Image src="/sushi-fusion-logo.png" alt="Logo" width={42} height={42}
-                            style={{ objectFit: 'cover', filter: 'brightness(0) invert(1)' }} />
+                        <img src={settings?.logoUrl || '/sushi-fusion-logo.png'} alt="Logo" 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }} />
                     </div>
                     <div>
                         <p style={{ fontSize: 15, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>Sushi Fusion</p>
@@ -77,11 +106,7 @@ export default function AdminLoginPage() {
                 <div>
                     {/* Decorative stat cards */}
                     <div style={{ marginBottom: '40px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        {[
-                            { label: 'Total Orders Today', value: '284', change: '+12%', up: true },
-                            { label: 'Revenue This Week', value: 'AED 18,420', change: '+8.3%', up: true },
-                            { label: 'Active Menu Items', value: '64', change: '2 updated', up: null },
-                        ].map((stat, i) => (
+                        {stats.map((stat, i) => (
                             <div key={i} style={{
                                 background: 'rgba(255,255,255,0.04)',
                                 border: '1px solid rgba(255,255,255,0.08)',
