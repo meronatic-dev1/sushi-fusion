@@ -93,7 +93,7 @@ export default function AdminLoginPage() {
                         overflow: 'hidden',
                         flexShrink: 0,
                     }}>
-                        <img src={settings?.logoUrl || '/sushi-fusion-logo.png'} alt="Logo" 
+                        <img src={settings?.logoUrl || '/sushi-fusion-logo.png'} alt="Logo"
                             style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 2 }} />
                     </div>
                     <div>

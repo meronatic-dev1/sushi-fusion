@@ -357,12 +357,12 @@ export default function CheckoutPage() {
                 position: 'sticky', top: 0, zIndex: 50,
                 boxShadow: '0 1px 12px rgba(0,0,0,0.06)',
             }}>
-                <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <img src={settings.logoUrl || '/sushi-fusion-logo.png'} alt="Sushi Fusion" style={{ height: 32 }} />
+                <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8, zIndex: 60 }}>
+                    <img src={settings.logoUrl || '/sushi-fusion-logo.png'} alt="Sushi Fusion" style={{ height: 28 }} />
                 </Link>
 
                 {/* Step progress — centered */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }} className="step-progress">
                     {STEPS.map((s, i) => {
                         const done = step > s.num;
                         const active = step === s.num;
@@ -403,21 +403,21 @@ export default function CheckoutPage() {
                     })}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#a08060', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#a08060', fontWeight: 600 }} className="secure-badge">
                     <Lock size={12} />
-                    Secure
+                    <span className="secure-text">Secure</span>
                 </div>
             </header>
 
             {/* ── Main layout ── */}
             <div style={{
                 maxWidth: 980, margin: '0 auto',
-                padding: '36px 20px',
+                padding: '24px 16px',
                 display: 'grid',
                 gridTemplateColumns: '1fr 340px',
-                gap: 28,
+                gap: 24,
                 alignItems: 'start',
-            }}>
+            }} className="checkout-grid">
 
                 {/* ════ LEFT COLUMN ════ */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -775,7 +775,7 @@ export default function CheckoutPage() {
                 </div>
 
                 {/* ════ RIGHT COLUMN — Order Summary ════ */}
-                <div style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ position: 'sticky', top: 88, display: 'flex', flexDirection: 'column', gap: 14 }} className="summary-column">
 
                     {/* Summary card */}
                     <div style={{
@@ -928,8 +928,33 @@ export default function CheckoutPage() {
                 ::-webkit-scrollbar { width: 4px; }
                 ::-webkit-scrollbar-track { background: transparent; }
                 ::-webkit-scrollbar-thumb { background: #e0d0c0; border-radius: 99px; }
-                @media (max-width: 768px) {
-                    .checkout-grid { grid-template-columns: 1fr !important; }
+                
+                @media (max-width: 900px) {
+                    .checkout-grid { 
+                        grid-template-columns: 1fr !important; 
+                        padding: 16px 12px !important;
+                        gap: 20px !important;
+                    }
+                    .summary-column {
+                        position: static !important;
+                        order: 2;
+                    }
+                    .step-progress {
+                        display: none !important;
+                    }
+                    .secure-badge {
+                        font-size: 10px !important;
+                    }
+                    .secure-text {
+                        display: none;
+                    }
+                }
+
+                @media (min-width: 600px) and (max-width: 900px) {
+                   .step-progress {
+                       display: flex !important;
+                       transform: translateX(-50%) scale(0.8) !important;
+                   }
                 }
             `}</style>
         </div>

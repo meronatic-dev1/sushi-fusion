@@ -62,6 +62,7 @@ export default function CustomerLoginPage() {
                         overflow: "hidden",
                         boxShadow: "0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.08)",
                     }}
+                    className="login-modal-inner"
                 >
 
                     {/* ════════════════════════════
@@ -77,6 +78,7 @@ export default function CustomerLoginPage() {
                             display: "flex",
                             flexDirection: "column",
                         }}
+                        className="login-left-panel"
                     >
                         {/* Dot pattern */}
                         <div
@@ -180,6 +182,7 @@ export default function CustomerLoginPage() {
                             overflowY: "auto",
                             position: "relative",
                         }}
+                        className="login-right-panel"
                     >
                         {/* × Close */}
                         <button
@@ -217,9 +220,28 @@ export default function CustomerLoginPage() {
                             </Link>
                         </div>
                     </div>
-
                 </div>
             </div>
+
+            <style jsx global>{`
+                @media (max-width: 768px) {
+                    .login-modal-inner {
+                        flex-direction: column !important;
+                        max-width: 440px !important;
+                        min-height: auto !important;
+                        max-height: 90vh !important;
+                        overflow-y: auto !important;
+                    }
+                    .login-left-panel {
+                        width: 100% !important;
+                        padding-bottom: 24px !important;
+                        display: none !important; /* Hide branding on mobile to focus on login */
+                    }
+                    .login-right-panel {
+                        padding: 32px 24px !important;
+                    }
+                }
+            `}</style>
         </>
     );
 }
