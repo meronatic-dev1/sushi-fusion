@@ -14,13 +14,10 @@ async function bootstrap() {
     transform: true,
   }));
 
-  // Enable CORS with robust origin detection
+  // Enable CORS with reliable origin array
+  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
   app.enableCors({
-    origin: (origin, callback) => {
-      const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
-      const isAllowed = !origin || origin.replace(/\/$/, '') === frontendUrl;
-      callback(null, isAllowed);
-    },
+    origin: [frontendUrl, `${frontendUrl}/`],
     credentials: true,
   });
 
@@ -29,12 +26,8 @@ async function bootstrap() {
     prefix: '/uploads/',
   });
 
-  // API Versioning and Global Prefix
+  // Global Prefix (Versioning disabled to match frontend)
   app.setGlobalPrefix('api');
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
 
   await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
 }
