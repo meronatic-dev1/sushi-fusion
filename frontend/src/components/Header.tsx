@@ -91,7 +91,7 @@ export default function Header({
                 ╚══════════════════════════════════════════╝ */}
             <header className="topbar topbar--desktop">
                 <div className="logo-wrap">
-                    <img src={settings.logoUrl} alt="Sushi Fusion" />
+                    <img src={settings.logoUrl || '/sushi-fusion-logo.png'} alt="Sushi Fusion" />
                 </div>
 
                 <div className="mode-tabs">
@@ -108,7 +108,7 @@ export default function Header({
                 </div>
 
                 <button className="location-btn" onClick={() => setIsPopoverOpen(true)}>
-                    📍 {location?.address || t('header.selectLocation')}
+                    <img src="/images/location.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain' }} /> {location?.address || t('header.selectLocation')}
                 </button>
 
                 <div className="topbar-spacer" />

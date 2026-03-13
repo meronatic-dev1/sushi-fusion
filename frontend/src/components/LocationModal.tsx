@@ -223,7 +223,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                                 onClick={handleUseMyLocationForPickup}
                                 disabled={isLocating}
                             >
-                                {isLocating ? 'Locating…' : '📍 Use My Location'}
+                                {isLocating ? 'Locating…' : <><img src="/images/location.png" alt="" style={{ width: 14, height: 14, objectFit: 'contain', verticalAlign: 'middle' }} /> Use My Location</>}
                             </button>
 
                             <p className="pickup-helper-text">

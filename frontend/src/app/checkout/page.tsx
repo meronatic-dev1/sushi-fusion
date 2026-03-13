@@ -11,7 +11,7 @@ import { DELIVERY_FEE } from '@/lib/data';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles } from 'lucide-react';
+import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles, Navigation } from 'lucide-react';
 
 // Make sure to call `loadStripe` outside of a component’s render to avoid recreating the `Stripe` object on every render.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -167,6 +167,7 @@ export default function CheckoutPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [promoCode, setPromoCode] = useState('');
     const [promoApplied, setPromoApplied] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
 
     // Form states
     const [guestName, setGuestName] = useState('');
@@ -237,6 +238,43 @@ export default function CheckoutPage() {
         setStep(s => Math.max(s - 1, 1) as Step);
     };
 
+    const handleUseMyLocation = () => {
+        if (!navigator.geolocation) return alert('Geolocation is not supported by your browser.');
+        setIsLocating(true);
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                const { latitude, longitude } = pos.coords;
+                setCustomerLat(latitude);
+                setCustomerLng(longitude);
+                // Attempt reverse geocoding via Google Maps
+                try {
+                    if (typeof google !== 'undefined' && google.maps) {
+                        const geocoder = new google.maps.Geocoder();
+                        const res = await geocoder.geocode({ location: { lat: latitude, lng: longitude } });
+                        if (res.results?.[0]) {
+                            const addr = res.results[0];
+                            setStreet(addr.formatted_address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                            const cityComp = addr.address_components?.find((c: any) => c.types.includes('locality'));
+                            if (cityComp) setCity(cityComp.long_name);
+                            const postComp = addr.address_components?.find((c: any) => c.types.includes('postal_code'));
+                            if (postComp) setPostcode(postComp.long_name);
+                            setSelectedAddress(addr.formatted_address || '');
+                        }
+                    } else {
+                        setStreet(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                        setSelectedAddress('Current Location');
+                    }
+                } catch {
+                    setStreet(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                    setSelectedAddress('Current Location');
+                }
+                setIsLocating(false);
+            },
+            () => { alert('Unable to retrieve your location.'); setIsLocating(false); },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+    };
+
     const [clientSecret, setClientSecret] = useState<string | null>(null);
 
     // Fetch PaymentIntent when transitioning to Step 3
@@ -303,7 +341,7 @@ export default function CheckoutPage() {
                 boxShadow: '0 1px 12px rgba(0,0,0,0.06)',
             }}>
                 <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {settings.logoUrl && <img src={settings.logoUrl} alt="Sushi Fusion" style={{ height: 32 }} />}
+                    <img src={settings.logoUrl || '/sushi-fusion-logo.png'} alt="Sushi Fusion" style={{ height: 32 }} />
                 </Link>
 
                 {/* Step progress — centered */}
@@ -488,6 +526,29 @@ export default function CheckoutPage() {
                                 subtitle="Where should we bring your order?"
                             >
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                    {/* Use My Location */}
+                                    <button
+                                        type="button"
+                                        onClick={handleUseMyLocation}
+                                        disabled={isLocating}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                            padding: '12px 16px',
+                                            background: isLocating ? '#faf8f5' : '#fff5ee',
+                                            border: '1.5px solid #ffdcc4',
+                                            borderRadius: 12,
+                                            color: '#FF6A0C', fontSize: 13, fontWeight: 700,
+                                            cursor: isLocating ? 'wait' : 'pointer',
+                                            fontFamily: '"DM Sans", sans-serif',
+                                            transition: 'all 0.18s',
+                                        }}
+                                        onMouseEnter={e => { if (!isLocating) { e.currentTarget.style.background = '#fff0e0'; e.currentTarget.style.borderColor = '#ffb888'; } }}
+                                        onMouseLeave={e => { if (!isLocating) { e.currentTarget.style.background = '#fff5ee'; e.currentTarget.style.borderColor = '#ffdcc4'; } }}
+                                    >
+                                        <Navigation size={15} style={{ animation: isLocating ? 'spin 1s linear infinite' : 'none' }} />
+                                        {isLocating ? 'Detecting location…' : <><img src="/images/location.png" alt="" style={{ width: 15, height: 15, objectFit: 'contain', verticalAlign: 'middle' }} /> Use My Current Location</>}
+                                    </button>
+
                                     <Field label="Street Address">
                                         <FInput
                                             placeholder="12 Al Wasl Rd, Apt 4B"

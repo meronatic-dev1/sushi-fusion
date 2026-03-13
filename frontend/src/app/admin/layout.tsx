@@ -1,14 +1,17 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { SignOutButton, useUser } from '@clerk/nextjs';
 import Image from 'next/image';
 import {
     LayoutDashboard, ShoppingBag, Package,
     MapPin, Users, BarChart2, LogOut, Bell, ChevronDown,
-    Settings,
+    Settings, X,
 } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
+import { API } from '@/lib/api';
 
 const NAV_ITEMS = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -23,7 +26,84 @@ const NAV_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
     const { user, isLoaded } = useUser();
+
+    // ── Notification state ──
+    const [notifications, setNotifications] = useState<{ id: string; customer: string; total: string; time: Date }[]>([]);
+    const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+    const notifRef = useRef<HTMLDivElement>(null);
+    const socketRef = useRef<Socket | null>(null);
+
+    // Connect to socket.io for new order events
+    useEffect(() => {
+        const socketUrl = API.replace('/api', '');
+        const socket = io(socketUrl);
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+            console.log('Admin: connected to notification socket');
+            socket.emit('joinAdminRoom');
+        });
+
+        socket.on('newOrder', (order: any) => {
+            console.log('Admin: new order received', order);
+            setNotifications(prev => [
+                {
+                    id: order.id || order.orderId || 'unknown',
+                    customer: order.customerName || 'Guest',
+                    total: `AED ${(order.totalAmount || 0).toFixed(2)}`,
+                    time: new Date(),
+                },
+                ...prev,
+            ].slice(0, 20));
+
+            // Browser notification
+            if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                new Notification('🍣 New Order Received!', {
+                    body: `${order.customerName || 'Guest'} placed an order for AED ${(order.totalAmount || 0).toFixed(2)}`,
+                    icon: '/sushi-fusion-logo.png',
+                });
+            }
+        });
+
+        // Also listen for status updates as a fallback
+        socket.on('orderStatusUpdated', (order: any) => {
+            if (order.status === 'PENDING' || order.status === 'ROUTING') {
+                setNotifications(prev => {
+                    if (prev.some(n => n.id === order.id)) return prev;
+                    return [
+                        {
+                            id: order.id,
+                            customer: order.customerName || 'Guest',
+                            total: `AED ${(order.totalAmount || 0).toFixed(2)}`,
+                            time: new Date(),
+                        },
+                        ...prev,
+                    ].slice(0, 20);
+                });
+            }
+        });
+
+        // Request notification permission on mount
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        return () => { socket.disconnect(); };
+    }, []);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        if (!showNotifDropdown) return;
+        const handler = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setShowNotifDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, [showNotifDropdown]);
 
     if (pathname.startsWith('/admin/login')) return <>{children}</>;
 
@@ -107,17 +187,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }}>
                     <div style={{
                         width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #FF6A0C, #ff9a5c)',
+                        background: '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 14px rgba(255,106,12,0.4)',
+                        boxShadow: '0 4px 14px rgba(255,106,12,0.25)',
                         overflow: 'hidden',
                         position: 'relative',
                     }}>
                         <Image
                             src="/sushi-fusion-logo.png"
-                            alt="Logo"
+                            alt="Sushi Fusion Logo"
                             fill
-                            style={{ objectFit: 'cover', filter: 'brightness(0) invert(1)' }}
+                            style={{ objectFit: 'contain', padding: 2 }}
                         />
                     </div>
                     <div>
@@ -336,39 +416,158 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </div>
 
                         {/* Notification bell */}
-                        <button
-                            style={{
-                                position: 'relative',
-                                width: 36, height: 36,
-                                borderRadius: 9,
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                color: 'rgba(255,255,255,0.35)',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-                                e.currentTarget.style.color = '#fff';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
-                                e.currentTarget.style.color = 'rgba(255,255,255,0.35)';
-                                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
-                            }}
-                        >
-                            <Bell size={15} />
-                            {/* Notification dot */}
-                            <span style={{
-                                position: 'absolute', top: 7, right: 7,
-                                width: 7, height: 7, borderRadius: '50%',
-                                background: '#FF6A0C',
-                                border: '1.5px solid #0a0a0f',
-                                boxShadow: '0 0 6px rgba(255,106,12,0.7)',
-                            }} />
-                        </button>
+                        <div ref={notifRef} style={{ position: 'relative' }}>
+                            <button
+                                onClick={() => setShowNotifDropdown(!showNotifDropdown)}
+                                style={{
+                                    position: 'relative',
+                                    width: 36, height: 36,
+                                    borderRadius: 9,
+                                    background: showNotifDropdown ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.04)',
+                                    border: `1px solid ${showNotifDropdown ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)'}`,
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    color: showNotifDropdown ? '#fff' : 'rgba(255,255,255,0.35)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s',
+                                }}
+                                onMouseEnter={e => {
+                                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                                    e.currentTarget.style.color = '#fff';
+                                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.14)';
+                                }}
+                                onMouseLeave={e => {
+                                    if (!showNotifDropdown) {
+                                        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                                        e.currentTarget.style.color = 'rgba(255,255,255,0.35)';
+                                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+                                    }
+                                }}
+                            >
+                                <Bell size={15} />
+                                {/* Notification count badge */}
+                                {notifications.length > 0 && (
+                                    <span style={{
+                                        position: 'absolute', top: 4, right: 4,
+                                        minWidth: 16, height: 16, borderRadius: 8,
+                                        background: '#FF6A0C',
+                                        border: '1.5px solid #0a0a0f',
+                                        boxShadow: '0 0 6px rgba(255,106,12,0.7)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: 9, fontWeight: 800, color: '#fff',
+                                        padding: '0 3px',
+                                    }}>
+                                        {notifications.length > 9 ? '9+' : notifications.length}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Notification dropdown */}
+                            {showNotifDropdown && (
+                                <div style={{
+                                    position: 'absolute', top: '100%', right: 0, marginTop: 8,
+                                    width: 340,
+                                    background: '#111118',
+                                    border: '1px solid rgba(255,255,255,0.12)',
+                                    borderRadius: 14,
+                                    boxShadow: '0 16px 48px rgba(0,0,0,0.7)',
+                                    zIndex: 100,
+                                    overflow: 'hidden',
+                                }}>
+                                    {/* Header */}
+                                    <div style={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        padding: '14px 16px',
+                                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                                    }}>
+                                        <span style={{ fontSize: 13, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em' }}>
+                                            Notifications
+                                        </span>
+                                        {notifications.length > 0 && (
+                                            <button
+                                                onClick={() => setNotifications([])}
+                                                style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer',
+                                                    fontSize: 11, color: '#FF6A0C', fontWeight: 700,
+                                                    fontFamily: 'inherit',
+                                                }}
+                                            >
+                                                Clear all
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Items */}
+                                    <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                                        {notifications.length === 0 ? (
+                                            <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+                                                <Bell size={24} style={{ color: 'rgba(255,255,255,0.1)', marginBottom: 8 }} />
+                                                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)', margin: 0 }}>
+                                                    No new notifications
+                                                </p>
+                                            </div>
+                                        ) : (
+                                            notifications.map((notif, idx) => (
+                                                <div
+                                                    key={`${notif.id}-${idx}`}
+                                                    onClick={() => {
+                                                        setShowNotifDropdown(false);
+                                                        router.push('/admin/orders');
+                                                    }}
+                                                    style={{
+                                                        display: 'flex', alignItems: 'center', gap: 12,
+                                                        padding: '12px 16px',
+                                                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                                                        cursor: 'pointer',
+                                                        transition: 'background 0.14s',
+                                                    }}
+                                                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                                                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                                >
+                                                    <div style={{
+                                                        width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                                                        background: 'rgba(255,106,12,0.1)',
+                                                        border: '1px solid rgba(255,106,12,0.2)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        fontSize: 16,
+                                                    }}>
+                                                        🍣
+                                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>
+                                                            New order from {notif.customer}
+                                                        </p>
+                                                        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+                                                            {notif.total} · #{notif.id.slice(0, 8).toUpperCase()}
+                                                        </p>
+                                                    </div>
+                                                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', flexShrink: 0, fontWeight: 600 }}>
+                                                        {Math.max(0, Math.floor((Date.now() - notif.time.getTime()) / 60000))} min
+                                                    </span>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div
+                                        onClick={() => { setShowNotifDropdown(false); router.push('/admin/orders'); }}
+                                        style={{
+                                            padding: '12px 16px',
+                                            borderTop: '1px solid rgba(255,255,255,0.06)',
+                                            textAlign: 'center',
+                                            cursor: 'pointer',
+                                            transition: 'background 0.14s',
+                                        }}
+                                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                                    >
+                                        <span style={{ fontSize: 12, fontWeight: 700, color: '#FF6A0C' }}>
+                                            View All Orders →
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Admin avatar */}
                         <div style={{

@@ -222,7 +222,7 @@ function MapInner({
           {isLocating ? (
             <div style={{ ...spinnerStyle, width: 16, height: 16, borderWidth: 2 }} />
           ) : (
-            '📍'
+            <img src="/images/location.png" alt="My Location" style={{ width: 18, height: 18, objectFit: 'contain' }} />
           )}
         </button>
       </div>
