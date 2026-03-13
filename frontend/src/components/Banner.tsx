@@ -3,11 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSettings } from '@/context/SettingsContext';
 
-const SLIDES = [
-  { src: '/images/banner (1).png', alt: 'Sushi Fusion chef specials' },
-  { src: '/images/banner (2).png', alt: 'Sushi Fusion platter selection' },
-  { src: '/images/banner (3).png', alt: 'Sushi Fusion seasonal offers' },
-];
+const SLIDES: { src: string; alt: string }[] = [];
 
 export default function Banner() {
   const { settings } = useSettings();
@@ -25,6 +21,8 @@ export default function Banner() {
     return () => window.clearTimeout(id);
   }, [activeIndex, slides.length]);
 
+  if (slides.length === 0) return null;
+
   const slide = slides[activeIndex];
 
   return (
@@ -39,17 +37,19 @@ export default function Banner() {
           className="banner-image"
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
         />
-        <div className="banner-dots">
-          {slides.map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              className={`banner-dot ${index === activeIndex ? 'active' : ''}`}
-              aria-label={`Go to slide ${index + 1}`}
-              onClick={() => setActiveIndex(index)}
-            />
-          ))}
-        </div>
+        {slides.length > 1 && (
+          <div className="banner-dots">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                className={`banner-dot ${index === activeIndex ? 'active' : ''}`}
+                aria-label={`Go to slide ${index + 1}`}
+                onClick={() => setActiveIndex(index)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
