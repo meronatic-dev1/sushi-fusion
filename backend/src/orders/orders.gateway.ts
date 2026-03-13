@@ -9,7 +9,12 @@ import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
     cors: {
-        origin: '*',
+        origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+            const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+            const isAllowed = !origin || origin.replace(/\/$/, '') === frontendUrl;
+            callback(null, isAllowed);
+        },
+        credentials: true,
     },
 })
 export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
