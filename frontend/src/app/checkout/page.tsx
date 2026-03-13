@@ -246,27 +246,44 @@ export default function CheckoutPage() {
                 const { latitude, longitude } = pos.coords;
                 setCustomerLat(latitude);
                 setCustomerLng(longitude);
-                // Attempt reverse geocoding via Google Maps
+
+                const processResults = (results: any) => {
+                    if (results?.[0]) {
+                        const addr = results[0];
+                        setStreet(addr.formatted_address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+                        const cityComp = addr.address_components?.find((c: any) => c.types.includes('locality'));
+                        if (cityComp) setCity(cityComp.long_name);
+                        const postComp = addr.address_components?.find((c: any) => c.types.includes('postal_code'));
+                        if (postComp) setPostcode(postComp.long_name);
+                        setSelectedAddress(addr.formatted_address || '');
+                    }
+                };
+
+                // Attempt reverse geocoding via Google Maps library
                 try {
                     if (typeof google !== 'undefined' && google.maps) {
                         const geocoder = new google.maps.Geocoder();
                         const res = await geocoder.geocode({ location: { lat: latitude, lng: longitude } });
-                        if (res.results?.[0]) {
-                            const addr = res.results[0];
-                            setStreet(addr.formatted_address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-                            const cityComp = addr.address_components?.find((c: any) => c.types.includes('locality'));
-                            if (cityComp) setCity(cityComp.long_name);
-                            const postComp = addr.address_components?.find((c: any) => c.types.includes('postal_code'));
-                            if (postComp) setPostcode(postComp.long_name);
-                            setSelectedAddress(addr.formatted_address || '');
-                        }
+                        processResults(res.results);
                     } else {
-                        setStreet(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-                        setSelectedAddress('Current Location');
+                        // Fallback: Direct API fetch if library not loaded
+                        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+                        if (apiKey) {
+                            const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+                            const data = await res.json();
+                            if (data.status === 'OK') {
+                                processResults(data.results);
+                            } else {
+                                throw new Error('Geocoding API status not OK');
+                            }
+                        } else {
+                            throw new Error('API Key missing');
+                        }
                     }
-                } catch {
+                } catch (err) {
+                    console.error('Reverse geocoding failed:', err);
                     setStreet(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
-                    setSelectedAddress('Current Location');
+                    setSelectedAddress('Current Location (Coordinates)');
                 }
                 setIsLocating(false);
             },
