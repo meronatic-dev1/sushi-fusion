@@ -1,11 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import * as cacheManager from 'cache-manager';
 import { randomBytes } from 'crypto';
 
 @Injectable()
 export class SessionsService {
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: cacheManager.Cache) {}
 
   /**
    * Generates a 128-bit (16-byte) cryptographically secure random token.

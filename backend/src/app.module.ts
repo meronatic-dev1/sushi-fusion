@@ -4,7 +4,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerStorageRedisService } from 'throttler-storage-redis';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { redisStore } from 'cache-manager-redis-yet';
 
 import { AppController } from './app.controller';
@@ -40,14 +40,13 @@ import { CartModule } from './cart/cart.module';
           ttl: 60000,
           limit: 100,
         }],
-        // ThrottlerStorageRedisService is currently missing from dependencies
-        // storage: config.get('REDIS_HOST') 
-        //     ? new ThrottlerStorageRedisService({
-        //         host: config.get<string>('REDIS_HOST')!,
-        //         port: parseInt(config.get<string>('REDIS_PORT')!),
-        //         password: config.get<string>('REDIS_PASSWORD'),
-        //       })
-        //     : undefined,
+        storage: config.get('REDIS_HOST') 
+            ? new ThrottlerStorageRedisService({
+                host: config.get<string>('REDIS_HOST')!,
+                port: parseInt(config.get<string>('REDIS_PORT')!),
+                password: config.get<string>('REDIS_PASSWORD'),
+              })
+            : undefined,
       }),
     }),
     CacheModule.registerAsync({

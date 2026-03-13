@@ -1,13 +1,13 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import * as cacheManager from 'cache-manager';
 import * as dto from './dto/cart.dto';
 
 @Injectable()
 export class CartService {
   private readonly logger = new Logger(CartService.name);
 
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: cacheManager.Cache) {}
 
   private getCartKey(sessionId: string): string {
     return `cart:${sessionId}`;

@@ -85,7 +85,7 @@ export class DailySummaryService {
                     completedOrders,
                     cancelledOrders,
                     topItems,
-                }).catch(err =>
+                }).catch((err: any) =>
                     this.logger.error(`Failed to send summary to ${manager.email}`, err),
                 );
             }

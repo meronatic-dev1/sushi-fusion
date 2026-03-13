@@ -275,6 +275,70 @@ export class ResendService {
         this.logger.log(`Welcome email dispatched to ${email}`);
     }
 
+    /* ─────────────────────────────────────────────────────
+     * 6. DAILY SUMMARY EMAIL
+     * ───────────────────────────────────────────────────── */
+    async sendDailyOrderSummaryEmail(email: string, data: any) {
+        await this.queueEmail('daily-summary', email, data);
+    }
+
+    async dispatchDailyOrderSummaryEmail(email: string, data: {
+        branchName: string;
+        date: string;
+        totalOrders: number;
+        totalRevenue: number;
+        completedOrders: number;
+        cancelledOrders: number;
+        topItems: { name: string; quantity: number }[];
+    }) {
+        const itemsHtml = data.topItems.map(i =>
+            `<tr>
+                <td style="padding:4px 0;font-size:14px;color:#3d2c1e;">${i.name}</td>
+                <td style="padding:4px 0;font-size:14px;color:#FF6A0C;text-align:right;font-weight:700;">${i.quantity} units</td>
+            </tr>`
+        ).join('');
+
+        await this.resend.emails.send({
+            from: this.fromEmail,
+            to: email,
+            subject: `📊 Daily Summary — ${data.branchName} (${data.date})`,
+            html: this.wrapTemplate(`
+                <div style="background:linear-gradient(135deg,#1c1c1c,#333);padding:32px 28px;text-align:center;">
+                    <h1 style="color:#fff;font-size:20px;margin:0 0 6px;">Daily Performance Report</h1>
+                    <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0;">${data.branchName} • ${data.date}</p>
+                </div>
+                <div style="padding:28px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;">
+                            <p style="font-size:11px;color:#666;margin:0 0 4px;">REVENUE</p>
+                            <p style="font-size:16px;font-weight:700;color:#22c55e;margin:0;">AED ${data.totalRevenue.toFixed(2)}</p>
+                        </div>
+                        <div style="background:#f8f9fa;padding:12px;border-radius:8px;">
+                            <p style="font-size:11px;color:#666;margin:0 0 4px;">TOTAL ORDERS</p>
+                            <p style="font-size:16px;font-weight:700;color:#1c1c1c;margin:0;">${data.totalOrders}</p>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size:12px;color:#8a5c3a;font-weight:700;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">Top 5 Sellers</p>
+                    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+                        <tbody>${itemsHtml}</tbody>
+                    </table>
+
+                    <div style="border-top:1px solid #f0e8df;padding-top:18px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                            <span style="font-size:13px;color:#666;">Completed Orders</span>
+                            <span style="font-size:13px;font-weight:700;color:#22c55e;">${data.completedOrders}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;">
+                            <span style="font-size:13px;color:#666;">Cancelled Orders</span>
+                            <span style="font-size:13px;font-weight:700;color:#ef4444;">${data.cancelledOrders}</span>
+                        </div>
+                    </div>
+                </div>`),
+        });
+        this.logger.log(`Daily summary report dispatched to ${email} for ${data.branchName}`);
+    }
+
     /* ──── Shared HTML wrapper ─── */
     private wrapTemplate(innerHtml: string): string {
         return `
