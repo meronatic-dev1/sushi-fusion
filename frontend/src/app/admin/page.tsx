@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, Users, Star, Clock, ChevronRight, Flame } from "lucide-react";
+import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, Users, Star, Clock, ChevronRight, Flame, Bike, Package, Utensils } from "lucide-react";
 import { useUser } from '@clerk/nextjs';
 import { getAnalyticsDashboard, DashboardData } from '@/lib/api';
 
@@ -12,10 +12,10 @@ const RANK_COLORS = [
     { bg: "rgba(255,255,255,0.08)", text: "#6b7280" },
 ];
 
-const MODE_COLORS: Record<string, { color: string; icon: string }> = {
-    Delivery: { color: "#FF6A0C", icon: "🛵" },
-    Pickup: { color: "#818cf8", icon: "🏠" },
-    'Dine-In': { color: "#34d399", icon: "🍽️" },
+const MODE_COLORS: Record<string, { color: string; icon: React.ReactNode }> = {
+    Delivery: { color: "#FF6A0C", icon: <Bike size={20} /> },
+    Pickup: { color: "#818cf8", icon: <Package size={20} /> },
+    'Dine-In': { color: "#34d399", icon: <Utensils size={20} /> },
 };
 
 export default function AdminOverviewPage() {
@@ -172,7 +172,7 @@ export default function AdminOverviewPage() {
                             gap: 16, marginBottom: 20,
                         }}>
                             {data.modeSplit.map((m, i) => {
-                                const cfg = MODE_COLORS[m.label] || { color: "#FF6A0C", icon: "🛵" };
+                                const cfg = MODE_COLORS[m.label] || { color: "#FF6A0C", icon: <Bike size={20} /> };
                                 return (
                                     <div key={m.label} style={{
                                         background: "rgba(255,255,255,0.03)",

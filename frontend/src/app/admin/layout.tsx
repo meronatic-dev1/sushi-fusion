@@ -63,7 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             // Browser notification
             if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-                new Notification('🍣 New Order Received!', {
+                new Notification('New Order Received!', {
                     body: `${order.customerName || 'Guest'} placed an order for AED ${(order.totalAmount || 0).toFixed(2)}`,
                     icon: settings?.logoUrl || '/sushi-fusion-logo.png',
                 });
@@ -533,7 +533,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                         fontSize: 16,
                                                     }}>
-                                                        🍣
+                                                        <ShoppingBag size={18} style={{ color: '#FF6A0C' }} />
                                                     </div>
                                                     <div style={{ flex: 1, minWidth: 0 }}>
                                                         <p style={{ fontSize: 12, fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>

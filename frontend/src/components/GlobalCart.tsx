@@ -23,7 +23,10 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
 
     const renderHeader = () => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1px solid var(--b)', paddingBottom: 10 }}>
-            <div style={{ fontSize: 16, fontWeight: 800 }}>🛒 {t('cart.title')}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src="/images/icons/cart.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                {t('cart.title')}
+            </div>
             <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 24, cursor: 'pointer', padding: '0 8px', color: 'var(--g)' }}>×</button>
         </div>
     );
@@ -35,7 +38,7 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
                     <div className="cart-empty" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
                         {renderHeader()}
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                            <div className="cart-empty-icon" style={{ fontSize: 60, marginBottom: 15, opacity: 0.5 }}>🛒</div>
+                            <img src="/images/icons/cart.png" alt="" style={{ width: 60, height: 60, objectFit: 'contain', marginBottom: 15, opacity: 0.2 }} />
                             <h3 style={{ fontSize: 16, fontWeight: 800 }}>{t('cart.emptyTitle')}</h3>
                             <p style={{ fontSize: 13, color: 'var(--g)', marginTop: 8 }}>{t('cart.emptyBody')}</p>
                         </div>

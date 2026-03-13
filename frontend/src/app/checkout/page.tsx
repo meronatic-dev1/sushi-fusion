@@ -437,8 +437,8 @@ export default function CheckoutPage() {
                                         background: '#f2ede6', borderRadius: 12, padding: 4, marginBottom: 24,
                                     }}>
                                         {[
-                                            { k: false, label: 'Guest Checkout', icon: '✨' },
-                                            { k: true, label: 'Sign In', icon: '🔑' },
+                                            { k: false, label: 'Guest Checkout', icon: <Sparkles size={14} /> },
+                                            { k: true, label: 'Sign In', icon: <Lock size={14} /> },
                                         ].map(({ k, label, icon }) => (
                                             <button key={label} onClick={() => setLoginMode(k)} style={{
                                                 padding: '10px 12px', borderRadius: 9,
@@ -752,7 +752,7 @@ export default function CheckoutPage() {
                                     {orderId && (
                                         <Link href={`/track/${orderId}`}>
                                             <ActionButton onClick={() => {}}>
-                                                📦 Track Your Order
+                                                <Truck size={18} /> Track Your Order
                                             </ActionButton>
                                         </Link>
                                     )}
@@ -815,7 +815,7 @@ export default function CheckoutPage() {
                                     }}>
                                         {item.imgSrc
                                             ? <img src={item.imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                            : <span style={{ fontSize: 20 }}>{item.emoji || '🍣'}</span>
+                                            : <img src="/images/icons/fire.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain', opacity: 0.4 }} />
                                         }
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>

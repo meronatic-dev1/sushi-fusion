@@ -25,10 +25,12 @@ export default function CategoryBar({ activeCategory, onSelectCategory, t, categ
                         <div className="cat-img">
                             {(cat as any).imgSrc ? (
                                 <img src={(cat as any).imgSrc} alt={cat.name} />
+                            ) : (cat as any).id === 'best-sellers' ? (
+                                <img src="/images/icons/fire.png" alt="" style={{ width: '60%', height: '60%', objectFit: 'contain' }} />
                             ) : MENU[cat.id]?.[0]?.imgSrc ? (
                                 <img src={MENU[cat.id][0].imgSrc!} alt={cat.name} />
                             ) : (
-                                (cat as any).icon || (cat as any).emoji || '🍽️'
+                                <img src="/images/icons/fire.png" alt="" style={{ width: '60%', height: '60%', objectFit: 'contain', opacity: 0.4 }} />
                             )}
                         </div>
                         <span className="cat-name">{t(`category.${cat.id}`) !== `category.${cat.id}` ? t(`category.${cat.id}`) : cat.name}</span>

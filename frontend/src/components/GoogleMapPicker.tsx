@@ -8,6 +8,7 @@ import {
   useMap,
   useMapsLibrary
 } from '@vis.gl/react-google-maps';
+import { MapPin } from 'lucide-react';
 
 export interface PickedLocation {
   lat: number;
@@ -230,7 +231,7 @@ function MapInner({
       {/* Selected address display */}
       {address && (
         <div style={addressPillStyle}>
-          <span style={{ fontSize: 14 }}>📌</span>
+          <MapPin size={18} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 2 }} />
           <span style={{ fontSize: 12, color: '#5a4030', fontWeight: 600, lineHeight: 1.4 }}>
             {address}
           </span>

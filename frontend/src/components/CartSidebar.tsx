@@ -24,7 +24,10 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
 
     const renderHeader = () => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1px solid var(--b)', paddingBottom: 10 }}>
-            <div style={{ fontSize: 15, fontWeight: 800 }}>🛒 {t('cart.title')}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img src="/images/icons/cart.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                {t('cart.title')}
+            </div>
             <button onClick={onClose} className="cart-close-btn">×</button>
         </div>
     );
@@ -35,7 +38,7 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
                 <div className={`cart-sidebar ${isOpen ? 'mobile-open' : ''}`}>
                     {renderHeader()}
                     <div className="cart-empty">
-                        <div className="cart-empty-icon">🛒</div>
+                        <img src="/images/icons/cart.png" alt="" style={{ width: 60, height: 60, objectFit: 'contain', marginBottom: 15, opacity: 0.2 }} />
                         <h3>{t('cart.emptyTitle')}</h3>
                         <p>{t('cart.emptyBody')}</p>
                     </div>
@@ -57,9 +60,7 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
                                     {item.imgSrc ? (
                                         <img src={item.imgSrc} alt={item.name} />
                                     ) : (
-                                        <span role="img" aria-label={item.name}>
-                                            {item.emoji}
-                                        </span>
+                                        <img src="/images/icons/fire.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', opacity: 0.4 }} />
                                     )}
                                 </div>
                                 <div style={{ flex: 1, minWidth: 0 }}>

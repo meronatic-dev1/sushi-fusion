@@ -120,11 +120,12 @@ export default function Header({
                         value={searchValue}
                         onChange={(e) => onSearchChange(e.target.value)}
                     />
-                    <span className="si">🔍</span>
+                    <img src="/images/icons/search.png" alt="" style={{ width: 16, height: 16, objectFit: 'contain', opacity: 0.6 }} />
                 </div>
 
                 <button className="cart-btn" onClick={onToggleCart}>
-                    🛒<span className="cart-badge">{cartCount}</span>
+                    <img src="/images/icons/cart.png" alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
+                    <span className="cart-badge">{cartCount}</span>
                 </button>
 
                 <button className="lang-btn" onClick={onToggleLanguage}>

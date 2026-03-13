@@ -1,5 +1,6 @@
 'use client';
 
+import { Star } from 'lucide-react';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/data';
@@ -9,14 +10,14 @@ interface ProductCardProps {
     onAdd: (product: Product) => void;
 }
 
-function getBadge(product: Product): { label: string; bg: string; color: string; shadow: string } | null {
+function getBadge(product: Product): { label: string; icon: string | null; bg: string; color: string; shadow: string } | null {
     if (product.vip) return null;
     const id = String(product.id ?? '');
     const hash = id.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     const slot = hash % 5;
-    if (slot === 0) return { label: '🔥 Popular', bg: 'linear-gradient(135deg,#FF6A0C,#FF8C42)', color: '#fff', shadow: '0 2px 8px rgba(255,106,12,0.4)' };
-    if (slot === 1) return { label: "👨‍🍳 Chef's Choice", bg: 'linear-gradient(135deg,#FFD700,#FFA500)', color: '#1c1c1c', shadow: '0 2px 8px rgba(255,165,0,0.4)' };
-    if (slot === 2) return { label: '✨ New', bg: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', shadow: '0 2px 8px rgba(34,197,94,0.4)' };
+    if (slot === 0) return { label: 'Popular', icon: '/images/icons/fire.png', bg: 'linear-gradient(135deg,#FF6A0C,#FF8C42)', color: '#fff', shadow: '0 2px 8px rgba(255,106,12,0.4)' };
+    if (slot === 1) return { label: "Chef's Choice", icon: null, bg: 'linear-gradient(135deg,#FFD700,#FFA500)', color: '#1c1c1c', shadow: '0 2px 8px rgba(255,165,0,0.4)' };
+    if (slot === 2) return { label: 'New', icon: null, bg: 'linear-gradient(135deg,#22c55e,#16a34a)', color: '#fff', shadow: '0 2px 8px rgba(34,197,94,0.4)' };
     return null;
 }
 
@@ -76,7 +77,11 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
                             }}
                         />
                     ) : (
-                        <span className="emoji-fallback">{product.emoji}</span>
+                        <img 
+                            src={product.emoji === 'utensils' ? '/images/icons/fire.png' : '/images/icons/fire.png'} 
+                            alt="" 
+                            style={{ width: '60%', height: '60%', objectFit: 'contain', opacity: 0.4 }} 
+                        />
                     )}
                 </div>
 
@@ -84,8 +89,9 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
                 <button
                     className="pcard-wish"
                     onClick={(e) => { e.stopPropagation(); setIsWishlisted(!isWishlisted); }}
+                    style={{ fontSize: 18, color: isWishlisted ? '#FF3D00' : '#888' }}
                 >
-                    {isWishlisted ? '♥️' : '🤍'}
+                    {isWishlisted ? '♥' : '♡'}
                 </button>
 
                 {/* Badge */}
@@ -97,7 +103,9 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
                         letterSpacing: '0.5px', textTransform: 'uppercase',
                         zIndex: 2, background: badge.bg, color: badge.color,
                         boxShadow: badge.shadow,
+                        display: 'flex', alignItems: 'center', gap: 4,
                     }}>
+                        {(badge as any).icon && <img src={(badge as any).icon} alt="" style={{ width: 12, height: 12, objectFit: 'contain' }} />}
                         {badge.label}
                     </div>
                 )}
@@ -109,8 +117,9 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
                         background: 'linear-gradient(135deg,#FFD700,#FFA500)',
                         color: '#1c1c1c', fontSize: 10, fontWeight: 800,
                         padding: '4px 10px', borderRadius: 100, letterSpacing: '0.5px',
+                        display: 'flex', alignItems: 'center', gap: 4,
                     }}>
-                        ⭐ VIP
+                        <Star size={12} fill="#1c1c1c" strokeWidth={0} /> VIP
                     </div>
                 )}
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { getOrder, API } from '@/lib/api';
-import { Package, Clock, Check, ChefHat, Truck, XCircle, ArrowLeft, MapPin, Bell } from 'lucide-react';
+import { Package, Clock, Check, ChefHat, Truck, XCircle, ArrowLeft, MapPin, Bell, Utensils } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 const STATUS_STEPS = [
@@ -93,7 +93,7 @@ export default function TrackOrderPage() {
         const showBrowserNotification = (status: string) => {
             if (Notification.permission === 'granted') {
                 const step = STATUS_STEPS.find(s => s.key === status);
-                new Notification('Sushi Fusion Update 🍣', {
+                new Notification('Sushi Fusion Update', {
                     body: `Your order status is now: ${step?.label || status}. ${step?.desc || ''}`,
                     icon: '/favicon.ico', // Placeholder if no logo is available
                 });
@@ -191,7 +191,7 @@ export default function TrackOrderPage() {
                                         Estimated Time: {order.mode === 'DELIVERY' ? '30–45 min' : '15–20 min'}
                                     </p>
                                     <p style={{ fontSize: 12, color: '#a08060', margin: 0 }}>
-                                        {order.mode === 'DELIVERY' ? '🚚 Delivery' : '🍽️ Dine-In'} · Updates in real time
+                                        {order.mode === 'DELIVERY' ? <><Truck size={12} style={{ verticalAlign: 'middle', marginBottom: 2 }} /> Delivery</> : <><Utensils size={12} style={{ verticalAlign: 'middle', marginBottom: 2 }} /> Dine-In</>} · Updates in real time
                                     </p>
                                 </div>
                             </div>
@@ -318,7 +318,7 @@ export default function TrackOrderPage() {
                                             }}>
                                                 {item.menuItem?.imageUrl
                                                     ? <img src={item.menuItem.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    : <span style={{ fontSize: 18 }}>🍣</span>
+                                                    : <img src="/images/icons/fire.png" alt="" style={{ width: '60%', height: '60%', objectFit: 'contain', opacity: 0.4 }} />
                                                 }
                                             </div>
                                             <div>

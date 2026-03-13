@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
 import Header from '@/components/Header';
 import Banner from '@/components/Banner';
 import CategoryBar from '@/components/CategoryBar';
@@ -62,7 +63,7 @@ function Stars({ count }: { count: number }) {
   return (
     <div style={{ display: 'flex', gap: 3, marginBottom: 12 }}>
       {Array.from({ length: count }).map((_, i) => (
-        <span key={i} style={{ color: '#FFB800', fontSize: 16 }}>★</span>
+        <Star key={i} size={16} fill="#FFB800" stroke="none" />
       ))}
     </div>
   );
@@ -129,7 +130,7 @@ function PromoBanner() {
           textTransform: 'uppercase', padding: '5px 14px',
           borderRadius: 100, marginBottom: 18,
         }}>
-          🎉 Limited Time Offer
+          Limited Time Offer
         </span>
         <h2 style={{
           fontFamily: 'Mashiro, sans-serif',
@@ -148,7 +149,7 @@ function PromoBanner() {
           onMouseEnter={() => setBtnHov(true)}
           onMouseLeave={() => setBtnHov(false)}
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
+            display: 'inline-flex', alignItems: 'center', gap: 10,
             padding: '15px 36px',
             background: 'linear-gradient(135deg,#FF6A0C,#FF8C42)',
             color: '#fff', border: 'none', borderRadius: 100,
@@ -159,7 +160,7 @@ function PromoBanner() {
             transition: 'all 0.25s',
           }}
         >
-          🍣 Order Now — It's Worth It
+          Order Now — It's Worth It
         </a>
       </div>
     </section>
@@ -194,21 +195,21 @@ export default function Home() {
         if (cats.length > 0) {
           const mappedProducts = items.filter((m) => m.isAvailable).map((m) => ({
             id: m.id, name: m.name, desc: m.description || '',
-            price: m.price, emoji: '🍣', imgSrc: m.imageUrl || undefined,
+            price: m.price, emoji: 'fire', imgSrc: m.imageUrl || undefined,
             _categoryId: m.categoryId, _categoryName: m.category?.name || '',
           } as Product & { _categoryId: string; _categoryName: string }));
           setApiProducts(mappedProducts);
 
           const mappedBestSellers = topItems.map((m) => ({
             id: m.id, name: m.name, desc: m.description || '',
-            price: m.price, emoji: '🔥', imgSrc: m.imageUrl || undefined,
+            price: m.price, emoji: 'fire', imgSrc: m.imageUrl || undefined,
             _categoryId: 'best-sellers', _categoryName: 'Best Sellers',
           } as Product));
           setBestSellers(mappedBestSellers);
 
           const virtualCats = [
             ...(mappedBestSellers.length > 0
-              ? [{ id: 'best-sellers', name: 'Best Sellers', emoji: '🔥' }]
+              ? [{ id: 'best-sellers', name: 'Best Sellers', emoji: 'fire' }]
               : []),
             ...cats.map((c) => ({ id: c.id, name: c.name, imgSrc: c.imageUrl || undefined })),
           ];
@@ -239,7 +240,7 @@ export default function Home() {
   }
 
   const displayCategories = usingApi
-    ? apiCategories.map((c: any) => ({ id: c.id, name: c.name, emoji: c.emoji || '🍽️', imgSrc: c.imgSrc }))
+    ? apiCategories.map((c: any) => ({ id: c.id, name: c.name, emoji: c.emoji || 'utensils', imgSrc: c.imgSrc }))
     : STATIC_CATEGORIES;
 
   const handleBottomTabChange = (tab: string) => {

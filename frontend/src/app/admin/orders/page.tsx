@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, MapPin, Clock, Download, FileSpreadsheet, FileText, ChevronRight } from 'lucide-react';
+import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, MapPin, Clock, Download, FileSpreadsheet, FileText, ChevronRight, Package, Utensils } from 'lucide-react';
 import { getOrders, updateOrderStatus, getLocations, ApiLocation } from '@/lib/api';
 
 type OrderStatus = 'Routing' | 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
@@ -11,7 +11,11 @@ interface Order { id: string; displayId: string; customer: string; email: string
 const PIPELINE: OrderStatus[] = ['Routing', 'Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
 const NEXT: Partial<Record<OrderStatus, OrderStatus>> = { Routing: 'Pending', Pending: 'Confirmed', Confirmed: 'Preparing', Preparing: 'Ready', Ready: 'Completed' };
 const NEXT_LABEL: Partial<Record<OrderStatus, string>> = { Routing: 'Accept Manually', Pending: 'Confirm', Confirmed: 'Start Prep', Preparing: 'Mark Ready', Ready: 'Complete' };
-const MODE_ICON: Record<string, string> = { Delivery: '🛵', Pickup: '🏠', 'Dine-In': '🍽️' };
+const MODE_ICON: Record<string, React.ReactNode> = { 
+    Delivery: <Bike size={16} />, 
+    Pickup: <Package size={16} />, 
+    'Dine-In': <Utensils size={16} /> 
+};
 
 const STATUS_CFG: Record<OrderStatus, { color: string; bg: string; border: string; icon: React.ReactNode; barColor: string }> = {
     Routing: { color: '#a855f7', bg: 'rgba(168,85,247,0.08)', border: 'rgba(168,85,247,0.2)', icon: <ChevronRight size={11} />, barColor: '#a855f7' },
@@ -510,9 +514,9 @@ export default function AdminOrdersPage() {
                     }}
                 >
                     <option value="All">All Modes</option>
-                    <option value="Delivery">🛵 Delivery</option>
-                    <option value="Pickup">🏠 Pickup</option>
-                    <option value="Dine-In">🍽️ Dine-In</option>
+                    <option value="Delivery">Delivery</option>
+                    <option value="Pickup">Pickup</option>
+                    <option value="Dine-In">Dine-In</option>
                 </select>
             </div>
 

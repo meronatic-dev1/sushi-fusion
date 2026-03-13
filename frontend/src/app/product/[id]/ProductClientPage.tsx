@@ -38,7 +38,7 @@ export default function ProductClientPage({ id }: { id: string }) {
                         name: apiItem.name,
                         desc: apiItem.description || '',
                         price: apiItem.price,
-                        emoji: '🍣',
+                        emoji: 'fire',
                         imgSrc: apiItem.imageUrl || undefined,
                     });
                     setLoading(false);
@@ -116,7 +116,7 @@ export default function ProductClientPage({ id }: { id: string }) {
                                 {product.imgSrc ? (
                                     <img src={product.imgSrc} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <span style={{ fontSize: 120 }}>{product.emoji}</span>
+                                    <img src="/images/icons/fire.png" alt="" style={{ width: 120, height: 120, objectFit: 'contain', opacity: 0.3 }} />
                                 )}
                                 {product.tag && (
                                     <div style={{ position: 'absolute', top: 16, right: 16, background: 'var(--d)', color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 14px', borderRadius: 20 }}>
