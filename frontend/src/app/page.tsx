@@ -245,10 +245,6 @@ export default function Home() {
 
   const handleBottomTabChange = (tab: string) => {
     setActiveBottomTab(tab);
-    if (tab === 'beverages') {
-      const bev = displayCategories.find((c) => c.name.toLowerCase().includes('beverage'));
-      if (bev) setActiveCategory(bev.id);
-    }
   };
 
   const ORANGE = '#FFF8F2';

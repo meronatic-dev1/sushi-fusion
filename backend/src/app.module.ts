@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerStorageRedisService } from 'throttler-storage-redis';
+import { redisStore } from 'cache-manager-redis-yet';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -21,18 +23,49 @@ import { MenuItemsModule } from './menu-items/menu-items.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { LocationsModule } from './locations/locations.module';
 import { GeocodeModule } from './geocode/geocode.module';
+import { SessionsModule } from './sessions/sessions.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
-    CacheModule.register({
+    SessionsModule,
+    CartModule,
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [{
+          ttl: 60000,
+          limit: 100,
+        }],
+        // ThrottlerStorageRedisService is currently missing from dependencies
+        // storage: config.get('REDIS_HOST') 
+        //     ? new ThrottlerStorageRedisService({
+        //         host: config.get<string>('REDIS_HOST')!,
+        //         port: parseInt(config.get<string>('REDIS_PORT')!),
+        //         password: config.get<string>('REDIS_PASSWORD'),
+        //       })
+        //     : undefined,
+      }),
+    }),
+    CacheModule.registerAsync({
       isGlobal: true,
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => {
+        if (config.get('REDIS_HOST')) {
+          const store = await redisStore({
+            socket: {
+              host: config.get<string>('REDIS_HOST')!,
+              port: parseInt(config.get<string>('REDIS_PORT')!),
+            },
+            password: config.get<string>('REDIS_PASSWORD'),
+          });
+          return { store, ttl: 604800 }; // 7 days default TTL
+        }
+        return { ttl: 600 };
+      },
     }),
     BullModule.forRoot({
       connection: {

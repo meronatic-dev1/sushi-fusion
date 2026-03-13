@@ -31,7 +31,6 @@ export default function Banner() {
     <section className="banner">
       <div
         className="banner-inner"
-        style={{ width: '100%', padding: 0, borderRadius: 0, maxWidth: '100%', height: 320 }}
       >
         <img
           key={slide.src}

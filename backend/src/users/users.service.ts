@@ -41,7 +41,7 @@ export class UsersService {
             throw new ConflictException('Email already in use');
         }
 
-        const hashedPassword = await bcrypt.hash(data.password, 10);
+        const hashedPassword = await bcrypt.hash(data.password, 12);
 
         return this.prisma.user.create({
             data: {
@@ -53,7 +53,7 @@ export class UsersService {
 
     async update(id: string, data: any) {
         if (data.password) {
-            data.password = await bcrypt.hash(data.password, 10);
+            data.password = await bcrypt.hash(data.password, 12);
         }
         return this.prisma.user.update({
             where: { id },

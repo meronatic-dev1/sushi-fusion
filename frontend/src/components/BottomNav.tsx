@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 
 interface BottomNavProps {
     activeTab: string;
@@ -10,9 +11,11 @@ interface BottomNavProps {
 }
 
 export default function BottomNav({ activeTab, onTabChange, cartCount, onCartClick }: BottomNavProps) {
+    const { isSignedIn, isLoaded } = useUser();
+
     return (
         <nav className="bottom-nav">
-            {/* Menu */}
+            {/* ... other items ... */}
             <button
                 className={`bottom-nav-item ${activeTab === 'menu' ? 'active' : ''}`}
                 onClick={() => onTabChange('menu')}
@@ -76,22 +79,22 @@ export default function BottomNav({ activeTab, onTabChange, cartCount, onCartCli
                 <span className="bottom-nav-label">Cart</span>
             </button>
 
-            {/* Beverages */}
-            <button
-                className={`bottom-nav-item ${activeTab === 'beverages' ? 'active' : ''}`}
-                onClick={() => onTabChange('beverages')}
-            >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-                    stroke={activeTab === 'beverages' ? 'var(--o)' : '#888'}
-                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
-                    <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
-                    <line x1="6" y1="1" x2="6" y2="4" />
-                    <line x1="10" y1="1" x2="10" y2="4" />
-                    <line x1="14" y1="1" x2="14" y2="4" />
-                </svg>
-                <span className="bottom-nav-label">Beverages</span>
-            </button>
+            {/* Login / Account */}
+            {isLoaded && (
+                <Link
+                    href={isSignedIn ? "/track" : "/login"}
+                    className={`bottom-nav-item ${activeTab === 'account' ? 'active' : ''}`}
+                    onClick={() => onTabChange('account')}
+                >
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                        stroke={activeTab === 'account' ? 'var(--o)' : '#888'}
+                        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span className="bottom-nav-label">{isSignedIn ? 'Account' : 'Login'}</span>
+                </Link>
+            )}
         </nav>
     );
 }

@@ -97,10 +97,7 @@ export default function Footer({ onSelectCategory }: FooterProps) {
         <div style={{ height: 1, background: 'rgba(255,255,255,0.22)', marginBottom: 28 }} />
 
         {/* ── 5 equal columns: 4 link cols + 1 social col ── */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
-          gap: '0 24px',
+        <div className="footer-columns" style={{
           alignItems: 'start',
           marginBottom: 28,
         }}>
