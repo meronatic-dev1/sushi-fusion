@@ -8,6 +8,7 @@
     "prisma.config.ts",
     "prisma.config.js",
     "test-groupby.ts",
-    "test-groupby.js"
+    "test-groupby.js",
+    "update_admin.ts"
   ]
 }

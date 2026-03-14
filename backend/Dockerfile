@@ -3,7 +3,11 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Ensure devDependencies are installed (Coolify may set production=true)
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
+
+# Install ALL dependencies (including devDependencies like @nestjs/cli)
 COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm ci
@@ -22,11 +26,19 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy built assets and dependencies
-COPY --from=builder /app/node_modules ./node_modules
+ENV NODE_ENV=production
+
+# Copy package files and install production-only dependencies
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma/
+RUN npm ci --omit=dev
+
+# Copy Prisma generated client from builder
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy built application
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
 
 # Expose port
 EXPOSE 3001
