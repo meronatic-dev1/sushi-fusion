@@ -1,0 +1,13 @@
+# Nixpacks config for Sushi Fusion Frontend (Next.js)
+# Coolify: set Base Directory to "frontend"
+
+# Let Coolify control Node version via NIXPACKS_NODE_VERSION env var (defaults to 22)
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"

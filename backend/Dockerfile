@@ -1,11 +1,16 @@
 # Base image
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# Ensure devDependencies are installed (Coolify may set production=true)
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
+
+# Install ALL dependencies (including devDependencies like @nestjs/cli)
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 RUN npm ci
 
 # Generate Prisma Client
@@ -15,21 +20,31 @@ RUN npx prisma generate
 COPY . .
 
 # Build application
-RUN npm run build
+RUN npm run build && test -f dist/main.js
 
 # Production image
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy built assets and dependencies
-COPY --from=builder /app/node_modules ./node_modules
+ENV NODE_ENV=production
+
+# Copy package files and install production-only dependencies
 COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma/
+COPY --from=builder /app/prisma.config.ts ./
+RUN npm ci --omit=dev
+
+# Copy Prisma generated client from builder
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy built application
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
 
 # Expose port
-EXPOSE 4000
+EXPOSE 3001
 
-# Start command
-CMD ["npm", "run", "start:prod"]
+# Start command — sync DB schema then run
+CMD ["sh", "-c", "npx prisma db push && npm run start:prod"]
+

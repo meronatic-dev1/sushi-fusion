@@ -1,0 +1,41 @@
+import { clerkMiddleware, createRouteMatcher, clerkClient } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
+
+const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+const isAdminLoginRoute = createRouteMatcher(['/admin/login(.*)'])
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
+    const { userId } = await auth()
+    
+    // Not logged in -> redirect to admin login
+    if (!userId) {
+      const url = new URL('/admin/login', req.url)
+      return NextResponse.redirect(url)
+    }
+
+    // Fetch user details from Clerk to check their metadata role
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
+    const role = user.publicMetadata?.role as string | undefined
+    const normalizedRole = role?.toLowerCase()
+
+    console.log(`[Middleware] Verifying access for ${user.primaryEmailAddress?.emailAddress}`);
+    console.log(`[Middleware] Role found in metadata: "${role}" (normalized: "${normalizedRole}")`);
+
+    // If not an admin or branch manager, redirect to homepage (unauthorized)
+    if (normalizedRole !== 'admin' && normalizedRole !== 'branch_manager') {
+      console.log(`[Middleware] Unauthorized role "${normalizedRole}", redirecting to storefront.`);
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+    
+    console.log(`[Middleware] Access granted for role: ${normalizedRole}`);
+  }
+})
+
+export const config = {
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
+}
