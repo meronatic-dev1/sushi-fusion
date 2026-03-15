@@ -9,7 +9,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const hash = await bcrypt.hash('Fusion@2026', 12);
+  const hash = await bcrypt.hash('pecjab-qyQman-kirqe2', 12);
   
   let admin = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
   
@@ -18,14 +18,14 @@ async function main() {
     await prisma.user.update({
       where: { id: admin.id },
       data: {
-        email: 'support@sushifusionuae.com',
+        email: 'sushi.fusion.uae@gmail.com',
         password: hash
       }
     });
     console.log('Admin user updated!');
   } else {
-    console.log('No ADMIN user found, looking for support@sushifusionuae.com...');
-    admin = await prisma.user.findFirst({ where: { email: 'support@sushifusionuae.com' } });
+    console.log('No ADMIN user found, looking for sushi.fusion.uae@gmail.com...');
+    admin = await prisma.user.findFirst({ where: { email: 'sushi.fusion.uae@gmail.com' } });
     if (admin) {
       console.log('Found user with target email, setting role to ADMIN and updating password...', admin.id);
       await prisma.user.update({
@@ -37,7 +37,7 @@ async function main() {
       console.log('No ADMIN or target user found, creating a new Admin user...');
       await prisma.user.create({
         data: {
-          email: 'support@sushifusionuae.com',
+          email: 'sushi.fusion.uae@gmail.com',
           password: hash,
           name: 'Admin',
           role: 'ADMIN'

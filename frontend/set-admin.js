@@ -21,7 +21,7 @@ async function setFirstUserAdmin() {
 
     const users = await res.json();
 
-    const targetEmail = 'dev1@meronatic.com';
+    const targetEmail = 'sushi.fusion.uae@gmail.com';
     const targetUser = users.find(u =>
       u.email_addresses.some(e => e.email_address === targetEmail)
     );

@@ -16,7 +16,7 @@ export class ResendService {
         @InjectQueue('emails') private readonly emailQueue: Queue
     ) {
         this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
-        this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'support@sushifusionuae.com';
+        this.fromEmail = this.configService.get<string>('EMAIL_FROM') || 'sushi.fusion.uae@gmail.com';
         this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     }
 
