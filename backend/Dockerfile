@@ -10,6 +10,7 @@ ENV NPM_CONFIG_PRODUCTION=false
 # Install ALL dependencies (including devDependencies like @nestjs/cli)
 COPY package*.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 RUN npm ci
 
 # Generate Prisma Client
@@ -19,7 +20,7 @@ RUN npx prisma generate
 COPY . .
 
 # Build application
-RUN npm run build
+RUN npm run build && test -f dist/main.js
 
 # Production image
 FROM node:22-alpine
@@ -31,6 +32,7 @@ ENV NODE_ENV=production
 # Copy package files and install production-only dependencies
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma/
+COPY --from=builder /app/prisma.config.ts ./
 RUN npm ci --omit=dev
 
 # Copy Prisma generated client from builder
@@ -45,3 +47,4 @@ EXPOSE 3001
 
 # Start command — sync DB schema then run
 CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run start:prod"]
+

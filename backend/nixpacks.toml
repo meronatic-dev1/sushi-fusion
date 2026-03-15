@@ -1,6 +1,6 @@
 # Nixpacks config for Sushi Fusion Backend (NestJS + Prisma)
 # Coolify: set Base Directory to "backend"
-# Force rebuild: 2026-03-09T20:25
+# Force rebuild: 2026-03-15T12:22
 
 [phases.setup]
 nixpkgsArchive = "e6f23dc08d3624daab7094b701aa3954923c6bbb"
@@ -12,8 +12,9 @@ cmds = ["npm install --include=dev"]
 [phases.build]
 cmds = [
     "npx prisma generate",
-    "npm run build"
+    "npx nest build || npx tsc -p tsconfig.json",
+    "test -f dist/main.js || (echo 'ERROR: dist/main.js not found after build!' && exit 1)"
 ]
 
 [start]
-cmd = "npx prisma db push && node dist/main"
+cmd = "npx prisma db push --skip-generate && node dist/main"
