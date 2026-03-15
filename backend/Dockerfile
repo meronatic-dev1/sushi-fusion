@@ -46,5 +46,5 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 3001
 
 # Start command — sync DB schema then run
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run start:prod"]
+CMD ["sh", "-c", "npx prisma db push && npm run start:prod"]
 

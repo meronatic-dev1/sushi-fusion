@@ -17,4 +17,4 @@ cmds = [
 ]
 
 [start]
-cmd = "npx prisma db push --skip-generate && node dist/main"
+cmd = "npx prisma db push && node dist/main"
