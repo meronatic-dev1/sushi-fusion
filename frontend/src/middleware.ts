@@ -20,10 +20,16 @@ export default clerkMiddleware(async (auth, req) => {
     const role = user.publicMetadata?.role as string | undefined
     const normalizedRole = role?.toLowerCase()
 
+    console.log(`[Middleware] Verifying access for ${user.primaryEmailAddress?.emailAddress}`);
+    console.log(`[Middleware] Role found in metadata: "${role}" (normalized: "${normalizedRole}")`);
+
     // If not an admin or branch manager, redirect to homepage (unauthorized)
     if (normalizedRole !== 'admin' && normalizedRole !== 'branch_manager') {
+      console.log(`[Middleware] Unauthorized role "${normalizedRole}", redirecting to storefront.`);
       return NextResponse.redirect(new URL('/', req.url))
     }
+    
+    console.log(`[Middleware] Access granted for role: ${normalizedRole}`);
   }
 })
 
