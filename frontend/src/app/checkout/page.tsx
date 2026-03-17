@@ -391,6 +391,7 @@ export default function CheckoutPage() {
                 branchId: selectedBranchId || '',
                 items: cartItems.map((item: any) => ({
                     menuItemId: item.id,
+                    name: item.name,
                     quantity: item.qty,
                     unitPrice: Number(item.price),
                 })),
@@ -930,22 +931,24 @@ export default function CheckoutPage() {
                                     is being prepared. You'll receive a confirmation email shortly.
                                 </p>
 
-                                {/* Details card */}
+                                { /* Details card */ }
                                 <div style={{
                                     background: '#faf8f5', border: '1px solid #ede6dc',
                                     borderRadius: 14, padding: 20, textAlign: 'left', marginBottom: 28,
                                 }}>
                                     {[
-                                        { label: 'Estimated delivery', value: '30–45 minutes', bold: true },
-                                        { label: 'Total paid', value: `AED ${TOTAL.toFixed(2)}`, highlight: true },
-                                    ].map((row, i) => (
+                                        ...(orderMode === 'Delivery' ? [{ label: 'Estimated delivery', value: '30–45 minutes', bold: true }] : []),
+                                        ...(orderMode === 'Pickup' ? [{ label: 'Estimated pickup', value: '15–20 minutes', bold: true }] : []),
+                                        ...(orderMode === 'DineIn' ? [{ label: 'Order Status', value: 'Sent to Kitchen', bold: true }] : []),
+                                        { label: orderMode === 'DineIn' ? 'Total Amount' : 'Total Paid', value: `AED ${TOTAL.toFixed(2)}`, highlight: true },
+                                    ].map((row, i, arr) => (
                                         <div key={i} style={{
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                             padding: '10px 0',
-                                            borderBottom: i < 1 ? '1px solid #ede6dc' : 'none',
+                                            borderBottom: i < arr.length - 1 ? '1px solid #ede6dc' : 'none',
                                         }}>
                                             <span style={{ fontSize: 13, color: '#a08060' }}>{row.label}</span>
-                                            <span style={{ fontSize: 13, fontWeight: row.highlight ? 800 : 700, color: row.highlight ? '#FF6A0C' : '#1a1108' }}>
+                                            <span style={{ fontSize: 13, fontWeight: (row as any).highlight ? 800 : 700, color: (row as any).highlight ? '#FF6A0C' : '#1a1108' }}>
                                                 {row.value}
                                             </span>
                                         </div>

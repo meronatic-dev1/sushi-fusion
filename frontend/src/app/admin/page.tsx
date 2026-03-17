@@ -32,9 +32,9 @@ export default function AdminOverviewPage() {
     useEffect(() => {
         if (!isLoaded) return;
         
-        const activeBranchId = location?.branchId || (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
+        const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
 
-        getAnalyticsDashboard(activeBranchId)
+        getAnalyticsDashboard(activeBranchId || undefined)
             .then(setData)
             .catch(e => console.error('Failed to load dashboard', e))
             .finally(() => setLoading(false));

@@ -27,9 +27,10 @@ export default function CustomersPage() {
     useEffect(() => {
         if (!isLoaded) return;
         
-        const activeBranchId = location?.branchId || (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
+        const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
+ beaches: undefined;
 
-        getAnalyticsDashboard(activeBranchId)
+        getAnalyticsDashboard(activeBranchId || undefined)
             .then(data => {
                 setCustomers(data.customerList);
             })

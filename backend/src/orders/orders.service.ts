@@ -60,8 +60,8 @@ export class OrdersService {
         let calculatedTotal = 0;
 
         for (const item of items) {
-            const menuItem = await this.prisma.menuItem.findFirst({
-                where: { name: item.name }
+            const menuItem = await this.prisma.menuItem.findUnique({
+                where: { id: item.menuItemId }
             });
 
             if (menuItem) {
@@ -73,6 +73,8 @@ export class OrdersService {
                     unitPrice: menuItem.price,
                     totalPrice: itemTotal,
                 });
+            } else {
+                this.logger.warn(`Menu item with ID ${item.menuItemId} not found during order creation`);
             }
         }
 
