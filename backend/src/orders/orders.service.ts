@@ -95,7 +95,7 @@ export class OrdersService {
         const tax = calculatedTotal * 0.05;
         const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax + serviceChargeAmount;
 
-        let resolvedUserId = body.userId;
+        let resolvedUserId = body.clerkUserId;
         let isNewGuestAccount = false;
 
         if (!resolvedUserId && body.customerEmail && body.customerName) {
@@ -170,9 +170,9 @@ export class OrdersService {
                 branchId: selectedBranchId,
                 branchIdOriginal: selectedBranchId,
                 radiusUsedKm: 0,
-                customerLat: body.customerLat || 0,
-                customerLng: body.customerLng || 0,
-                customerAddress: body.customerAddress || null,
+                customerLat: body.latitude || 0,
+                customerLng: body.longitude || 0,
+                customerAddress: body.address || null,
                 orderItems: { create: orderItemsData }
             },
             include: { orderItems: { include: { menuItem: true } } }

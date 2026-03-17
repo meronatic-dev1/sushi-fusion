@@ -391,7 +391,6 @@ export default function CheckoutPage() {
                 branchId: selectedBranchId || '',
                 items: cartItems.map((item: any) => ({
                     menuItemId: item.id,
-                    name: item.name,
                     quantity: item.qty,
                     unitPrice: Number(item.price),
                 })),
