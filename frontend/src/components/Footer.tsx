@@ -8,8 +8,8 @@ interface FooterProps {
 
 const INFO_ITEMS = [
   { icon: '/images/icons/delivery.png', text: 'Express Delivery · 30 mins or less' },
-  { icon: '/images/location.png', text: 'Business Bay & Jumeirah Village Circle' },
-  { icon: '/images/icons/phone.png', text: '+971 4 000 0000' },
+  { icon: '/images/location.png', text: 'JVC & Business Bay' },
+  { icon: '/images/icons/phone.png', text: '055 289 8253 · 04 398 5091' },
   { icon: '/images/icons/clock.png', text: 'Open daily · 11 AM – 11 PM' },
 ];
 
@@ -44,7 +44,7 @@ const COLUMNS = [
   {
     heading: 'ABOUT US',
     links: ['Our Locations', 'About Sushi Fusion', 'Careers'],
-    note: 'Business Bay · Jumeirah Village Circle',
+    note: 'JVC: Plaza Residence 2 (055 289 8253 / 04 552 9366) · Business Bay: Ontario Tower (04 398 5091)',
   },
 ];
 
