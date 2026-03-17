@@ -226,15 +226,19 @@ export default function CheckoutPage() {
     // Auto-fill from Clerk User & Auto-skip Step 1
     useEffect(() => {
         if (isLoaded && isSignedIn && user) {
-            setGuestName(user.fullName || '');
-            setGuestEmail(user.primaryEmailAddress?.emailAddress || '');
-            // Some phone numbers might be in user.phoneNumbers
+            const name = user.fullName || '';
+            const email = user.primaryEmailAddress?.emailAddress || '';
+            let phone = '';
             if (user.phoneNumbers?.length > 0) {
-              setGuestPhone(user.phoneNumbers[0].phoneNumber);
+              phone = user.phoneNumbers[0].phoneNumber;
             }
+
+            setGuestName(prev => prev || name);
+            setGuestEmail(prev => prev || email);
+            setGuestPhone(prev => prev || phone);
             
-            // If user is signed in and we are on step 1, skip it
-            if (step === 1) {
+            // If user is signed in and we are on step 1, skip it ONLY if we have all details
+            if (step === 1 && name && email && phone) {
                 setStep(2);
             }
         }
@@ -379,8 +383,8 @@ export default function CheckoutPage() {
         try {
             const res = await apiCreateOrder({
                 clerkUserId: user?.id || undefined,
-                customerName: guestName,
-                customerPhone: guestPhone,
+                customerName: guestName.trim() === '' ? undefined : guestName,
+                customerPhone: guestPhone.trim() === '' ? undefined : guestPhone,
                 customerEmail: guestEmail.trim() === '' ? undefined : guestEmail,
                 customerStreet: street,
                 customerCity: city,
@@ -591,7 +595,7 @@ export default function CheckoutPage() {
                                         ? (!guestName.trim() || !guestPhone.trim() || !guestEmail.trim())
                                         : (!loginEmail.trim() || !loginPhone.trim() || !loginPassword.trim())}
                                 >
-                                    Continue to Delivery <ChevronRight size={16} />
+                                    {orderMode === 'Delivery' ? 'Continue to Delivery' : orderMode === 'Pickup' ? 'Continue to Pickup' : 'Continue to Branch'} <ChevronRight size={16} />
                                 </ActionButton>
                             </SectionCard>
                         </div>
