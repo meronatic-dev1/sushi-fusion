@@ -11,7 +11,7 @@ import { DELIVERY_FEE } from '@/lib/data';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles, Navigation, Utensils, ShoppingBag } from 'lucide-react';
+import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles, Navigation, Utensils, ShoppingBag, House } from 'lucide-react';
 
 // Make sure to call `loadStripe` outside of a component’s render to avoid recreating the `Stripe` object on every render.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -251,6 +251,7 @@ export default function CheckoutPage() {
 
     const next = () => {
         if (step === 1) setStep(2);
+        else if (step === 2 && orderMode === 'DineIn') setStep(4);
         else setStep(s => Math.min(s + 1, 4) as Step);
     };
     const back = () => {
@@ -258,7 +259,8 @@ export default function CheckoutPage() {
             window.location.href = '/';
             return;
         }
-        setStep(s => Math.max(s - 1, 1) as Step);
+        if (step === 4 && orderMode === 'DineIn') setStep(2);
+        else setStep(s => Math.max(s - 1, 1) as Step);
     };
 
     const handleUseMyLocation = () => {
@@ -834,7 +836,7 @@ export default function CheckoutPage() {
                     )}
 
                     {/* ── STEP 3: Payment ── */}
-                    {step === 3 && (
+                    {step === 3 && orderMode !== 'DineIn' && (
                         <div style={{ animation: 'slideIn 0.3s ease both' }}>
                             <SectionCard
                                 icon={<CreditCard size={16} />}
@@ -1045,7 +1047,7 @@ export default function CheckoutPage() {
                         <div style={{ padding: '14px 20px', borderTop: '1px solid #f0e8df', display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {[
                                 { label: 'Subtotal', value: `AED ${SUBTOTAL.toFixed(2)}` },
-                                { label: orderMode === 'Delivery' ? 'Delivery fee' : orderMode === 'Pickup' ? 'Pickup fee' : 'Dine-in fee', value: DELIVERY === 0 ? 'Free' : `AED ${DELIVERY.toFixed(2)}` },
+                                ...(orderMode === 'Delivery' ? [{ label: 'Delivery fee', value: DELIVERY === 0 ? 'Free' : `AED ${DELIVERY.toFixed(2)}` }] : []),
                                 { label: 'VAT (5%)', value: `AED ${TAX.toFixed(2)}` },
                             ].map(row => (
                                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1106,21 +1108,23 @@ export default function CheckoutPage() {
                         </div>
                     )}
 
-                    {/* Delivery info */}
                     {step < 4 && (
                         <div style={{
-                            background: '#fff8f3', borderRadius: 12,
-                            border: '1px solid #ffd0b0',
+                            background: orderMode === 'Delivery' ? '#fff8f3' : '#f0faf5',
+                            borderRadius: 12,
+                            border: `1px solid ${orderMode === 'Delivery' ? '#ffd0b0' : '#b8e6d0'}`,
                             padding: '12px 14px',
                             display: 'flex', alignItems: 'flex-start', gap: 10,
                         }}>
-                            <MapPin size={14} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 1 }} />
+                            {orderMode === 'Delivery' ? <MapPin size={14} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 1 }} /> : <House size={14} style={{ color: '#34d399', flexShrink: 0, marginTop: 1 }} />}
                             <div>
-                                <p style={{ fontSize: 12, fontWeight: 700, color: '#7a3d10', margin: '0 0 2px' }}>
-                                    {selectedAddress ? `Delivering to ${selectedAddress.substring(0, 40)}…` : 'Delivering from nearest branch'}
+                                <p style={{ fontSize: 12, fontWeight: 700, color: orderMode === 'Delivery' ? '#7a3d10' : '#065f46', margin: '0 0 2px' }}>
+                                    {orderMode === 'Delivery' 
+                                        ? (selectedAddress ? `Delivering to ${selectedAddress.substring(0, 40)}…` : 'Delivering from nearest branch')
+                                        : (branchName ? `${orderMode} at ${branchName}` : `Please select a branch for ${orderMode}`)}
                                 </p>
-                                <p style={{ fontSize: 11, color: '#a06040', margin: 0 }}>
-                                    Est. 30–45 min
+                                <p style={{ fontSize: 11, color: orderMode === 'Delivery' ? '#a06040' : '#047857', margin: 0 }}>
+                                    {orderMode === 'Delivery' ? 'Est. 30–45 min' : 'Ready in 15–20 min'}
                                 </p>
                             </div>
                         </div>
