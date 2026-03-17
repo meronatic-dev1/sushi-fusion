@@ -213,12 +213,10 @@ export default function CheckoutPage() {
     useEffect(() => {
         console.log('CheckoutPage: Received location from context:', location);
         if (location) {
+            setSelectedBranchId(location.branchId);
+            setStreet(location.address);
             setCustomerLat(location.lat);
             setCustomerLng(location.lng);
-            setSelectedAddress(location.address);
-            setSelectedBranchId(location.branchId);
-            // Autofill the street field with the picked address
-            setStreet(location.address);
             if (location.mode) {
                 setOrderMode(location.mode);
             }
@@ -378,28 +376,26 @@ export default function CheckoutPage() {
 
         try {
             const res = await apiCreateOrder({
-                userId: null,
+                clerkUserId: user?.id || undefined,
                 customerName: guestName,
                 customerPhone: guestPhone,
-                customerEmail: guestEmail,
+                customerEmail: guestEmail.trim() === '' ? undefined : guestEmail,
                 customerStreet: street,
                 customerCity: city,
                 customerPostcode: postcode,
                 deliveryInstructions: instructions,
-                customerAddress,
+                address: customerAddress,
                 mode: orderMode === 'Delivery' ? 'DELIVERY' : orderMode === 'Pickup' ? 'PICKUP' : 'DINE_IN',
-                totalAmount: TOTAL,
-                customerLat,
-                customerLng,
-                branchId: selectedBranchId || undefined,
+                latitude: Number(customerLat) || 0,
+                longitude: Number(customerLng) || 0,
+                branchId: selectedBranchId || '',
                 items: cartItems.map((item: any) => ({
-                    menuItemId: 'TEMP',
-                    name: item.name,
+                    menuItemId: item.id,
                     quantity: item.qty,
-                    unitPrice: item.price,
+                    unitPrice: Number(item.price),
                 })),
             });
-            setOrderId(res.orderId || 'NEW-ORDER');
+            setOrderId(res.id || res.orderId || 'NEW-ORDER');
             clearCart();
             next();
         } catch (e: any) {
