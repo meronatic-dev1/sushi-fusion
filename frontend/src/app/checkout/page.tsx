@@ -217,6 +217,9 @@ export default function CheckoutPage() {
             setSelectedBranchId(location.branchId);
             // Autofill the street field with the picked address
             setStreet(location.address);
+            if (location.mode) {
+                setOrderMode(location.mode);
+            }
         }
     }, [location]);
 

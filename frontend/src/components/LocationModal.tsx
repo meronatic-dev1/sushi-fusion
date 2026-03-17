@@ -18,13 +18,13 @@ function getHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: nu
 interface LocationModalProps {
     isOpen: boolean;
     onClose: () => void;
-    mode: string;
+    mode: 'delivery' | 'pickup' | 'dineIn';
     onProceed: (data: any) => void;
     t: (key: string) => string;
 }
 
 export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: LocationModalProps) {
-    const [activeTab, setActiveTab] = useState<'Delivery' | 'Pickup'>('Delivery');
+    const [activeTab, setActiveTab] = useState<'Delivery' | 'Pickup' | 'DineIn'>('Delivery');
     const [city, setCity] = useState('');
     const [store, setStore] = useState('');
     const [locations, setLocations] = useState<ApiLocation[]>([]);
@@ -35,7 +35,9 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
 
     useEffect(() => {
         if (isOpen) {
-            setActiveTab(mode === 'Pickup' ? 'Pickup' : 'Delivery');
+            if (mode === 'pickup') setActiveTab('Pickup');
+            else if (mode === 'dineIn') setActiveTab('DineIn');
+            else setActiveTab('Delivery');
             loadLocations();
         }
     }, [isOpen, mode]);
@@ -116,7 +118,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
         e.preventDefault();
         const selectedBranch = locations.find(l => l.id === store);
         onProceed({
-            mode: 'Pickup',
+            mode: activeTab === 'Pickup' ? 'Pickup' : 'DineIn',
             city,
             store,
             lat: selectedBranch?.latitude || pickedLocation?.lat || 0,
@@ -130,7 +132,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
             <div className="modal-content">
                 <div className="modal-header">
                     <h2 className="modal-title">
-                        {activeTab === 'Delivery' ? 'Select Delivery Location' : 'Select Pickup Location'}
+                        {activeTab === 'Delivery' ? 'Select Delivery Location' : activeTab === 'Pickup' ? 'Select Pickup Location' : 'Select Dine-In Branch'}
                     </h2>
                     <button className="modal-close-btn" onClick={onClose}>&times;</button>
                 </div>
@@ -141,14 +143,21 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                         onClick={() => setActiveTab('Delivery')}
                         type="button"
                     >
-                        Delivery
+                        {t('header.mode.delivery')}
                     </button>
                     <button
                         className={`modal-tab ${activeTab === 'Pickup' ? 'active' : ''}`}
                         onClick={() => setActiveTab('Pickup')}
                         type="button"
                     >
-                        Pickup
+                        {t('header.mode.pickup')}
+                    </button>
+                    <button
+                        className={`modal-tab ${activeTab === 'DineIn' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('DineIn')}
+                        type="button"
+                    >
+                        {t('header.mode.dineIn')}
                     </button>
                 </div>
 
@@ -175,7 +184,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                         </form>
                     )}
 
-                    {activeTab === 'Pickup' && (
+                    {activeTab !== 'Delivery' && (
                         <form id="pickup-form" onSubmit={handlePickupSubmit} className="pickup-form">
                             <div className="pickup-form-group">
                                 <label className="pickup-form-label" htmlFor="city-select">Select City</label>

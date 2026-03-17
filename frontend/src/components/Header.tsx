@@ -191,7 +191,7 @@ export default function Header({
             <LocationModal
                 isOpen={isPopoverOpen}
                 onClose={() => setIsPopoverOpen(false)}
-                mode={t(`header.mode.${activeMode}`)}
+                mode={activeMode}
                 t={t}
                 onProceed={handleProceed}
             />
