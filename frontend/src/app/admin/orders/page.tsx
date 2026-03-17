@@ -253,8 +253,8 @@ export default function AdminOrdersPage() {
         setLoading(true);
         try {
             // The location context holds the active branch id or null for All
-            const activeBranchId = location?.branchId || undefined;
-            const data = await getOrders(activeBranchId);
+            const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? userBranchId : undefined);
+            const data = await getOrders(activeBranchId ?? undefined);
             const mapped: Order[] = data.map((o: any) => {
                 const modeMap: any = { DELIVERY: 'Delivery', PICKUP: 'Pickup', DINE_IN: 'Dine-In' };
                 const mode = modeMap[o.mode] || 'Delivery';

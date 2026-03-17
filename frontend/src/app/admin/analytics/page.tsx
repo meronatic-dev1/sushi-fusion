@@ -53,7 +53,7 @@ export default function AdminAnalyticsPage() {
 
         const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
 
-        getAnalyticsDashboard(activeBranchId || undefined)
+        getAnalyticsDashboard(activeBranchId ?? undefined)
             .then(setData)
             .catch(e => console.error('Failed to load analytics', e))
             .finally(() => setLoading(false));

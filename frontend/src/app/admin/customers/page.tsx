@@ -28,9 +28,8 @@ export default function CustomersPage() {
         if (!isLoaded) return;
         
         const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
- beaches: undefined;
 
-        getAnalyticsDashboard(activeBranchId || undefined)
+        getAnalyticsDashboard(activeBranchId ?? undefined)
             .then(data => {
                 setCustomers(data.customerList);
             })

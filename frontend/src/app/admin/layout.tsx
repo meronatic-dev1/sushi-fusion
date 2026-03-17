@@ -64,17 +64,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // Sync to context
     useEffect(() => {
-        if (location?.branchId !== selectedBranchId) {
+        const effectiveBranchId = selectedBranchId === 'All' ? null : selectedBranchId;
+        if (location?.branchId !== effectiveBranchId) {
             setLocation({
                 ...location,
                 lat: location?.lat || 0,
                 lng: location?.lng || 0,
                 address: location?.address || '',
                 mode: location?.mode || 'Delivery',
-                branchId: selectedBranchId === 'All' ? null : selectedBranchId
+                branchId: effectiveBranchId
             });
         }
-    }, [selectedBranchId, setLocation]);
+    }, [selectedBranchId, setLocation, location]);
 
     // Connect to socket.io for new order events
     useEffect(() => {
