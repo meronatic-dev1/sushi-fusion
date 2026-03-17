@@ -73,33 +73,33 @@ export class UsersService {
         try {
             this.logger.log(`Syncing user: ${data.id} (${data.email})`);
             
-            const userEmail = data.email || 'no-email@clerk.user';
+            const userEmail = data.email || `user-${data.id}@sushifusion.local`;
             
             // 1. Try finding by the provided ID (Clerk ID)
             let existing = await this.findById(data.id);
 
             // 2. If not found by ID, check if a user with the same email exists (migration case)
-            if (!existing) {
-                existing = await this.findByEmail(userEmail);
-                if (existing) {
-                    this.logger.log(`Migrating user ${data.email} from old ID ${existing.id} to Clerk ID ${data.id}`);
-
+            if (!existing && data.email) {
+                existing = await this.findByEmail(data.email);
                     // Migrate the record to the new Clerk ID using a transaction
+                    this.logger.log(`Starting migration transaction for ${data.id}`);
                     return await this.prisma.$transaction(async (tx) => {
                         // Update related orders to the new ID first
-                        await tx.order.updateMany({
+                        const updateCounts = await tx.order.updateMany({
                             where: { userId: existing!.id },
                             data: { userId: data.id }
                         });
+                        this.logger.log(`Updated ${updateCounts.count} orders during migration`);
 
                         // Delete the old record
                         await tx.user.delete({ where: { id: existing!.id } });
+                        this.logger.log(`Deleted old user record ${existing!.id}`);
 
                         // Create the new record with the same attributes but new ID
-                        return await tx.user.create({
+                        const created = await tx.user.create({
                             data: {
                                 id: data.id,
-                                email: data.email,
+                                email: data.email || existing!.email,
                                 name: data.name,
                                 phone: data.phone || existing!.phone,
                                 role: existing!.role.toString().toUpperCase() as any,
@@ -107,8 +107,11 @@ export class UsersService {
                                 branchId: existing!.branchId,
                             },
                         });
+                        this.logger.log(`Created new migration-synced user ${data.id}`);
+                        return created;
+                    }, {
+                        timeout: 10000 // 10s timeout
                     });
-                }
             }
 
             // 3. Normal update flow if user exists with the correct ID
