@@ -18,7 +18,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 type Step = 1 | 2 | 3 | 4;
 
-const STEPS = [
+const ALL_STEPS = [
     { num: 1 as Step, label: 'Details', short: 'You' },
     { num: 2 as Step, label: 'Delivery', short: 'Ship' },
     { num: 3 as Step, label: 'Payment', short: 'Pay' },
@@ -181,6 +181,8 @@ export default function CheckoutPage() {
     const [promoApplied, setPromoApplied] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
     const [orderMode, setOrderMode] = useState<'Delivery' | 'Pickup' | 'DineIn'>('Delivery');
+
+    const displaySteps = ALL_STEPS.filter(s => orderMode !== 'DineIn' || s.num !== 3);
 
     // Form states
     const [guestName, setGuestName] = useState('');
@@ -425,10 +427,11 @@ export default function CheckoutPage() {
 
                 {/* Step progress — centered */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 0, position: 'absolute', left: '50%', transform: 'translateX(-50%)' }} className="step-progress">
-                    {STEPS.map((s, i) => {
+                    {displaySteps.map((s, i) => {
                         const done = step > s.num;
                         const active = step === s.num;
-                        const future = step < s.num;
+                        // const future = step < s.num;
+                        // For Dine-In, if we are at step 4, we consider step 2 "done" even though there is no step 3
                         return (
                             <div key={s.num} style={{ display: 'flex', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
@@ -442,7 +445,7 @@ export default function CheckoutPage() {
                                         transition: 'all 0.3s',
                                         boxShadow: active ? '0 0 0 4px rgba(255,106,12,0.12)' : 'none',
                                     }}>
-                                        {done ? <Check size={13} strokeWidth={3} /> : s.num}
+                                        {done ? <Check size={13} strokeWidth={3} /> : (orderMode === 'DineIn' && s.num === 4 ? 3 : s.num)}
                                     </div>
                                     <span style={{
                                         fontSize: 10, fontWeight: active ? 700 : 500,
@@ -453,7 +456,7 @@ export default function CheckoutPage() {
                                         {s.label}
                                     </span>
                                 </div>
-                                {i < STEPS.length - 1 && (
+                                {i < displaySteps.length - 1 && (
                                     <div style={{
                                         width: 40, height: 2, marginBottom: 14, marginLeft: 4, marginRight: 4,
                                         background: done ? '#FF6A0C' : '#e0d5c8',
@@ -819,7 +822,7 @@ export default function CheckoutPage() {
                                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                                     <BackButton onClick={back} />
                                     <ActionButton 
-                                        onClick={next} 
+                                        onClick={orderMode === 'DineIn' ? handleOrderCreation : next} 
                                         style={{ flex: 1 }}
                                         disabled={
                                             orderMode === 'Delivery'
@@ -827,7 +830,7 @@ export default function CheckoutPage() {
                                                 : !selectedBranchId
                                         }
                                     >
-                                        Continue to Payment <ChevronRight size={16} />
+                                        {orderMode === 'DineIn' ? 'Place Order' : 'Continue to Payment'} <ChevronRight size={16} />
                                     </ActionButton>
                                 </div>
                             </SectionCard>
