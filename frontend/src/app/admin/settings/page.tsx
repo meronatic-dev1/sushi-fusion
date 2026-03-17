@@ -20,6 +20,7 @@ export default function AdminSettingsPage() {
     const [bannerUrl, setBannerUrl] = useState('');
     const [serviceCharge, setServiceCharge] = useState(0);
     const [enableServiceCharge, setEnableServiceCharge] = useState(false);
+    const [enableServiceChargeTakeaway, setEnableServiceChargeTakeaway] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -36,6 +37,7 @@ export default function AdminSettingsPage() {
                 if (data.bannerUrl) setBannerUrl(data.bannerUrl);
                 setServiceCharge(data.serviceCharge || 0);
                 setEnableServiceCharge(data.enableServiceCharge || false);
+                setEnableServiceChargeTakeaway(data.enableServiceChargeTakeaway || false);
             })
             .catch(err => console.error('Failed to load settings', err))
             .finally(() => setLoading(false));
@@ -52,7 +54,8 @@ export default function AdminSettingsPage() {
                     logoUrl,
                     bannerUrl,
                     serviceCharge: Number(serviceCharge),
-                    enableServiceCharge
+                    enableServiceCharge,
+                    enableServiceChargeTakeaway
                 }),
             });
             if (!res.ok) throw new Error('Failed to save settings');
@@ -241,7 +244,7 @@ export default function AdminSettingsPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                         <div>
                             <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
-                                Service Charge
+                                Service Charge (Dine-In)
                             </label>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                 <button
@@ -260,16 +263,42 @@ export default function AdminSettingsPage() {
                                     }} />
                                 </button>
                                 <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
-                                    {enableServiceCharge ? 'Enabled (Dine-In only)' : 'Disabled'}
+                                    {enableServiceCharge ? 'Enabled' : 'Disabled'}
                                 </span>
                             </div>
                         </div>
 
-                        <div style={{ opacity: enableServiceCharge ? 1 : 0.4, pointerEvents: enableServiceCharge ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
+                        <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+                                Service Charge (Delivery / Pickup)
+                            </label>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <button
+                                    onClick={() => setEnableServiceChargeTakeaway(!enableServiceChargeTakeaway)}
+                                    style={{
+                                        width: 44, height: 24, borderRadius: 12,
+                                        background: enableServiceChargeTakeaway ? '#FF6A0C' : 'rgba(255,255,255,0.1)',
+                                        border: 'none', position: 'relative', cursor: 'pointer',
+                                        transition: 'background 0.2s'
+                                    }}
+                                >
+                                    <div style={{
+                                        width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                                        position: 'absolute', top: 3, left: enableServiceChargeTakeaway ? 23 : 3,
+                                        transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                                    }} />
+                                </button>
+                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+                                    {enableServiceChargeTakeaway ? 'Enabled' : 'Disabled'}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style={{ gridColumn: '1 / -1', opacity: (enableServiceCharge || enableServiceChargeTakeaway) ? 1 : 0.4, pointerEvents: (enableServiceCharge || enableServiceChargeTakeaway) ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
                             <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
                                 Charge Amount (%)
                             </label>
-                            <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'relative', maxWidth: '50%' }}>
                                 <input
                                     type="number"
                                     value={serviceCharge}

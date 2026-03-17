@@ -15,23 +15,18 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
 
     const t = (key: string) => translate(language, key);
 
-    // If we are in the admin dashboard, we don't need the CartProvider
-    if (pathname?.startsWith('/admin')) {
-        return <>{children}</>;
-    }
-
     return (
         <SettingsProvider>
             <UserSync />
             <LocationProvider>
-                <CartProvider>
-                    {/* 
-            We pass down the translation function to GlobalCart 
-            so it can optionally use localized strings if needed 
-          */}
-                    <GlobalCart t={t} />
-                    {children}
-                </CartProvider>
+                {pathname?.startsWith('/admin') ? (
+                    children
+                ) : (
+                    <CartProvider>
+                        <GlobalCart t={t} />
+                        {children}
+                    </CartProvider>
+                )}
             </LocationProvider>
         </SettingsProvider>
     );

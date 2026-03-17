@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { Search, ChevronDown, CheckCircle, ChefHat, Bike, XCircle, AlertCircle, MapPin, Clock, Download, FileSpreadsheet, FileText, ChevronRight, Package, Utensils } from 'lucide-react';
 import { getOrders, updateOrderStatus, getLocations, ApiLocation } from '@/lib/api';
+import { useLocation } from '@/context/LocationContext';
 
 type OrderStatus = 'Routing' | 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
 interface Order { id: string; displayId: string; customer: string; email: string; userPhone?: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; rawStatus: string; time: string; tableNo?: number; address?: string; customerStreet?: string; customerCity?: string; customerPostcode?: string; deliveryInstructions?: string; }
@@ -229,9 +230,9 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
 
 export default function AdminOrdersPage() {
     const { user, isLoaded } = useUser();
+    const { location } = useLocation();
+    
     const [orders, setOrders] = useState<Order[]>([]);
-    const [branches, setBranches] = useState<ApiLocation[]>([]);
-    const [selectedBranchId, setSelectedBranchId] = useState<string>('All');
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'All'>('All');
     const [filterMode, setFilterMode] = useState<'All' | string>('All');
@@ -243,34 +244,16 @@ export default function AdminOrdersPage() {
     const userBranchId = user?.publicMetadata?.branchId as string | undefined;
 
     useEffect(() => {
-        loadBranches();
-    }, []);
-
-    // Set initial branch based on role once Clerk loads
-    useEffect(() => {
-        if (isLoaded && userRole === 'branch_manager' && userBranchId) {
-            setSelectedBranchId(userBranchId);
-        }
-    }, [isLoaded, userRole, userBranchId]);
-
-    useEffect(() => {
-        if (!isLoaded || (userRole === 'branch_manager' && selectedBranchId === 'All')) return; // Wait until branch manager gets locked in
+        if (!isLoaded || (userRole === 'branch_manager' && !userBranchId)) return; // Wait until branch manager gets locked in
         loadData();
-    }, [selectedBranchId, isLoaded]);
-
-    const loadBranches = async () => {
-        try {
-            const data = await getLocations();
-            setBranches(data);
-        } catch (e) {
-            console.error('Failed to load branches', e);
-        }
-    };
+    }, [location?.branchId, isLoaded, userRole, userBranchId]);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const data = await getOrders(selectedBranchId === 'All' ? undefined : selectedBranchId);
+            // The location context holds the active branch id or null for All
+            const activeBranchId = location?.branchId || undefined;
+            const data = await getOrders(activeBranchId);
             const mapped: Order[] = data.map((o: any) => {
                 const modeMap: any = { DELIVERY: 'Delivery', PICKUP: 'Pickup', DINE_IN: 'Dine-In' };
                 const mode = modeMap[o.mode] || 'Delivery';
@@ -466,40 +449,8 @@ export default function AdminOrdersPage() {
                     />
                 </div>
 
-                {/* Branch Selector: Only super admins can switch branches */}
-                {userRole !== 'branch_manager' ? (
-                    <select
-                        value={selectedBranchId}
-                        onChange={e => setSelectedBranchId(e.target.value)}
-                        style={{
-                            appearance: 'none', flexShrink: 0,
-                            background: 'rgba(255,106,12,0.05)',
-                            border: '1px solid rgba(255,106,12,0.2)',
-                            color: '#FF6A0C',
-                            borderRadius: 10, padding: '9px 16px',
-                            fontSize: 13, outline: 'none', cursor: 'pointer',
-                            fontWeight: 700,
-                            fontFamily: 'inherit',
-                        }}
-                    >
-                        <option value="All">All Outlets</option>
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                    </select>
-                ) : (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        background: 'rgba(255,106,12,0.05)',
-                        border: '1px solid rgba(255,106,12,0.2)',
-                        color: '#FF6A0C',
-                        borderRadius: 10, padding: '9px 16px',
-                        fontSize: 13, fontWeight: 700,
-                    }}>
-                        <MapPin size={14} /> My Branch
-                    </div>
-                )}
-
+                <div style={{ flex: 1 }} />
+                
                 <select
                     value={filterMode}
                     onChange={e => setFilterMode(e.target.value)}

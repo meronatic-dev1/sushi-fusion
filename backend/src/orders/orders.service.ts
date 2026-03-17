@@ -78,10 +78,14 @@ export class OrdersService {
 
         const settings = await this.prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
         const serviceChargeEnabled = settings?.enableServiceCharge ?? false;
+        const serviceChargeTakeawayEnabled = settings?.enableServiceChargeTakeaway ?? false;
         const serviceChargePercent = settings?.serviceCharge ?? 0;
 
         let serviceChargeAmount = 0;
-        if (serviceChargeEnabled && body.mode === 'DINE_IN') {
+        const isDineIn = body.mode === 'DINE_IN';
+        const isTakeawayOrDelivery = body.mode === 'DELIVERY' || body.mode === 'PICKUP';
+
+        if ((serviceChargeEnabled && isDineIn) || (serviceChargeTakeawayEnabled && isTakeawayOrDelivery)) {
             serviceChargeAmount = calculatedTotal * (serviceChargePercent / 100);
         }
 

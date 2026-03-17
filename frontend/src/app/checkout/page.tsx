@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useLocation } from '@/context/LocationContext';
-import { apiCreateOrder, apiCreatePaymentIntent } from '@/lib/api';
+import { apiCreateOrder, apiCreatePaymentIntent, getLocations, ApiLocation } from '@/lib/api';
 import { DELIVERY_FEE } from '@/lib/data';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
@@ -24,6 +24,18 @@ const STEPS = [
     { num: 3 as Step, label: 'Payment', short: 'Pay' },
     { num: 4 as Step, label: 'Done', short: 'Done' },
 ];
+
+/* ─── Haversine Distance helper ─── */
+function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
 
 /* ─── Reusable field wrapper ─── */
 function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
@@ -186,6 +198,13 @@ export default function CheckoutPage() {
     const [customerLng, setCustomerLng] = useState(55.2708);
     const [selectedAddress, setSelectedAddress] = useState('');
     const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+    const [branchName, setBranchName] = useState<string | null>(null);
+
+    const [branches, setBranches] = useState<ApiLocation[]>([]);
+
+    useEffect(() => {
+        getLocations().then(setBranches).catch(console.error);
+    }, []);
 
     // Auto-fill from LocationContext
     useEffect(() => {
@@ -257,6 +276,37 @@ export default function CheckoutPage() {
                         if (postComp) setPostcode(postComp.long_name);
                         setSelectedAddress(addr.formatted_address || '');
                     }
+                    findNearestBranch(latitude, longitude);
+                };
+
+                const findNearestBranch = (lat: number, lng: number) => {
+                    if (!branches || branches.length === 0) return;
+                    
+                    const distances = branches.map(b => ({
+                        b, dist: getDistance(lat, lng, b.latitude, b.longitude)
+                    })).sort((a,b) => a.dist - b.dist);
+                    
+                    const openBranches = distances.filter(d => !d.b.isClosed);
+                    // 1. First check within 20km
+                    let assigned = openBranches.find(d => d.dist <= 20);
+                    // 2. Fallback to 35km
+                    if (!assigned) {
+                        assigned = openBranches.find(d => d.dist <= 35);
+                    }
+                    // 3. Fallback to nearest open, regardless of distance
+                    if (!assigned && openBranches.length > 0) {
+                        assigned = openBranches[0];
+                    }
+                    // 4. Fallback to any nearest
+                    if (!assigned && distances.length > 0) {
+                        assigned = distances[0];
+                    }
+                    
+                    if (assigned) {
+                        setSelectedBranchId(assigned.b.id);
+                        setBranchName(assigned.b.name);
+                        console.log(`Assigned to ${assigned.b.name} (${assigned.dist.toFixed(1)}km away)`);
+                    }
                 };
 
                 // Attempt reverse geocoding via Google Maps library
@@ -284,6 +334,14 @@ export default function CheckoutPage() {
                     console.error('Reverse geocoding failed:', err);
                     setStreet(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
                     setSelectedAddress('Current Location (Coordinates)');
+                    // Still attempt to attach a branch using literal coords
+                    if (branches.length > 0) {
+                        const distances = branches.map(b => ({
+                            b, dist: getDistance(latitude, longitude, b.latitude, b.longitude)
+                        })).sort((a,b) => a.dist - b.dist);
+                        setSelectedBranchId(distances[0].b.id);
+                        setBranchName(distances[0].b.name);
+                    }
                 }
                 setIsLocating(false);
             },
@@ -597,7 +655,6 @@ export default function CheckoutPage() {
                                         />
                                     </Field>
 
-                                    {/* ETA pill */}
                                     <div style={{
                                         display: 'flex', alignItems: 'center', gap: 10,
                                         background: '#fff8f3', border: '1px solid #ffdcc4',
@@ -605,8 +662,12 @@ export default function CheckoutPage() {
                                     }}>
                                         <Clock size={14} style={{ color: '#FF6A0C', flexShrink: 0 }} />
                                         <div>
-                                            <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>Estimated delivery: 30–45 min</p>
-                                            <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>{selectedAddress ? `Delivering to: ${selectedAddress}` : 'From nearest branch'}</p>
+                                            <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>
+                                                Estimated delivery: 30–45 min
+                                            </p>
+                                            <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>
+                                                {branchName ? `Routed to: ${branchName}` : (selectedAddress ? `Delivering to: ${selectedAddress}` : 'From nearest branch')}
+                                            </p>
                                         </div>
                                     </div>
                                 </div>

@@ -11,9 +11,10 @@ import {
     Settings, X,
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
-import { API } from '@/lib/api';
+import { API, getLocations, ApiLocation } from '@/lib/api';
 
 import { useSettings } from '@/context/SettingsContext';
+import { useLocation } from '@/context/LocationContext';
 
 const NAV_ITEMS = [
     { label: 'Overview', href: '/admin', icon: LayoutDashboard },
@@ -38,6 +39,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const notifRef = useRef<HTMLDivElement>(null);
     const socketRef = useRef<Socket | null>(null);
 
+    const { location, setLocation } = useLocation();
+    const [branches, setBranches] = useState<ApiLocation[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState<string>('All');
+    
+    // Determine user role from Clerk public metadata
+    const userRole = (user?.publicMetadata?.role as string || 'customer').toLowerCase();
+    const userBranchId = user?.publicMetadata?.branchId as string | undefined;
+
+    // Load branches
+    useEffect(() => {
+        getLocations()
+            .then(setBranches)
+            .catch(console.error);
+    }, []);
+
+    // Enforce branch manager lock
+    useEffect(() => {
+        if (isLoaded && userRole === 'branch_manager' && userBranchId) {
+            setSelectedBranchId(userBranchId);
+        }
+    }, [isLoaded, userRole, userBranchId]);
+
+    // Sync to context
+    useEffect(() => {
+        if (location?.branchId !== selectedBranchId) {
+            setLocation({
+                ...location,
+                lat: location?.lat || 0,
+                lng: location?.lng || 0,
+                address: location?.address || '',
+                mode: location?.mode || 'Delivery',
+                branchId: selectedBranchId === 'All' ? null : selectedBranchId
+            });
+        }
+    }, [selectedBranchId, setLocation]);
+
     // Connect to socket.io for new order events
     useEffect(() => {
         const socketUrl = API.replace('/api', '');
@@ -47,9 +84,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         socket.on('connect', () => {
             console.log('Admin: connected to notification socket');
             socket.emit('joinAdminRoom');
+            if (selectedBranchId !== 'All') {
+                socket.emit('joinBranchRoom', selectedBranchId);
+            }
         });
 
         socket.on('newOrder', (order: any) => {
+            // Filter out orders not matching our branch if we are specific
+            if (selectedBranchId !== 'All' && order.branchId !== selectedBranchId && order.branchIdOriginal !== selectedBranchId) {
+                return;
+            }
             console.log('Admin: new order received', order);
             setNotifications(prev => [
                 {
@@ -109,9 +153,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }, [showNotifDropdown]);
 
     if (pathname.startsWith('/admin/login')) return <>{children}</>;
-
-    // Determine user role from Clerk public metadata
-    const userRole = (user?.publicMetadata?.role as string || 'customer').toLowerCase();
     
     // Filter Navigation Items based on Role
     const filteredNavItems = NAV_ITEMS.filter(item => {
@@ -389,34 +430,50 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </div>
 
                         {/* Location selector */}
-                        <div style={{ position: 'relative' }}>
-                            <select style={{
-                                appearance: 'none',
-                                background: 'rgba(255,255,255,0.04)',
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                color: 'rgba(255,255,255,0.5)',
-                                borderRadius: 9,
-                                padding: '7px 32px 7px 12px',
-                                fontSize: 12, fontWeight: 500,
-                                outline: 'none', cursor: 'pointer',
-                                fontFamily: 'inherit',
-                                transition: 'border-color 0.2s',
-                            }}
-                                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.4)')}
-                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
-                            >
-                                <option>All Locations</option>
-                                <option>Downtown</option>
-                                <option>Marina</option>
-                                <option>Motor City</option>
-                            </select>
-                            <ChevronDown size={12} style={{
-                                position: 'absolute', right: 10, top: '50%',
-                                transform: 'translateY(-50%)',
-                                color: 'rgba(255,255,255,0.3)',
-                                pointerEvents: 'none',
-                            }} />
-                        </div>
+                        {userRole !== 'branch_manager' ? (
+                            <div style={{ position: 'relative' }}>
+                                <select 
+                                    value={selectedBranchId}
+                                    onChange={e => setSelectedBranchId(e.target.value)}
+                                    style={{
+                                        appearance: 'none',
+                                        background: 'rgba(255,255,255,0.04)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        color: 'rgba(255,255,255,0.5)',
+                                        borderRadius: 9,
+                                        padding: '7px 32px 7px 12px',
+                                        fontSize: 12, fontWeight: 500,
+                                        outline: 'none', cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        transition: 'border-color 0.2s',
+                                    }}
+                                    onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.4)')}
+                                    onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+                                >
+                                    <option value="All">All Locations</option>
+                                    {branches.map(b => (
+                                        <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={12} style={{
+                                    position: 'absolute', right: 10, top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: 'rgba(255,255,255,0.3)',
+                                    pointerEvents: 'none',
+                                }} />
+                            </div>
+                        ) : (
+                            <div style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: 'rgba(255,106,12,0.05)',
+                                border: '1px solid rgba(255,106,12,0.2)',
+                                color: '#FF6A0C',
+                                borderRadius: 10, padding: '7px 16px',
+                                fontSize: 12, fontWeight: 700,
+                            }}>
+                                <MapPin size={12} /> My Branch
+                            </div>
+                        )}
 
                         {/* Notification bell */}
                         <div ref={notifRef} style={{ position: 'relative' }}>
