@@ -233,9 +233,9 @@ export default function CheckoutPage() {
               phone = user.phoneNumbers[0].phoneNumber;
             }
 
-            setGuestName(prev => prev || name);
-            setGuestEmail(prev => prev || email);
-            setGuestPhone(prev => prev || phone);
+            setGuestName(name);
+            setGuestEmail(email);
+            setGuestPhone(phone);
             
             // If user is signed in and we are on step 1, skip it ONLY if we have all details
             if (step === 1 && name && email && phone) {
@@ -383,9 +383,9 @@ export default function CheckoutPage() {
         try {
             const res = await apiCreateOrder({
                 clerkUserId: user?.id || undefined,
-                customerName: guestName.trim() === '' ? undefined : guestName,
-                customerPhone: guestPhone.trim() === '' ? undefined : guestPhone,
-                customerEmail: guestEmail.trim() === '' ? undefined : guestEmail,
+                customerName: (guestName.trim() || user?.fullName || '').trim() || undefined,
+                customerPhone: (guestPhone.trim() || user?.phoneNumbers?.[0]?.phoneNumber || '').trim() || undefined,
+                customerEmail: (guestEmail.trim() || user?.primaryEmailAddress?.emailAddress || '').trim() || undefined,
                 customerStreet: street,
                 customerCity: city,
                 customerPostcode: postcode,

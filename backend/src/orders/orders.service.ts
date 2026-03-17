@@ -107,18 +107,22 @@ export class OrdersService {
                 let clerkUserId: string | null = null;
                 if (this.clerkClient) {
                     try {
-                        const clerkUser = await this.clerkClient.users.createUser({
-                            firstName: body.customerName,
-                            emailAddress: [body.customerEmail],
-                            skipPasswordChecks: true,
-                            skipPasswordRequirement: true,
-                            publicMetadata: { role: 'customer' },
-                        });
-                        clerkUserId = clerkUser.id;
-                        isNewGuestAccount = true;
-                        this.logger.log(`Created Clerk guest account for ${body.customerEmail}: ${clerkUserId}`);
+                        const [clerkUserByEmail] = await this.clerkClient.users.getUserList({ emailAddress: [body.customerEmail] });
+                        if (clerkUserByEmail) {
+                          clerkUserId = clerkUserByEmail.id;
+                        } else {
+                          const clerkUser = await this.clerkClient.users.createUser({
+                              firstName: body.customerName,
+                              emailAddress: [body.customerEmail],
+                              skipPasswordChecks: true,
+                              skipPasswordRequirement: true,
+                              publicMetadata: { role: 'customer' },
+                          });
+                          clerkUserId = clerkUser.id;
+                          isNewGuestAccount = true;
+                        }
                     } catch (clerkErr: any) {
-                        this.logger.warn(`Clerk guest creation failed: ${clerkErr.message}`);
+                        this.logger.warn(`Clerk user operations failed: ${clerkErr.message}`);
                     }
                 }
 
@@ -133,6 +137,20 @@ export class OrdersService {
                 });
             }
             resolvedUserId = existingUser.id;
+        } else if (resolvedUserId) {
+            // Sign-in case: Check if local user exists, if not create them
+            const localUser = await this.prisma.user.findUnique({ where: { id: resolvedUserId } });
+            if (!localUser && body.customerEmail && body.customerName) {
+                await this.prisma.user.create({
+                    data: {
+                        id: resolvedUserId,
+                        email: body.customerEmail,
+                        name: body.customerName,
+                        phone: body.customerPhone || null,
+                        password: 'clerk-synced-placeholder'
+                    }
+                }).catch(err => this.logger.warn(`Failed to create local sync user ${resolvedUserId}: ${err.message}`));
+            }
         }
 
         let selectedBranchId = body.branchId;
