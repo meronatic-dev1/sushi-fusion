@@ -29,6 +29,13 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
         console.log(`Client disconnected: ${client.id}`);
     }
 
+    @SubscribeMessage('joinAdminRoom')
+    handleJoinAdminRoom(client: Socket) {
+        client.join('admins');
+        console.log(`Client ${client.id} joined admins room`);
+        client.emit('joinedRoom', 'admins');
+    }
+
     @SubscribeMessage('joinBranchRoom')
     handleJoinBranchRoom(client: Socket, branchId: string) {
         const roomName = `branch-${branchId}`;
@@ -54,11 +61,15 @@ export class OrdersGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     notifyBranchOfNewOrder(branchId: string, order: any) {
-        this.server.to(`branch-${branchId}`).emit('newOrderAssigned', order);
+        // Emit to specific branch room
+        this.server.to(`branch-${branchId}`).emit('newOrder', order);
+        // Also emit to global admins room
+        this.server.to('admins').emit('newOrder', order);
     }
 
     notifyBranchOfOrderUpdate(branchId: string, order: any) {
         this.server.to(`branch-${branchId}`).emit('orderStatusUpdated', order);
+        this.server.to('admins').emit('orderStatusUpdated', order);
     }
 
     notifyOrderUpdate(orderId: string, order: any) {

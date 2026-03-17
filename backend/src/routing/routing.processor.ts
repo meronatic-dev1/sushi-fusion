@@ -63,7 +63,13 @@ export class RoutingProcessor extends WorkerHost {
                 where: { id: orderId },
                 data: { status: 'PENDING' }
             });
-            this.ordersGateway.notifyBranchOfNewOrder(order.branchId, orderId);
+            this.ordersGateway.notifyBranchOfNewOrder(order.branchId, {
+                id: order.id,
+                customerName: order.customerName || 'Guest',
+                totalAmount: order.totalAmount,
+                branchId: order.branchId,
+                status: 'PENDING'
+            });
             // Even pickup orders get a check (optional, but good for SLA)
             await this.routingService.queueAcceptanceCheck(orderId);
             return;
@@ -159,7 +165,10 @@ export class RoutingProcessor extends WorkerHost {
 
         this.logger.log(`Order ${orderId} assigned to ${targetBranch.name} (${targetBranch.distanceKm.toFixed(2)}km). PENDING.`);
         this.ordersGateway.notifyBranchOfNewOrder(targetBranch.id, {
-            orderId,
+            id: order.id,
+            customerName: order.customerName || 'Guest',
+            totalAmount: order.totalAmount,
+            branchId: targetBranch.id,
             status: updateData.status,
             distance: targetBranch.distanceKm,
         });

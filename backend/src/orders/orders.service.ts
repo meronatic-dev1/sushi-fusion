@@ -205,6 +205,15 @@ export class OrdersService {
 
         if (order.mode === 'DELIVERY') {
             await this.routingService.queueOrderForRouting(order.id, order.customerLat, order.customerLng);
+        } else {
+            // For PICKUP and DINE_IN, notify immediately as branch is already assigned
+            this.ordersGateway.notifyBranchOfNewOrder(order.branchId, {
+                id: order.id,
+                customerName: order.customerName || 'Guest',
+                totalAmount: order.totalAmount,
+                branchId: order.branchId,
+                status: 'PENDING'
+            });
         }
 
         if (body.customerEmail) {
