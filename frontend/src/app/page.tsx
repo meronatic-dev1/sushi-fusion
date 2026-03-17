@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Script from 'next/script';
 import { Star } from 'lucide-react';
 import Header from '@/components/Header';
 import Banner from '@/components/Banner';
@@ -461,14 +462,9 @@ export default function Home() {
                 Real reviews from real sushi lovers.
               </p>
             </div>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: 24,
-            }}>
-              {REVIEWS.map((r) => (
-                <ReviewCard key={r.name} review={r} />
-              ))}
+            <div>
+              <div className="elfsight-app-d391b8e6-9041-4d6e-9ba7-64eaaa3d7912" data-elfsight-app-lazy></div>
+              <Script src="https://elfsightcdn.com/platform.js" async />
             </div>
           </div>
         </section>
