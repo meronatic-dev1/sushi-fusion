@@ -7,7 +7,7 @@ import { getAnalyticsDashboard } from '@/lib/api';
 import { useLocation } from '@/context/LocationContext';
 
 interface Customer {
-    name: string; email: string; joined: string;
+    name: string; email: string; phone: string; joined: string;
     orders: number; spend: string; status: 'Active' | 'Disabled';
 }
 
@@ -133,10 +133,10 @@ export default function CustomersPage() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                    {['Customer', 'Joined', 'Orders', 'Total Spend', 'Status', 'Actions'].map((h, i) => (
+                                    {['Customer', 'Phone', 'Joined', 'Orders', 'Total Spend', 'Status', 'Actions'].map((h, i) => (
                                         <th key={h} style={{
                                             padding: '12px 20px',
-                                            textAlign: i === 5 ? 'right' : 'left',
+                                            textAlign: i === 6 ? 'right' : 'left',
                                             fontSize: 10, fontWeight: 800,
                                             color: 'rgba(255,255,255,0.2)',
                                             letterSpacing: '0.1em',
@@ -151,7 +151,7 @@ export default function CustomersPage() {
                             <tbody>
                                 {filtered.length === 0 && (
                                     <tr>
-                                        <td colSpan={6} style={{ textAlign: 'center', padding: '52px 0', color: 'rgba(255,255,255,0.15)', fontSize: 14 }}>
+                                        <td colSpan={7} style={{ textAlign: 'center', padding: '52px 0', color: 'rgba(255,255,255,0.15)', fontSize: 14 }}>
                                             No customers found.
                                         </td>
                                     </tr>
@@ -197,7 +197,11 @@ export default function CustomersPage() {
                                                     </div>
                                                 </div>
                                             </td>
-
+ 
+                                            <td style={{ padding: '13px 20px' }}>
+                                                <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>{c.phone}</span>
+                                            </td>
+ 
                                             <td style={{ padding: '13px 20px' }}>
                                                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>{c.joined}</span>
                                             </td>

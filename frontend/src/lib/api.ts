@@ -178,7 +178,7 @@ export interface DashboardData {
     leastProducts: { name: string; orders: number }[];
     categoryPerformance: { name: string; revenue: number; orders: number }[];
     customerStats: { newCustomers: number; returningCustomers: number; peakHour: string; topLTV: number; newPct: number; retPct: number };
-    customerList: { name: string; email: string; joined: string; orders: number; spend: string; status: 'Active' | 'Disabled' }[];
+    customerList: { name: string; email: string; phone: string; joined: string; orders: number; spend: string; status: 'Active' | 'Disabled' }[];
     totalItemsSold: number;
     peakHoursHeatmap: Record<string, number[]>;
 }

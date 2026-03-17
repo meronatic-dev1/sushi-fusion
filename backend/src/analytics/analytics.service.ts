@@ -46,7 +46,7 @@ export class AnalyticsService {
         for (const o of orders) {
             if (o.userId && o.user) {
                 if (!customerMap[o.userId]) {
-                    customerMap[o.userId] = { id: o.userId, name: o.user.name, email: o.user.email, createdAt: o.user.createdAt, orders: [] };
+                    customerMap[o.userId] = { id: o.userId, name: o.user.name, email: o.user.email, phone: o.user.phone, createdAt: o.user.createdAt, orders: [] };
                 }
                 customerMap[o.userId].orders.push({ id: o.id, totalAmount: o.totalAmount, createdAt: o.createdAt });
             }
@@ -180,6 +180,7 @@ export class AnalyticsService {
         const customerListData = customerList.map(u => ({
             name: u.name,
             email: u.email,
+            phone: u.phone || '—',
             joined: new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             orders: u.orders.length,
             spend: `AED ${u.orders.reduce((s: number, o: any) => s + (o.totalAmount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`,

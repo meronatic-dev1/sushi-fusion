@@ -35,6 +35,7 @@ function ordersToRows(orders: Order[]) {
         'Order ID': o.displayId,
         'Customer': o.customer,
         'Email': o.email,
+        'Phone': o.userPhone || '—',
         'Branch': o.branch,
         'Mode': o.mode,
         'Items': o.items.join(', '),
@@ -57,7 +58,7 @@ async function exportExcel(orders: Order[]) {
     const XLSX = (window as any).XLSX;
     const rows = ordersToRows(orders);
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [10, 22, 26, 14, 10, 50, 10, 12, 14, 24].map(w => ({ wch: w }));
+    ws['!cols'] = [10, 22, 26, 18, 14, 10, 50, 10, 12, 14, 24].map(w => ({ wch: w }));
     const range = XLSX.utils.decode_range(ws['!ref']!);
     for (let C = range.s.c; C <= range.e.c; C++) {
         const cell = ws[XLSX.utils.encode_cell({ r: 0, c: C })];
@@ -534,7 +535,7 @@ export default function AdminOrdersPage() {
                                             {order.customer}
                                         </p>
                                         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.22)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                            {order.email}
+                                            {order.email} {order.userPhone ? `· ${order.userPhone}` : ''}
                                         </p>
                                     </div>
 
