@@ -131,20 +131,8 @@ export class OrdersService {
                         password: 'guest-placeholder-password',
                     }
                 });
-            } else if (body.customerPhone) {
-                // Update existing guest's phone
-                await this.prisma.user.update({
-                    where: { id: existingUser.id },
-                    data: { phone: body.customerPhone }
-                }).catch(() => {});
             }
             resolvedUserId = existingUser.id;
-        } else if (resolvedUserId && body.customerPhone) {
-            // Ensure signed-in user's phone is updated locally if provided
-            await this.prisma.user.update({
-                where: { id: resolvedUserId },
-                data: { phone: body.customerPhone }
-            }).catch(err => this.logger.warn(`Failed to update phone for user ${resolvedUserId}: ${err.message}`));
         }
 
         let selectedBranchId = body.branchId;

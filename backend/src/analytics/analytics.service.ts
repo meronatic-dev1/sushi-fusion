@@ -44,11 +44,44 @@ export class AnalyticsService {
         // Customers list
         const customerMap: Record<string, any> = {};
         for (const o of orders) {
+            // Priority 1: Registered Users (linked to an account)
             if (o.userId && o.user) {
                 if (!customerMap[o.userId]) {
-                    customerMap[o.userId] = { id: o.userId, name: o.user.name, email: o.user.email, phone: o.user.phone, createdAt: o.user.createdAt, orders: [] };
+                    customerMap[o.userId] = { 
+                        id: o.userId, 
+                        name: o.user.name || o.customerName || 'Sync User', 
+                        email: o.user.email || o.customerEmail || '—', 
+                        phone: o.user.phone || o.customerPhone || '—', 
+                        createdAt: o.user.createdAt, 
+                        orders: [] 
+                    };
+                }
+                // Fallback if user profile is missing info
+                if ((customerMap[o.userId].name === 'Sync User' || !customerMap[o.userId].name) && o.customerName) {
+                    customerMap[o.userId].name = o.customerName;
+                }
+                if ((customerMap[o.userId].email === '—' || !customerMap[o.userId].email) && o.customerEmail) {
+                    customerMap[o.userId].email = o.customerEmail;
+                }
+                if ((customerMap[o.userId].phone === '—' || !customerMap[o.userId].phone) && o.customerPhone) {
+                    customerMap[o.userId].phone = o.customerPhone;
                 }
                 customerMap[o.userId].orders.push({ id: o.id, totalAmount: o.totalAmount, createdAt: o.createdAt });
+            } 
+            // Priority 2: Guest Users (identified by email)
+            else if (o.customerEmail) {
+                const guestId = `guest-${o.customerEmail}`;
+                if (!customerMap[guestId]) {
+                    customerMap[guestId] = {
+                        id: guestId,
+                        name: o.customerName || 'Guest User',
+                        email: o.customerEmail,
+                        phone: o.customerPhone || '—',
+                        createdAt: o.createdAt,
+                        orders: []
+                    };
+                }
+                customerMap[guestId].orders.push({ id: o.id, totalAmount: o.totalAmount, createdAt: o.createdAt });
             }
         }
         const customerList = Object.values(customerMap);
