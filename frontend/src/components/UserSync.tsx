@@ -30,7 +30,8 @@ export default function UserSync() {
                     sessionStorage.setItem(syncKey, 'true');
                     console.log('User synced successfully');
                 } else {
-                    console.error('User sync failed');
+                    const errData = await res.json().catch(() => ({ message: 'No error body' }));
+                    console.error('User sync failed:', errData.message);
                 }
             } catch (err) {
                 console.error('Error in UserSync component:', err);

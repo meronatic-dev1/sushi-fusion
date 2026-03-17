@@ -30,10 +30,10 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
 
@@ -106,7 +106,7 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
         const { error } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                return_url: `${window.location.origin}/checkout`, 
+                return_url: `${window.location.origin}/checkout`,
             },
             redirect: 'if_required',
         });
@@ -122,20 +122,20 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
 
     return (
         <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <PaymentElement 
-                options={{ layout: 'tabs' }} 
+            <PaymentElement
+                options={{ layout: 'tabs' }}
                 onReady={() => setIsReady(true)}
                 onChange={(event) => {
                     setIsComplete(event.complete);
                 }}
             />
-            
+
             {errorMessage && (
-                <div style={{ 
-                    color: '#ef4444', 
-                    fontSize: 13, 
-                    padding: '10px 14px', 
-                    background: '#fee2e2', 
+                <div style={{
+                    color: '#ef4444',
+                    fontSize: 13,
+                    padding: '10px 14px',
+                    background: '#fee2e2',
                     borderRadius: 10,
                     border: '1px solid #fecaca',
                     lineHeight: 1.4
@@ -143,7 +143,7 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
                     <strong>Note:</strong> {errorMessage}
                 </div>
             )}
-            
+
             <button
                 type="submit"
                 disabled={!stripe || !isReady || !isComplete}
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
     const { settings } = useSettings();
     const { location } = useLocation();
     const { user, isSignedIn, isLoaded } = useUser();
-    
+
     const [step, setStep] = useState<Step>(1);
     const [loginMode, setLoginMode] = useState(false);
     const [orderId, setOrderId] = useState<string | null>(null);
@@ -230,13 +230,13 @@ export default function CheckoutPage() {
             const email = user.primaryEmailAddress?.emailAddress || '';
             let phone = '';
             if (user.phoneNumbers?.length > 0) {
-              phone = user.phoneNumbers[0].phoneNumber;
+                phone = user.phoneNumbers[0].phoneNumber;
             }
 
-            setGuestName(name);
-            setGuestEmail(email);
-            setGuestPhone(phone);
-            
+            setGuestName(prev => prev || name);
+            setGuestEmail(prev => prev || email);
+            setGuestPhone(prev => prev || phone);
+
             // If user is signed in and we are on step 1, skip it ONLY if we have all details
             if (step === 1 && name && email && phone) {
                 setStep(2);
@@ -291,11 +291,11 @@ export default function CheckoutPage() {
 
                 const findNearestBranch = (lat: number, lng: number) => {
                     if (!branches || branches.length === 0) return;
-                    
+
                     const distances = branches.map(b => ({
                         b, dist: getDistance(lat, lng, b.latitude, b.longitude)
-                    })).sort((a,b) => a.dist - b.dist);
-                    
+                    })).sort((a, b) => a.dist - b.dist);
+
                     const openBranches = distances.filter(d => !d.b.isClosed);
                     // 1. First check within 20km
                     let assigned = openBranches.find(d => d.dist <= 20);
@@ -311,7 +311,7 @@ export default function CheckoutPage() {
                     if (!assigned && distances.length > 0) {
                         assigned = distances[0];
                     }
-                    
+
                     if (assigned) {
                         setSelectedBranchId(assigned.b.id);
                         setBranchName(assigned.b.name);
@@ -348,7 +348,7 @@ export default function CheckoutPage() {
                     if (branches.length > 0) {
                         const distances = branches.map(b => ({
                             b, dist: getDistance(latitude, longitude, b.latitude, b.longitude)
-                        })).sort((a,b) => a.dist - b.dist);
+                        })).sort((a, b) => a.dist - b.dist);
                         setSelectedBranchId(distances[0].b.id);
                         setBranchName(distances[0].b.name);
                     }
@@ -383,9 +383,9 @@ export default function CheckoutPage() {
         try {
             const res = await apiCreateOrder({
                 clerkUserId: user?.id || undefined,
-                customerName: (guestName.trim() || user?.fullName || '').trim() || undefined,
-                customerPhone: (guestPhone.trim() || user?.phoneNumbers?.[0]?.phoneNumber || '').trim() || undefined,
-                customerEmail: (guestEmail.trim() || user?.primaryEmailAddress?.emailAddress || '').trim() || undefined,
+                customerName: guestName.trim() === '' ? undefined : guestName,
+                customerPhone: guestPhone.trim() === '' ? undefined : guestPhone,
+                customerEmail: guestEmail.trim() === '' ? undefined : guestEmail,
                 customerStreet: street,
                 customerCity: city,
                 customerPostcode: postcode,
@@ -563,23 +563,23 @@ export default function CheckoutPage() {
                                 ) : (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                                         <Field label="Email">
-                                            <FInput 
-                                                type="email" 
+                                            <FInput
+                                                type="email"
                                                 placeholder="you@example.com"
                                                 value={loginEmail}
                                                 onChange={e => setLoginEmail(e.target.value)}
                                             />
                                         </Field>
                                         <Field label="Phone Number">
-                                            <FInput 
+                                            <FInput
                                                 placeholder="+971 50 000 0000"
                                                 value={loginPhone}
                                                 onChange={e => setLoginPhone(e.target.value)}
                                             />
                                         </Field>
                                         <Field label="Password" hint={<><Link href="/forgot-password" style={{ color: '#FF6A0C', fontWeight: 600, fontSize: 11 }}>Forgot?</Link></>}>
-                                            <FInput 
-                                                type="password" 
+                                            <FInput
+                                                type="password"
                                                 placeholder="••••••••"
                                                 value={loginPassword}
                                                 onChange={e => setLoginPassword(e.target.value)}
@@ -588,10 +588,10 @@ export default function CheckoutPage() {
                                     </div>
                                 )}
 
-                                <ActionButton 
-                                    onClick={next} 
+                                <ActionButton
+                                    onClick={next}
                                     style={{ marginTop: 8 }}
-                                    disabled={!loginMode 
+                                    disabled={!loginMode
                                         ? (!guestName.trim() || !guestPhone.trim() || !guestEmail.trim())
                                         : (!loginEmail.trim() || !loginPhone.trim() || !loginPassword.trim())}
                                 >
@@ -823,8 +823,8 @@ export default function CheckoutPage() {
 
                                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                                     <BackButton onClick={back} />
-                                    <ActionButton 
-                                        onClick={orderMode === 'DineIn' ? handleOrderCreation : next} 
+                                    <ActionButton
+                                        onClick={orderMode === 'DineIn' ? handleOrderCreation : next}
                                         style={{ flex: 1 }}
                                         disabled={
                                             orderMode === 'Delivery'
@@ -936,7 +936,7 @@ export default function CheckoutPage() {
                                     is being prepared. You'll receive a confirmation email shortly.
                                 </p>
 
-                                { /* Details card */ }
+                                { /* Details card */}
                                 <div style={{
                                     background: '#faf8f5', border: '1px solid #ede6dc',
                                     borderRadius: 14, padding: 20, textAlign: 'left', marginBottom: 28,
@@ -967,7 +967,7 @@ export default function CheckoutPage() {
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {orderId && (
                                         <Link href={`/track/${orderId}`}>
-                                            <ActionButton onClick={() => {}}>
+                                            <ActionButton onClick={() => { }}>
                                                 <Truck size={18} /> Track Your Order
                                             </ActionButton>
                                         </Link>
@@ -1123,7 +1123,7 @@ export default function CheckoutPage() {
                             {orderMode === 'Delivery' ? <MapPin size={14} style={{ color: '#FF6A0C', flexShrink: 0, marginTop: 1 }} /> : <House size={14} style={{ color: '#34d399', flexShrink: 0, marginTop: 1 }} />}
                             <div>
                                 <p style={{ fontSize: 12, fontWeight: 700, color: orderMode === 'Delivery' ? '#7a3d10' : '#065f46', margin: '0 0 2px' }}>
-                                    {orderMode === 'Delivery' 
+                                    {orderMode === 'Delivery'
                                         ? (selectedAddress ? `Delivering to ${selectedAddress.substring(0, 40)}…` : 'Delivering from nearest branch')
                                         : (branchName ? `${orderMode} at ${branchName}` : `Please select a branch for ${orderMode}`)}
                                 </p>
@@ -1226,7 +1226,7 @@ function ActionButton({ onClick, children, loading, style, disabled }: {
 }) {
     const [hov, setHov] = useState(false);
     const isDisabled = loading || disabled;
-    
+
     return (
         <button
             onClick={onClick}

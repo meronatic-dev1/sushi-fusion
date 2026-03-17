@@ -1,9 +1,11 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
+    private readonly logger = new Logger(UsersService.name);
+
     constructor(private prisma: PrismaService) { }
 
     async findAll() {
@@ -68,61 +70,78 @@ export class UsersService {
     }
 
     async syncUser(data: { id: string, email: string, name: string, phone?: string }) {
-        // 1. Try finding by the provided ID (Clerk ID)
-        let existing = await this.findById(data.id);
+        try {
+            this.logger.log(`Syncing user: ${data.id} (${data.email})`);
+            
+            const userEmail = data.email || 'no-email@clerk.user';
+            
+            // 1. Try finding by the provided ID (Clerk ID)
+            let existing = await this.findById(data.id);
 
-        // 2. If not found by ID, check if a user with the same email exists (migration case)
-        if (!existing) {
-            existing = await this.findByEmail(data.email);
+            // 2. If not found by ID, check if a user with the same email exists (migration case)
+            if (!existing) {
+                existing = await this.findByEmail(userEmail);
+                if (existing) {
+                    this.logger.log(`Migrating user ${data.email} from old ID ${existing.id} to Clerk ID ${data.id}`);
+
+                    // Migrate the record to the new Clerk ID using a transaction
+                    return await this.prisma.$transaction(async (tx) => {
+                        // Update related orders to the new ID first
+                        await tx.order.updateMany({
+                            where: { userId: existing!.id },
+                            data: { userId: data.id }
+                        });
+
+                        // Delete the old record
+                        await tx.user.delete({ where: { id: existing!.id } });
+
+                        // Create the new record with the same attributes but new ID
+                        return await tx.user.create({
+                            data: {
+                                id: data.id,
+                                email: data.email,
+                                name: data.name,
+                                phone: data.phone || existing!.phone,
+                                role: existing!.role.toString().toUpperCase() as any,
+                                password: existing!.password,
+                                branchId: existing!.branchId,
+                            },
+                        });
+                    });
+                }
+            }
+
+            // 3. Normal update flow if user exists with the correct ID
             if (existing) {
-                console.log(`Migrating user ${data.email} from old ID ${existing.id} to Clerk ID ${data.id}`);
-
-                // Migrate the record to the new Clerk ID using a transaction
-                return this.prisma.$transaction(async (tx) => {
-                    // Update related orders to the new ID first
-                    await tx.order.updateMany({
-                        where: { userId: existing!.id },
-                        data: { userId: data.id }
-                    });
-
-                    // Delete the old record
-                    await tx.user.delete({ where: { id: existing!.id } });
-
-                    // Create the new record with the same attributes but new ID
-                    return tx.user.create({
-                        data: {
-                            id: data.id,
-                            email: data.email,
-                            name: data.name,
-                            phone: data.phone || existing!.phone,
-                            role: existing!.role,
-                            password: existing!.password,
-                            branchId: existing!.branchId,
-                        },
-                    });
+                this.logger.log(`Updating existing user: ${data.id}`);
+                return await this.update(data.id, {
+                    email: data.email,
+                    name: data.name,
+                    phone: data.phone ?? existing.phone,
                 });
             }
-        }
 
-        // 3. Normal update flow if user exists with the correct ID
-        if (existing) {
-            return this.update(data.id, {
-                email: data.email,
-                name: data.name,
-                phone: data.phone ?? existing.phone,
+            // 4. Create or update new user if neither ID nor email matched (using upsert for robustness)
+            this.logger.log(`Upserting synced user: ${data.id}`);
+            return await this.prisma.user.upsert({
+                where: { id: data.id },
+                update: {
+                    email: userEmail,
+                    name: data.name,
+                    phone: data.phone || undefined, // Don't overwrite with null if it exists
+                },
+                create: {
+                    id: data.id,
+                    email: userEmail,
+                    name: data.name,
+                    phone: data.phone || null,
+                    password: 'synced-from-clerk',
+                    role: 'CUSTOMER',
+                },
             });
+        } catch (error: any) {
+            this.logger.error(`Sync error for user ${data.id}: ${error.message}`, error.stack);
+            throw error;
         }
-
-        // 4. Create new user if neither ID nor email matched
-        return this.prisma.user.create({
-            data: {
-                id: data.id,
-                email: data.email,
-                name: data.name,
-                phone: data.phone || null,
-                password: 'synced-from-clerk',
-                role: 'CUSTOMER',
-            },
-        });
     }
 }
