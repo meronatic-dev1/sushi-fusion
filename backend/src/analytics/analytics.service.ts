@@ -5,62 +5,87 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AnalyticsService {
     constructor(private prisma: PrismaService) { }
 
-    async getDashboard() {
+    async getDashboard(branchId?: string) {
         // Run all queries in parallel for performance
-        const [
-            orders,
-            customers,
-            topProducts,
-            leastProducts,
-            categoryPerf,
-            customerList,
-        ] = await Promise.all([
-            // All orders with items + user + branch
+        // Fetch orders and ALL menu items to build the dashboard entirely in-memory.
+        // This makes filtering by branch trivial and fully accurate.
+        const [orders, menuItems] = await Promise.all([
             this.prisma.order.findMany({
+                where: branchId ? { branchId } : undefined,
                 include: {
-                    orderItems: { include: { menuItem: true } },
+                    orderItems: { include: { menuItem: { include: { category: true } } } },
                     user: true,
                     branch: true,
                 },
                 orderBy: { createdAt: 'desc' },
             }),
-            // All customers (role = CUSTOMER)
-            this.prisma.user.findMany({
-                where: { role: 'CUSTOMER' },
-                select: { id: true, email: true, name: true, createdAt: true },
-            }),
-            // Top 10 most ordered products
-            this.prisma.orderItem.groupBy({
-                by: ['menuItemId'],
-                _sum: { quantity: true, totalPrice: true },
-                _count: { id: true },
-                orderBy: { _sum: { quantity: 'desc' } },
-                take: 10,
-            }),
-            // Bottom 5 least ordered products
-            this.prisma.orderItem.groupBy({
-                by: ['menuItemId'],
-                _sum: { quantity: true },
-                _count: { id: true },
-                orderBy: { _sum: { quantity: 'asc' } },
-                take: 5,
-            }),
-            // Category performance
-            this.prisma.orderItem.groupBy({
-                by: ['menuItemId'],
-                _sum: { quantity: true, totalPrice: true },
-            }),
-            // Customer list with order aggregation
-            this.prisma.user.findMany({
-                where: { role: 'CUSTOMER' },
-                include: {
-                    orders: {
-                        select: { id: true, totalAmount: true, createdAt: true },
-                    },
-                },
-                orderBy: { createdAt: 'desc' },
+            this.prisma.menuItem.findMany({
+                include: { category: true },
             }),
         ]);
+
+        const menuMap = new Map(menuItems.map(m => [m.id, m]));
+
+        // Aggregate product data
+        const itemAgg: Record<string, { quantity: number; totalPrice: number; menuItemId: string }> = {};
+        for (const o of orders) {
+            for (const i of o.orderItems) {
+                if (!itemAgg[i.menuItemId]) itemAgg[i.menuItemId] = { quantity: 0, totalPrice: 0, menuItemId: i.menuItemId };
+                itemAgg[i.menuItemId].quantity += i.quantity;
+                itemAgg[i.menuItemId].totalPrice += (i.unitPrice * i.quantity);
+            }
+        }
+        
+        const allAgg = Object.values(itemAgg);
+        const topProducts = [...allAgg].sort((a, b) => b.quantity - a.quantity).slice(0, 10).map(x => ({ _sum: { quantity: x.quantity, totalPrice: x.totalPrice }, menuItemId: x.menuItemId }));
+        const leastProducts = [...allAgg].sort((a, b) => a.quantity - b.quantity).slice(0, 5).map(x => ({ _sum: { quantity: x.quantity }, menuItemId: x.menuItemId }));
+        const categoryPerf = allAgg.map(x => ({ _sum: { quantity: x.quantity, totalPrice: x.totalPrice }, menuItemId: x.menuItemId }));
+
+        // Customers list
+        const customerMap: Record<string, any> = {};
+        for (const o of orders) {
+            // Priority 1: Registered Users (linked to an account)
+            if (o.userId && o.user) {
+                if (!customerMap[o.userId]) {
+                    customerMap[o.userId] = { 
+                        id: o.userId, 
+                        name: o.user.name || o.customerName || 'Sync User', 
+                        email: o.user.email || o.customerEmail || '—', 
+                        phone: o.user.phone || o.customerPhone || '—', 
+                        createdAt: o.user.createdAt, 
+                        orders: [] 
+                    };
+                }
+                // Fallback if user profile is missing info
+                if ((customerMap[o.userId].name === 'Sync User' || !customerMap[o.userId].name) && o.customerName) {
+                    customerMap[o.userId].name = o.customerName;
+                }
+                if ((customerMap[o.userId].email === '—' || !customerMap[o.userId].email) && o.customerEmail) {
+                    customerMap[o.userId].email = o.customerEmail;
+                }
+                if ((customerMap[o.userId].phone === '—' || !customerMap[o.userId].phone) && o.customerPhone) {
+                    customerMap[o.userId].phone = o.customerPhone;
+                }
+                customerMap[o.userId].orders.push({ id: o.id, totalAmount: o.totalAmount, createdAt: o.createdAt });
+            } 
+            // Priority 2: Guest Users (identified by email)
+            else if (o.customerEmail) {
+                const guestId = `guest-${o.customerEmail}`;
+                if (!customerMap[guestId]) {
+                    customerMap[guestId] = {
+                        id: guestId,
+                        name: o.customerName || 'Guest User',
+                        email: o.customerEmail,
+                        phone: o.customerPhone || '—',
+                        createdAt: o.createdAt,
+                        orders: []
+                    };
+                }
+                customerMap[guestId].orders.push({ id: o.id, totalAmount: o.totalAmount, createdAt: o.createdAt });
+            }
+        }
+        const customerList = Object.values(customerMap);
+        const customers = customerList;
 
         // ── KPIs ──
         const totalRevenue = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
@@ -113,15 +138,15 @@ export class AnalyticsService {
             ...leastProducts.map(p => p.menuItemId),
             ...categoryPerf.map(p => p.menuItemId),
         ])];
-        const menuItems = await this.prisma.menuItem.findMany({
+        const menuItemsLookup = await this.prisma.menuItem.findMany({
             where: { id: { in: menuItemIds } },
             include: { category: true },
         });
-        const menuMap = new Map(menuItems.map(m => [m.id, m]));
+        const menuMapLookup = new Map(menuItemsLookup.map(m => [m.id, m]));
 
         const maxTopOrders = topProducts.length > 0 ? (topProducts[0]._sum.quantity || 1) : 1;
         const topProductsData = topProducts.map(p => {
-            const mi = menuMap.get(p.menuItemId);
+            const mi = menuMapLookup.get(p.menuItemId);
             return {
                 name: mi?.name || 'Unknown',
                 orders: p._sum.quantity || 0,
@@ -131,7 +156,7 @@ export class AnalyticsService {
         });
 
         const leastProductsData = leastProducts.map(p => {
-            const mi = menuMap.get(p.menuItemId);
+            const mi = menuMapLookup.get(p.menuItemId);
             return {
                 name: mi?.name || 'Unknown',
                 orders: p._sum.quantity || 0,
@@ -141,7 +166,7 @@ export class AnalyticsService {
         // ── Category performance ──
         const catAgg: Record<string, { revenue: number; orders: number; name: string }> = {};
         for (const item of categoryPerf) {
-            const mi = menuMap.get(item.menuItemId);
+            const mi = menuMapLookup.get(item.menuItemId);
             const catName = mi?.category?.name || 'Uncategorized';
             if (!catAgg[catName]) catAgg[catName] = { revenue: 0, orders: 0, name: catName };
             catAgg[catName].revenue += item._sum.totalPrice || 0;
@@ -188,9 +213,10 @@ export class AnalyticsService {
         const customerListData = customerList.map(u => ({
             name: u.name,
             email: u.email,
+            phone: u.phone || '—',
             joined: new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
             orders: u.orders.length,
-            spend: `AED ${u.orders.reduce((s, o) => s + (o.totalAmount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`,
+            spend: `AED ${u.orders.reduce((s: number, o: any) => s + (o.totalAmount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}`,
             status: 'Active' as const,
         }));
 
