@@ -167,6 +167,125 @@ function PromoBanner() {
   );
 }
 
+/* ── Our Story section ─────────────────────────────────────────── */
+function OurStory() {
+  return (
+    <section
+      style={{
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: 520,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '72px 24px',
+      }}
+    >
+      {/* Full-bleed background image */}
+      <img
+        src="/images/our-story-bg.png"
+        alt=""
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center',
+          display: 'block',
+          zIndex: 0,
+        }}
+        onError={(e) => {
+          /* fallback: soft cream bg if image missing */
+          (e.target as HTMLImageElement).style.display = 'none';
+        }}
+      />
+
+      {/* Soft overlay so text stays readable */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(255,250,245,0.55)',
+          zIndex: 1,
+        }}
+      />
+
+      {/* Content card */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          maxWidth: 560,
+          width: '100%',
+          textAlign: 'center',
+        }}
+      >
+        {/* Logo badge */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+          <div style={{
+            width: 90, height: 90, borderRadius: '50%', overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            border: '3px solid rgba(255,106,12,0.25)',
+            background: '#fff',
+          }}>
+            <img
+              src="/sushi-fusion-logo.png"
+              alt="Sushi Fusion"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          </div>
+        </div>
+
+        {/* Heading */}
+        <h2 style={{
+          fontFamily: 'Mashiro, sans-serif',
+          fontSize: 'clamp(26px, 3vw, 38px)',
+          fontWeight: 800,
+          color: '#1c1c1c',
+          marginBottom: 20,
+          lineHeight: 1.15,
+        }}>
+          Our Story
+        </h2>
+
+        {/* Body text */}
+        <p style={{
+          fontSize: 15,
+          color: '#2a2a2a',
+          lineHeight: 1.8,
+          marginBottom: 16,
+        }}>
+          With over 18 years of experience perfecting Japanese cuisine across Japan, Malaysia,
+          Singapore, Thailand, India, and Nepal, Chef Gyanendra Jang Thapa — the heart and soul
+          behind Sushi Fusion — brings his lifelong passion to Dubai.
+        </p>
+        <p style={{
+          fontSize: 15,
+          color: '#2a2a2a',
+          lineHeight: 1.8,
+          marginBottom: 16,
+        }}>
+          In 2023, he turned his dream into reality by creating Sushi Fusion, a place where
+          tradition meets creativity. Inspired by Dubai's rich mix of cultures, his vision was
+          to craft sushi that speaks to everyone — familiar yet exciting, authentic yet
+          refreshingly new.
+        </p>
+        <p style={{
+          fontSize: 15,
+          color: '#2a2a2a',
+          lineHeight: 1.8,
+        }}>
+          At Sushi Fusion, every roll carries a story — of a chef's journey across borders,
+          of flavors from around the world, and of a love for food that connects people beyond
+          culture and language.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Page ──────────────────────────────────────────────────────── */
 
 export default function Home() {
@@ -250,6 +369,7 @@ export default function Home() {
   const ORANGE = '#FFF8F2';
   const WHITE = '#ffffff';
   const DARK = '#1c1c1c';
+  const STORY_BG = '#fdf6ee'; /* warm cream — matches the illustration's paper tone */
 
   return (
     <>
@@ -266,10 +386,10 @@ export default function Home() {
           t={t}
         />
 
-        {/* ── 2. BANNER (full-width, no padding) ── */}
+        {/* ── 2. BANNER ── */}
         <Banner />
 
-        {/* ── 3. CATEGORY BAR + PRODUCTS (light-orange bg) ── */}
+        {/* ── 3. CATEGORY BAR + PRODUCTS ── */}
         <div id="menu" style={{ background: ORANGE }}>
           <CategoryBar
             activeCategory={activeCategory}
@@ -304,16 +424,22 @@ export default function Home() {
           </div>
         </div>
 
-        {/* wave: light-orange → dark */}
-        <WaveDivider from={ORANGE} to={DARK} />
+        {/* wave: light-orange → story cream */}
+        <WaveDivider from={ORANGE} to={STORY_BG} />
 
-        {/* ── 4. PROMO BANNER (dark bg) ── */}
+        {/* ── 4. OUR STORY ── */}
+        <OurStory />
+
+        {/* wave: story cream → dark */}
+        <WaveDivider from={STORY_BG} to={DARK} />
+
+        {/* ── 5. PROMO BANNER ── */}
         <PromoBanner />
 
         {/* wave: dark → white */}
         <WaveDivider from={DARK} to={WHITE} />
 
-        {/* ── 5. REVIEWS (white bg) ── */}
+        {/* ── 6. REVIEWS ── */}
         <section style={{ background: WHITE, padding: '72px 24px' }}>
           <div style={{ maxWidth: 1120, margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: 44 }}>
@@ -349,7 +475,7 @@ export default function Home() {
 
       </main>
 
-      {/* ── 6. FOOTER ── */}
+      {/* ── 7. FOOTER ── */}
       <Footer onSelectCategory={setActiveCategory} />
 
       <BottomNav
