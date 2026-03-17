@@ -380,32 +380,55 @@ export default function CheckoutPage() {
             ? `${addressParts.join(', ')}${instructions ? ` (Notes: ${instructions})` : ''}`
             : undefined;
 
+        const payload = {
+            clerkUserId: user?.id || undefined,
+            customerName: guestName.trim() === '' ? undefined : guestName,
+            customerPhone: guestPhone.trim() === '' ? undefined : guestPhone,
+            customerEmail: guestEmail.trim() === '' ? undefined : guestEmail,
+            customerStreet: street,
+            customerCity: city,
+            customerPostcode: postcode,
+            deliveryInstructions: instructions,
+            address: customerAddress,
+            mode: orderMode === 'Delivery' ? 'DELIVERY' : orderMode === 'Pickup' ? 'PICKUP' : 'DINE_IN',
+            latitude: Number(customerLat) || 0,
+            longitude: Number(customerLng) || 0,
+            branchId: selectedBranchId || '',
+            items: cartItems.map((item: any) => ({
+                menuItemId: item.id,
+                quantity: item.qty,
+                unitPrice: Number(item.price),
+            })),
+        };
+
+        console.log('--- ORDER CREATION DEBUG ---');
+        console.log('Payload:', payload);
+
         try {
-            const res = await apiCreateOrder({
-                clerkUserId: user?.id || undefined,
-                customerName: guestName.trim() === '' ? undefined : guestName,
-                customerPhone: guestPhone.trim() === '' ? undefined : guestPhone,
-                customerEmail: guestEmail.trim() === '' ? undefined : guestEmail,
-                customerStreet: street,
-                customerCity: city,
-                customerPostcode: postcode,
-                deliveryInstructions: instructions,
-                address: customerAddress,
-                mode: orderMode === 'Delivery' ? 'DELIVERY' : orderMode === 'Pickup' ? 'PICKUP' : 'DINE_IN',
-                latitude: Number(customerLat) || 0,
-                longitude: Number(customerLng) || 0,
-                branchId: selectedBranchId || '',
-                items: cartItems.map((item: any) => ({
-                    menuItemId: item.id,
-                    quantity: item.qty,
-                    unitPrice: Number(item.price),
-                })),
-            });
+            const res = await apiCreateOrder(payload);
+            console.log('Order success:', res);
             setOrderId(res.id || res.orderId || 'NEW-ORDER');
             clearCart();
             next();
         } catch (e: any) {
-            alert(e.message || 'Order creation failed');
+            console.error('Order creation error:', e);
+            let errorMsg = e.message || 'Order creation failed';
+            
+            // Try to extract more detail if it's a NestJS validation error
+            if (errorMsg.includes('API 400:')) {
+                try {
+                    const detail = JSON.parse(errorMsg.replace('API 400: ', ''));
+                    if (detail.message && Array.isArray(detail.message)) {
+                        errorMsg = `Validation Error: ${detail.message.join(', ')}`;
+                    } else if (detail.message) {
+                        errorMsg = detail.message;
+                    }
+                } catch (pe) {
+                    // Not JSON, just use raw message
+                }
+            }
+            
+            alert(`Error: ${errorMsg}\n\nPlease check your details and try again.`);
             setIsProcessing(false);
         }
     };

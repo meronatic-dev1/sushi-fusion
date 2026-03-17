@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, HttpCode, HttpStatus, Query, Logger } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -6,6 +6,7 @@ import { ProcessRefundDto } from './dto/process-refund.dto';
 
 @Controller('orders')
 export class OrdersController {
+    private readonly logger = new Logger(OrdersController.name);
     constructor(private readonly ordersService: OrdersService) { }
 
     @Get()
@@ -38,6 +39,7 @@ export class OrdersController {
     @Post()
     @HttpCode(HttpStatus.CREATED)
     async createOrder(@Body() body: CreateOrderDto) {
+        this.logger.log(`Creating order in controller: ${JSON.stringify(body)}`);
         return this.ordersService.create(body);
     }
 }
