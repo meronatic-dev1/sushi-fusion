@@ -11,7 +11,7 @@ import { DELIVERY_FEE } from '@/lib/data';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles, Navigation } from 'lucide-react';
+import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles, Navigation, Utensils, ShoppingBag } from 'lucide-react';
 
 // Make sure to call `loadStripe` outside of a component’s render to avoid recreating the `Stripe` object on every render.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -180,6 +180,7 @@ export default function CheckoutPage() {
     const [promoCode, setPromoCode] = useState('');
     const [promoApplied, setPromoApplied] = useState(false);
     const [isLocating, setIsLocating] = useState(false);
+    const [orderMode, setOrderMode] = useState<'Delivery' | 'Pickup' | 'DineIn'>('Delivery');
 
     // Form states
     const [guestName, setGuestName] = useState('');
@@ -240,7 +241,7 @@ export default function CheckoutPage() {
 
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
-    const DELIVERY = DELIVERY_FEE;
+    const DELIVERY = orderMode === 'Delivery' ? DELIVERY_FEE : 0;
     const TAX = +(SUBTOTAL * 0.05).toFixed(2);
     const DISCOUNT = promoApplied ? Math.round(SUBTOTAL * 0.1) : 0;
     const TOTAL = SUBTOTAL + DELIVERY + TAX - DISCOUNT;
@@ -381,7 +382,7 @@ export default function CheckoutPage() {
                 customerPostcode: postcode,
                 deliveryInstructions: instructions,
                 customerAddress,
-                mode: 'DELIVERY',
+                mode: orderMode === 'Delivery' ? 'DELIVERY' : orderMode === 'Pickup' ? 'PICKUP' : 'DINE_IN',
                 totalAmount: TOTAL,
                 customerLat,
                 customerLng,
@@ -596,88 +597,232 @@ export default function CheckoutPage() {
                     {step === 2 && (
                         <div style={{ animation: 'slideIn 0.3s ease both' }}>
                             <SectionCard
-                                icon={<Truck size={16} />}
-                                title="Delivery Address"
-                                subtitle="Where should we bring your order?"
+                                icon={orderMode === 'Delivery' ? <Truck size={16} /> : orderMode === 'Pickup' ? <ShoppingBag size={16} /> : <Utensils size={16} />}
+                                title={orderMode === 'Delivery' ? 'Delivery Address' : orderMode === 'Pickup' ? 'Pickup Details' : 'Dine-In Details'}
+                                subtitle={orderMode === 'Delivery' ? 'Where should we bring your order?' : orderMode === 'Pickup' ? 'Select a branch to pick up from' : 'Select a branch to dine in'}
                             >
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                    {/* Use My Location */}
-                                    <button
-                                        type="button"
-                                        onClick={handleUseMyLocation}
-                                        disabled={isLocating}
-                                        style={{
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                            padding: '12px 16px',
-                                            background: isLocating ? '#faf8f5' : '#fff5ee',
-                                            border: '1.5px solid #ffdcc4',
-                                            borderRadius: 12,
-                                            color: '#FF6A0C', fontSize: 13, fontWeight: 700,
-                                            cursor: isLocating ? 'wait' : 'pointer',
+                                {/* ── Mode Selector Tabs ── */}
+                                <div style={{
+                                    display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+                                    background: '#f2ede6', borderRadius: 12, padding: 4, marginBottom: 24,
+                                }}>
+                                    {([
+                                        { key: 'Delivery' as const, label: 'Delivery', icon: <Truck size={14} /> },
+                                        { key: 'Pickup' as const, label: 'Pickup', icon: <ShoppingBag size={14} /> },
+                                        { key: 'DineIn' as const, label: 'Dine In', icon: <Utensils size={14} /> },
+                                    ]).map(({ key, label, icon }) => (
+                                        <button key={key} onClick={() => setOrderMode(key)} style={{
+                                            padding: '10px 12px', borderRadius: 9,
+                                            border: 'none', cursor: 'pointer',
                                             fontFamily: '"DM Sans", sans-serif',
-                                            transition: 'all 0.18s',
-                                        }}
-                                        onMouseEnter={e => { if (!isLocating) { e.currentTarget.style.background = '#fff0e0'; e.currentTarget.style.borderColor = '#ffb888'; } }}
-                                        onMouseLeave={e => { if (!isLocating) { e.currentTarget.style.background = '#fff5ee'; e.currentTarget.style.borderColor = '#ffdcc4'; } }}
-                                    >
-                                        <Navigation size={15} style={{ animation: isLocating ? 'spin 1s linear infinite' : 'none' }} />
-                                        {isLocating ? 'Detecting location…' : <><img src="/images/location.png" alt="" style={{ width: 15, height: 15, objectFit: 'contain', verticalAlign: 'middle' }} /> Use My Current Location</>}
-                                    </button>
+                                            fontSize: 13, fontWeight: 700,
+                                            transition: 'all 0.2s',
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                            background: orderMode === key ? '#fff' : 'transparent',
+                                            color: orderMode === key ? '#FF6A0C' : '#a08060',
+                                            boxShadow: orderMode === key ? '0 2px 10px rgba(0,0,0,0.08)' : 'none',
+                                        }}>
+                                            {icon} {label}
+                                        </button>
+                                    ))}
+                                </div>
 
-                                    <Field label="Street Address">
-                                        <FInput
-                                            placeholder="12 Al Wasl Rd, Apt 4B"
-                                            value={street}
-                                            onChange={e => setStreet(e.target.value)}
-                                        />
-                                    </Field>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                                        <Field label="City">
+                                {/* ── Delivery Form ── */}
+                                {orderMode === 'Delivery' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <button
+                                            type="button"
+                                            onClick={handleUseMyLocation}
+                                            disabled={isLocating}
+                                            style={{
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                                padding: '12px 16px',
+                                                background: isLocating ? '#faf8f5' : '#fff5ee',
+                                                border: '1.5px solid #ffdcc4',
+                                                borderRadius: 12,
+                                                color: '#FF6A0C', fontSize: 13, fontWeight: 700,
+                                                cursor: isLocating ? 'wait' : 'pointer',
+                                                fontFamily: '"DM Sans", sans-serif',
+                                                transition: 'all 0.18s',
+                                            }}
+                                            onMouseEnter={e => { if (!isLocating) { e.currentTarget.style.background = '#fff0e0'; e.currentTarget.style.borderColor = '#ffb888'; } }}
+                                            onMouseLeave={e => { if (!isLocating) { e.currentTarget.style.background = '#fff5ee'; e.currentTarget.style.borderColor = '#ffdcc4'; } }}
+                                        >
+                                            <Navigation size={15} style={{ animation: isLocating ? 'spin 1s linear infinite' : 'none' }} />
+                                            {isLocating ? 'Detecting location…' : <><img src="/images/location.png" alt="" style={{ width: 15, height: 15, objectFit: 'contain', verticalAlign: 'middle' }} /> Use My Current Location</>}
+                                        </button>
+
+                                        <Field label="Street Address">
                                             <FInput
-                                                placeholder="Dubai"
-                                                value={city}
-                                                onChange={e => setCity(e.target.value)}
+                                                placeholder="12 Al Wasl Rd, Apt 4B"
+                                                value={street}
+                                                onChange={e => setStreet(e.target.value)}
                                             />
                                         </Field>
-                                        <Field label="Postcode">
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                                            <Field label="City">
+                                                <FInput
+                                                    placeholder="Dubai"
+                                                    value={city}
+                                                    onChange={e => setCity(e.target.value)}
+                                                />
+                                            </Field>
+                                            <Field label="Postcode">
+                                                <FInput
+                                                    placeholder="00000"
+                                                    value={postcode}
+                                                    onChange={e => setPostcode(e.target.value)}
+                                                />
+                                            </Field>
+                                        </div>
+                                        <Field label="Delivery Instructions" hint="Optional">
                                             <FInput
-                                                placeholder="00000"
-                                                value={postcode}
-                                                onChange={e => setPostcode(e.target.value)}
+                                                placeholder="Leave at door, call on arrival…"
+                                                value={instructions}
+                                                onChange={e => setInstructions(e.target.value)}
                                             />
                                         </Field>
-                                    </div>
-                                    <Field label="Delivery Instructions" hint="Optional">
-                                        <FInput
-                                            placeholder="Leave at door, call on arrival…"
-                                            value={instructions}
-                                            onChange={e => setInstructions(e.target.value)}
-                                        />
-                                    </Field>
 
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', gap: 10,
-                                        background: '#fff8f3', border: '1px solid #ffdcc4',
-                                        borderRadius: 10, padding: '10px 14px',
-                                    }}>
-                                        <Clock size={14} style={{ color: '#FF6A0C', flexShrink: 0 }} />
-                                        <div>
-                                            <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>
-                                                Estimated delivery: 30–45 min
-                                            </p>
-                                            <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>
-                                                {branchName ? `Routed to: ${branchName}` : (selectedAddress ? `Delivering to: ${selectedAddress}` : 'From nearest branch')}
-                                            </p>
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                            background: '#fff8f3', border: '1px solid #ffdcc4',
+                                            borderRadius: 10, padding: '10px 14px',
+                                        }}>
+                                            <Clock size={14} style={{ color: '#FF6A0C', flexShrink: 0 }} />
+                                            <div>
+                                                <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>
+                                                    Estimated delivery: 30–45 min
+                                                </p>
+                                                <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>
+                                                    {branchName ? `Routed to: ${branchName}` : (selectedAddress ? `Delivering to: ${selectedAddress}` : 'From nearest branch')}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
+
+                                {/* ── Pickup Form ── */}
+                                {orderMode === 'Pickup' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <Field label="Select Branch for Pickup">
+                                            <select
+                                                value={selectedBranchId || ''}
+                                                onChange={e => {
+                                                    setSelectedBranchId(e.target.value);
+                                                    const branch = branches.find(b => b.id === e.target.value);
+                                                    setBranchName(branch?.name || null);
+                                                }}
+                                                style={{
+                                                    width: '100%', boxSizing: 'border-box',
+                                                    padding: '12px 16px',
+                                                    fontSize: 14, fontFamily: '"DM Sans", sans-serif',
+                                                    color: '#1a1108',
+                                                    background: '#faf8f5',
+                                                    border: '1.5px solid #e8ddd2',
+                                                    borderRadius: 12,
+                                                    outline: 'none',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                <option value="">Choose a branch…</option>
+                                                {branches.filter(b => !b.isClosed).map(b => (
+                                                    <option key={b.id} value={b.id}>{b.name} — {b.address}</option>
+                                                ))}
+                                            </select>
+                                        </Field>
+
+                                        <Field label="Special Instructions" hint="Optional">
+                                            <FInput
+                                                placeholder="Any notes for the branch…"
+                                                value={instructions}
+                                                onChange={e => setInstructions(e.target.value)}
+                                            />
+                                        </Field>
+
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                            background: '#f0f5ff', border: '1px solid #c4d8ff',
+                                            borderRadius: 10, padding: '10px 14px',
+                                        }}>
+                                            <ShoppingBag size={14} style={{ color: '#4f7ff7', flexShrink: 0 }} />
+                                            <div>
+                                                <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>
+                                                    Ready in 15–25 min · No delivery fee
+                                                </p>
+                                                <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>
+                                                    {branchName ? `Pickup from: ${branchName}` : 'Please select a branch'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Dine-In Form ── */}
+                                {orderMode === 'DineIn' && (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        <Field label="Select Branch to Dine In">
+                                            <select
+                                                value={selectedBranchId || ''}
+                                                onChange={e => {
+                                                    setSelectedBranchId(e.target.value);
+                                                    const branch = branches.find(b => b.id === e.target.value);
+                                                    setBranchName(branch?.name || null);
+                                                }}
+                                                style={{
+                                                    width: '100%', boxSizing: 'border-box',
+                                                    padding: '12px 16px',
+                                                    fontSize: 14, fontFamily: '"DM Sans", sans-serif',
+                                                    color: '#1a1108',
+                                                    background: '#faf8f5',
+                                                    border: '1.5px solid #e8ddd2',
+                                                    borderRadius: 12,
+                                                    outline: 'none',
+                                                    cursor: 'pointer',
+                                                }}
+                                            >
+                                                <option value="">Choose a branch…</option>
+                                                {branches.filter(b => !b.isClosed).map(b => (
+                                                    <option key={b.id} value={b.id}>{b.name} — {b.address}</option>
+                                                ))}
+                                            </select>
+                                        </Field>
+
+                                        <Field label="Special Requests" hint="Optional">
+                                            <FInput
+                                                placeholder="Allergies, seating preferences…"
+                                                value={instructions}
+                                                onChange={e => setInstructions(e.target.value)}
+                                            />
+                                        </Field>
+
+                                        <div style={{
+                                            display: 'flex', alignItems: 'center', gap: 10,
+                                            background: '#f0faf5', border: '1px solid #b8e6d0',
+                                            borderRadius: 10, padding: '10px 14px',
+                                        }}>
+                                            <Utensils size={14} style={{ color: '#34d399', flexShrink: 0 }} />
+                                            <div>
+                                                <p style={{ fontSize: 12, fontWeight: 700, color: '#3d2c1e', margin: '0 0 1px' }}>
+                                                    Dine-In · No delivery fee
+                                                </p>
+                                                <p style={{ fontSize: 11, color: '#a08060', margin: 0 }}>
+                                                    {branchName ? `Dining at: ${branchName}` : 'Please select a branch'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                                     <BackButton onClick={back} />
                                     <ActionButton 
                                         onClick={next} 
                                         style={{ flex: 1 }}
-                                        disabled={!street.trim() || !city.trim() || !postcode.trim()}
+                                        disabled={
+                                            orderMode === 'Delivery'
+                                                ? (!street.trim() || !city.trim() || !postcode.trim())
+                                                : !selectedBranchId
+                                        }
                                     >
                                         Continue to Payment <ChevronRight size={16} />
                                     </ActionButton>
@@ -896,7 +1041,7 @@ export default function CheckoutPage() {
                         <div style={{ padding: '14px 20px', borderTop: '1px solid #f0e8df', display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {[
                                 { label: 'Subtotal', value: `AED ${SUBTOTAL.toFixed(2)}` },
-                                { label: 'Delivery fee', value: `AED ${DELIVERY.toFixed(2)}` },
+                                { label: orderMode === 'Delivery' ? 'Delivery fee' : orderMode === 'Pickup' ? 'Pickup fee' : 'Dine-in fee', value: DELIVERY === 0 ? 'Free' : `AED ${DELIVERY.toFixed(2)}` },
                                 { label: 'VAT (5%)', value: `AED ${TAX.toFixed(2)}` },
                             ].map(row => (
                                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
