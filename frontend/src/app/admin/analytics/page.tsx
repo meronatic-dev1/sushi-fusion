@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, BarChart2, Users, ShoppingBag, Star, Clock } from 'lucide-react';
 import { getAnalyticsDashboard, DashboardData } from '@/lib/api';
+import { useUser } from '@clerk/nextjs';
+import { useLocation } from '@/context/LocationContext';
 
 const PEAK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 24 }, (_, i) => {
@@ -38,15 +40,24 @@ const iconBadge = (color: string): React.CSSProperties => ({
 });
 
 export default function AdminAnalyticsPage() {
+    const { user, isLoaded } = useUser();
+    const { location } = useLocation();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const rawRole = (user?.publicMetadata?.role as string || 'customer');
+    const userRole = rawRole.toLowerCase();
+
     useEffect(() => {
-        getAnalyticsDashboard()
+        if (!isLoaded) return;
+
+        const activeBranchId = location?.branchId || (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
+
+        getAnalyticsDashboard(activeBranchId)
             .then(setData)
             .catch(e => console.error('Failed to load analytics', e))
             .finally(() => setLoading(false));
-    }, []);
+    }, [isLoaded, user, location?.branchId, userRole]);
 
     if (loading) {
         return (

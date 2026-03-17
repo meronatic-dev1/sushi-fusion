@@ -1,8 +1,10 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { TrendingUp, TrendingDown, ShoppingBag, DollarSign, Users, Star, Clock, ChevronRight, Flame, Bike, Package, Utensils } from "lucide-react";
 import { useUser } from '@clerk/nextjs';
 import { getAnalyticsDashboard, DashboardData } from '@/lib/api';
+import { useLocation } from '@/context/LocationContext';
 
 const RANK_COLORS = [
     { bg: "#fbbf24", text: "#000" },
@@ -19,22 +21,24 @@ const MODE_COLORS: Record<string, { color: string; icon: React.ReactNode }> = {
 };
 
 export default function AdminOverviewPage() {
+    const { location } = useLocation();
     const { user, isLoaded } = useUser();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const rawRole = (user?.publicMetadata?.role as string || 'customer');
+    const userRole = rawRole.toLowerCase();
+
     useEffect(() => {
         if (!isLoaded) return;
         
-        const branchId = user?.publicMetadata?.role === 'branch_manager' 
-            ? user?.publicMetadata?.branchId as string 
-            : undefined;
+        const activeBranchId = location?.branchId || (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
 
-        getAnalyticsDashboard(branchId)
+        getAnalyticsDashboard(activeBranchId)
             .then(setData)
             .catch(e => console.error('Failed to load dashboard', e))
             .finally(() => setLoading(false));
-    }, [isLoaded, user]);
+    }, [isLoaded, user, location?.branchId, userRole]);
 
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -94,6 +98,13 @@ export default function AdminOverviewPage() {
                             {today}
                         </p>
                     </div>
+                    <Link href="/admin/orders" style={{
+                        fontSize: 12, fontWeight: 700, color: "#FF6A0C",
+                        display: "flex", alignItems: "center", gap: 3,
+                        textDecoration: "none",
+                    }}>
+                        View all <ChevronRight size={14} />
+                    </Link>
                 </div>
 
                 {loading ? (
@@ -335,13 +346,13 @@ export default function AdminOverviewPage() {
                                         </div>
                                         <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Top Products</span>
                                     </div>
-                                    <a href="/admin/analytics" style={{
+                                    <Link href="/admin/analytics" style={{
                                         display: "flex", alignItems: "center", gap: 3,
                                         fontSize: 12, color: "#FF6A0C", textDecoration: "none", fontWeight: 600,
                                         opacity: 0.85,
                                     }}>
                                         Full report <ChevronRight size={12} />
-                                    </a>
+                                    </Link>
                                 </div>
 
                                 <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 18 }}>

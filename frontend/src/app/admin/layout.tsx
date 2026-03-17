@@ -44,7 +44,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [selectedBranchId, setSelectedBranchId] = useState<string>('All');
     
     // Determine user role from Clerk public metadata
-    const userRole = (user?.publicMetadata?.role as string || 'customer').toLowerCase();
+    const rawRole = (user?.publicMetadata?.role as string || 'customer');
+    const userRole = rawRole.toLowerCase();
     const userBranchId = user?.publicMetadata?.branchId as string | undefined;
 
     // Load branches
@@ -56,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     // Enforce branch manager lock
     useEffect(() => {
-        if (isLoaded && userRole === 'branch_manager' && userBranchId) {
+        if (isLoaded && (userRole === 'branch_manager' || userRole === 'branch-manager') && userBranchId) {
             setSelectedBranchId(userBranchId);
         }
     }, [isLoaded, userRole, userBranchId]);
@@ -84,7 +85,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         socket.on('connect', () => {
             console.log('Admin: connected to notification socket');
             socket.emit('joinAdminRoom');
-            if (selectedBranchId !== 'All') {
+            
+            // If branch manager, always join their own branch room
+            if (userRole === 'branch_manager' && userBranchId) {
+                socket.emit('joinBranchRoom', userBranchId);
+            } else if (selectedBranchId !== 'All') {
                 socket.emit('joinBranchRoom', selectedBranchId);
             }
         });

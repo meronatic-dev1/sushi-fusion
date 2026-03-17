@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Search, Eye, UserX, UserCheck } from 'lucide-react';
 import { useUser } from '@clerk/nextjs';
 import { getAnalyticsDashboard } from '@/lib/api';
+import { useLocation } from '@/context/LocationContext';
 
 interface Customer {
     name: string; email: string; joined: string;
@@ -13,26 +14,28 @@ interface Customer {
 const AVATAR_COLORS = ['#FF6A0C', '#818cf8', '#34d399', '#fbbf24', '#f87171', '#60a5fa', '#a78bfa'];
 const avatarColor = (name: string) => AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
 
-export default function AdminCustomersPage() {
+export default function CustomersPage() {
+    const { location } = useLocation();
     const { user, isLoaded } = useUser();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [search, setSearch] = useState('');
     const [loading, setLoading] = useState(true);
 
+    const rawRole = (user?.publicMetadata?.role as string || 'customer');
+    const userRole = rawRole.toLowerCase();
+
     useEffect(() => {
         if (!isLoaded) return;
         
-        const branchId = user?.publicMetadata?.role === 'branch_manager' 
-            ? user?.publicMetadata?.branchId as string 
-            : undefined;
+        const activeBranchId = location?.branchId || (userRole === 'branch_manager' ? user?.publicMetadata?.branchId as string : undefined);
 
-        getAnalyticsDashboard(branchId)
+        getAnalyticsDashboard(activeBranchId)
             .then(data => {
                 setCustomers(data.customerList);
             })
             .catch(e => console.error('Failed to load customers', e))
             .finally(() => setLoading(false));
-    }, [isLoaded, user]);
+    }, [isLoaded, user, location?.branchId, userRole]);
 
     const toggle = (email: string) =>
         setCustomers(prev => prev.map(c =>

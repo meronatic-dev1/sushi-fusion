@@ -221,3 +221,7 @@ export const toggleLocation = (id: string) =>
 export const deleteLocation = (id: string) =>
     apiFetch<void>(`/locations/${id}`, { method: 'DELETE' });
 
+// ── Users ──────────────────────────────────────────────────────────────────────
+export const getUsers = () => apiFetch<any[]>('/users');
+export const updateUser = (id: string, data: any) => apiFetch<any>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const deleteUser = (id: string) => apiFetch<void>(`/users/${id}`, { method: 'DELETE' });

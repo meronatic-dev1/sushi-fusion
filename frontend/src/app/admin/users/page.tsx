@@ -1,31 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, X, User as UserIcon, Shield, MapPin } from 'lucide-react';
-import { getLocations, ApiLocation } from '@/lib/api';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-// Resolve base URL for local testing
-let resolvedApi = API;
-if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    if (resolvedApi.includes('localhost') && hostname !== 'localhost') {
-        resolvedApi = resolvedApi.replace('localhost', hostname);
-    }
-}
-
-async function apiFetchUser(path: string, options?: RequestInit) {
-    const res = await fetch(`${resolvedApi}${path}`, {
-        ...options,
-        headers: { 'Content-Type': 'application/json', ...options?.headers },
-    });
-    if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || `Error ${res.status}`);
-    }
-    const txt = await res.text();
-    return txt ? JSON.parse(txt) : {};
-}
+import { Plus, Pencil, Trash2, X, User as UserIcon, Shield, MapPin, Eye, EyeOff } from 'lucide-react';
+import { getUsers, updateUser, deleteUser, getLocations, ApiLocation } from '@/lib/api';
 
 interface User {
     id: string;
@@ -61,10 +38,11 @@ function UserModal({
     const [email, setEmail] = useState(initial?.email ?? '');
     const [password, setPassword] = useState('');
     const [phone, setPhone] = useState(initial?.phone ?? '');
-    const [role, setRole] = useState(initial?.role ?? 'BRANCH_MANAGER');
-    const [branchId, setBranchId] = useState(initial?.branchId ?? (locations[0]?.id || ''));
+    const [role, setRole] = useState<'CUSTOMER' | 'ADMIN' | 'BRANCH_MANAGER'>(initial?.role ?? 'BRANCH_MANAGER');
+    const [branchId, setBranchId] = useState(initial?.branchId ?? (locations[0]?.id ?? ''));
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
 
     const save = async () => {
         if (!name || !email || (!initial && !password)) {
@@ -126,8 +104,39 @@ function UserModal({
                         <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
                             Password {initial && '(Leave blank to keep current)'}
                         </label>
-                        <input value={password} onChange={e => setPassword(e.target.value)} placeholder={initial ? '••••••••' : 'Enter a strong password'} type="password"
-                            style={inputStyle} onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')} onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')} />
+                        <div style={{ position: 'relative' }}>
+                            <input 
+                                value={password} 
+                                onChange={e => setPassword(e.target.value)} 
+                                placeholder={initial ? '••••••••' : 'Enter a strong password'} 
+                                type={showPassword ? 'text' : 'password'}
+                                style={{ ...inputStyle, paddingRight: 40 }} 
+                                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')} 
+                                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')} 
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                style={{
+                                    position: 'absolute',
+                                    right: 12,
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: 'rgba(255,255,255,0.3)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    padding: 0,
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
+                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+                            >
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                        </div>
                     </div>
 
                     <div>
@@ -183,7 +192,7 @@ export default function AdminUsersPage() {
         setLoading(true);
         try {
             const [usersData, locsData] = await Promise.all([
-                apiFetchUser('/users'),
+                getUsers(),
                 getLocations(),
             ]);
             setUsers(Array.isArray(usersData) ? usersData : []);
@@ -202,7 +211,7 @@ export default function AdminUsersPage() {
             if (editUser) {
                 // For editing, just update the DB via NestJS for now 
                 // (Clerk metadata updates would need another API route if role changes)
-                await apiFetchUser(`/users/${editUser.id}`, { method: 'PATCH', body: JSON.stringify(data) });
+                await updateUser(editUser.id, data);
             } else {
                 // For NEW users, route through our Next.js API to create it in Clerk AND the Database
                 const res = await fetch('/api/clerk/users', { 
@@ -227,7 +236,7 @@ export default function AdminUsersPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this user?')) return;
         try {
-            await apiFetchUser(`/users/${id}`, { method: 'DELETE' });
+            await deleteUser(id);
             loadData();
         } catch (err: any) {
             alert(err.message);

@@ -240,7 +240,8 @@ export default function AdminOrdersPage() {
     const [exportOpen, setExportOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const userRole = user?.publicMetadata?.role as string | undefined;
+    const rawRole = (user?.publicMetadata?.role as string || 'customer');
+    const userRole = rawRole.toLowerCase();
     const userBranchId = user?.publicMetadata?.branchId as string | undefined;
 
     useEffect(() => {
