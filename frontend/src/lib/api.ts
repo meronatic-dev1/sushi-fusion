@@ -155,18 +155,51 @@ export const updateMenuItem = (id: string, data: {
 export const deleteMenuItem = (id: string) =>
     apiFetch<void>(`/menu-items/${id}`, { method: 'DELETE' });
 
+// ── Coupons ────────────────────────────────────────────────────────────────────
+export interface ApiCoupon {
+    id: string;
+    code: string;
+    discount: number;
+    isPercent: boolean;
+    isActive: boolean;
+    usageLimit: number | null;
+    usageCount: number;
+    expiryDate: string | null;
+    minimumSpend: number;
+    createdAt: string;
+}
+
+export const getCoupons = () =>
+    apiFetch<ApiCoupon[]>('/coupons');
+
+export const createCoupon = (data: Partial<ApiCoupon>) =>
+    apiFetch<ApiCoupon>('/coupons', { method: 'POST', body: JSON.stringify(data) });
+
+export const updateCoupon = (id: string, data: Partial<ApiCoupon>) =>
+    apiFetch<ApiCoupon>(`/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
+export const deleteCoupon = (id: string) =>
+    apiFetch<void>(`/coupons/${id}`, { method: 'DELETE' });
+
+export const validateCoupon = (code: string, subtotal: number) =>
+    apiFetch<any>(`/coupons/validate?code=${encodeURIComponent(code)}&subtotal=${encodeURIComponent(subtotal)}`);
+
 // ── Settings ───────────────────────────────────────────────────────────────────
 export interface ApiSettings {
     id: string;
     logoUrl: string | null;
     bannerUrl: string | null;
+    serviceCharge: number;
+    enableServiceCharge: boolean;
+    deliveryFee: number;
+    taxRate: number;
     updatedAt: string;
 }
 
 export const getSettings = () =>
     apiFetch<ApiSettings>('/settings');
 
-export const updateSettings = (data: { logoUrl?: string; bannerUrl?: string }) =>
+export const updateSettings = (data: { logoUrl?: string; bannerUrl?: string; serviceCharge?: number; enableServiceCharge?: boolean; deliveryFee?: number; taxRate?: number }) =>
     apiFetch<ApiSettings>('/settings', { method: 'PATCH', body: JSON.stringify(data) });
 
 // ── Analytics ──────────────────────────────────────────────────────────────────

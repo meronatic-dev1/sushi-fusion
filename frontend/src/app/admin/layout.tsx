@@ -8,7 +8,7 @@ import Image from 'next/image';
 import {
     LayoutDashboard, ShoppingBag, Package,
     MapPin, Users, BarChart2, LogOut, Bell, ChevronDown,
-    Settings, X,
+    Settings, X, Tag,
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { API, getLocations, ApiLocation } from '@/lib/api';
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
     { label: 'Locations', href: '/admin/locations', icon: MapPin },
     { label: 'Customers', href: '/admin/customers', icon: Users },
     { label: 'Users', href: '/admin/users', icon: Users },
+    { label: 'Coupons', href: '/admin/coupons', icon: Tag },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

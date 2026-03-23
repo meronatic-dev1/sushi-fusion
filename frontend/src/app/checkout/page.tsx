@@ -6,8 +6,7 @@ import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useLocation } from '@/context/LocationContext';
-import { apiCreateOrder, apiCreatePaymentIntent, getLocations, ApiLocation } from '@/lib/api';
-import { DELIVERY_FEE } from '@/lib/data';
+import { apiCreateOrder, apiCreatePaymentIntent, getLocations, ApiLocation, validateCoupon } from '@/lib/api';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -179,6 +178,9 @@ export default function CheckoutPage() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [promoCode, setPromoCode] = useState('');
     const [promoApplied, setPromoApplied] = useState(false);
+    const [discountAmt, setDiscountAmt] = useState(0);
+    const [promoLoading, setPromoLoading] = useState(false);
+    const [promoError, setPromoError] = useState('');
     const [isLocating, setIsLocating] = useState(false);
     const [orderMode, setOrderMode] = useState<'Delivery' | 'Pickup' | 'DineIn'>('Delivery');
 
@@ -218,7 +220,10 @@ export default function CheckoutPage() {
             setCustomerLat(location.lat);
             setCustomerLng(location.lng);
             if (location.mode) {
-                setOrderMode(location.mode);
+                const normalizedMode = 
+                    location.mode.toLowerCase() === 'dinein' ? 'DineIn' :
+                    location.mode.toLowerCase() === 'pickup' ? 'Pickup' : 'Delivery';
+                setOrderMode(normalizedMode);
             }
         }
     }, [location]);
@@ -248,10 +253,34 @@ export default function CheckoutPage() {
 
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
-    const DELIVERY = orderMode === 'Delivery' ? DELIVERY_FEE : 0;
-    const TAX = +(SUBTOTAL * 0.05).toFixed(2);
-    const DISCOUNT = promoApplied ? Math.round(SUBTOTAL * 0.1) : 0;
-    const TOTAL = SUBTOTAL + DELIVERY + TAX - DISCOUNT;
+    const DELIVERY = orderMode === 'Delivery' ? (settings?.deliveryFee ?? 15) : 0;
+    
+    const servicePercent = (settings?.enableServiceCharge && orderMode === 'DineIn') ? (settings?.serviceCharge || 0) : 0;
+    const SERVICE_CHARGE = (SUBTOTAL * servicePercent) / 100;
+    
+    const DISCOUNT = promoApplied ? discountAmt : 0;
+    const TAXABLE = Math.max(0, SUBTOTAL - DISCOUNT);
+    const taxRate = settings?.taxRate ?? 5;
+    const TAX = +(TAXABLE * (taxRate / 100)).toFixed(2);
+    
+    const TOTAL = SUBTOTAL - DISCOUNT + DELIVERY + TAX + SERVICE_CHARGE;
+
+    const applyPromo = async () => {
+        if (!promoCode.trim()) return;
+        setPromoLoading(true);
+        setPromoError('');
+        try {
+            const res = await validateCoupon(promoCode, SUBTOTAL);
+            if (res.valid) {
+                setPromoApplied(true);
+                setDiscountAmt(res.discountAmt);
+            }
+        } catch (err: any) {
+            setPromoError(err.message || 'Invalid promotion code');
+        } finally {
+            setPromoLoading(false);
+        }
+    };
 
     const next = () => {
         if (step === 1) setStep(2);
@@ -391,6 +420,7 @@ export default function CheckoutPage() {
             deliveryInstructions: instructions,
             address: customerAddress,
             mode: orderMode === 'Delivery' ? 'DELIVERY' : orderMode === 'Pickup' ? 'PICKUP' : 'DINE_IN',
+            promoCode: promoApplied ? promoCode : undefined,
             latitude: Number(customerLat) || 0,
             longitude: Number(customerLng) || 0,
             branchId: selectedBranchId || '',
@@ -1075,7 +1105,8 @@ export default function CheckoutPage() {
                             {[
                                 { label: 'Subtotal', value: `AED ${SUBTOTAL.toFixed(2)}` },
                                 ...(orderMode === 'Delivery' ? [{ label: 'Delivery fee', value: DELIVERY === 0 ? 'Free' : `AED ${DELIVERY.toFixed(2)}` }] : []),
-                                { label: 'VAT (5%)', value: `AED ${TAX.toFixed(2)}` },
+                                ...(SERVICE_CHARGE > 0 ? [{ label: 'Service Charge', value: `AED ${SERVICE_CHARGE.toFixed(2)}` }] : []),
+                                { label: `VAT (${taxRate}%)`, value: `AED ${TAX.toFixed(2)}` },
                             ].map(row => (
                                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <span style={{ fontSize: 13, color: '#a08060' }}>{row.label}</span>
@@ -1084,7 +1115,7 @@ export default function CheckoutPage() {
                             ))}
                             {DISCOUNT > 0 && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>Promo (10% off)</span>
+                                    <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>Promo Applied</span>
                                     <span style={{ fontSize: 13, color: '#22c55e', fontWeight: 700 }}>−AED {DISCOUNT.toFixed(2)}</span>
                                 </div>
                             )}
@@ -1114,24 +1145,40 @@ export default function CheckoutPage() {
                                     placeholder="Enter code…"
                                     value={promoCode}
                                     onChange={e => setPromoCode(e.target.value)}
-                                    disabled={promoApplied}
+                                    disabled={promoApplied || promoLoading}
                                     style={{ flex: 1, padding: '9px 12px', fontSize: 13 }}
                                 />
-                                <button
-                                    onClick={() => { if (promoCode.trim()) setPromoApplied(true); }}
-                                    disabled={promoApplied || !promoCode.trim()}
-                                    style={{
-                                        padding: '9px 14px', borderRadius: 10,
-                                        border: 'none', cursor: promoApplied ? 'default' : 'pointer',
-                                        background: promoApplied ? '#22c55e' : '#FF6A0C',
-                                        color: '#fff', fontSize: 12, fontWeight: 700,
-                                        fontFamily: '"DM Sans", sans-serif',
-                                        transition: 'all 0.18s', flexShrink: 0,
-                                    }}
-                                >
-                                    {promoApplied ? '✓ Applied' : 'Apply'}
-                                </button>
+                                {promoApplied ? (
+                                    <button
+                                        onClick={() => { setPromoApplied(false); setPromoCode(''); setDiscountAmt(0); }}
+                                        style={{
+                                            padding: '9px 14px', borderRadius: 10,
+                                            border: 'none', cursor: 'pointer',
+                                            background: '#fecaca', color: '#ef4444',
+                                            fontSize: 12, fontWeight: 700,
+                                            fontFamily: '"DM Sans", sans-serif', flexShrink: 0,
+                                        }}
+                                    >
+                                        Remove
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={applyPromo}
+                                        disabled={promoLoading || !promoCode.trim()}
+                                        style={{
+                                            padding: '9px 14px', borderRadius: 10,
+                                            border: 'none', cursor: promoLoading ? 'wait' : 'pointer',
+                                            background: '#FF6A0C', color: '#fff',
+                                            fontSize: 12, fontWeight: 700,
+                                            fontFamily: '"DM Sans", sans-serif',
+                                            transition: 'all 0.18s', flexShrink: 0,
+                                        }}
+                                    >
+                                        {promoLoading ? '...' : 'Apply'}
+                                    </button>
+                                )}
                             </div>
+                            {promoError && <p style={{ color: '#ef4444', fontSize: 11, margin: '6px 0 0', fontWeight: 600 }}>{promoError}</p>}
                         </div>
                     )}
 

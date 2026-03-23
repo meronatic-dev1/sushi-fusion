@@ -80,20 +80,48 @@ export class OrdersService {
 
         const settings = await this.prisma.storeSettings.findUnique({ where: { id: 'singleton' } });
         const serviceChargeEnabled = settings?.enableServiceCharge ?? false;
-        const serviceChargeTakeawayEnabled = settings?.enableServiceChargeTakeaway ?? false;
         const serviceChargePercent = settings?.serviceCharge ?? 0;
 
         let serviceChargeAmount = 0;
         const isDineIn = body.mode === 'DINE_IN';
-        const isTakeawayOrDelivery = body.mode === 'DELIVERY' || body.mode === 'PICKUP';
 
-        if ((serviceChargeEnabled && isDineIn) || (serviceChargeTakeawayEnabled && isTakeawayOrDelivery)) {
+        if (serviceChargeEnabled && isDineIn) {
             serviceChargeAmount = calculatedTotal * (serviceChargePercent / 100);
         }
 
-        const DELIVERY_FEE = 15;
-        const tax = calculatedTotal * 0.05;
-        const finalTotal = calculatedTotal + (body.mode === 'DELIVERY' ? DELIVERY_FEE : 0) + tax + serviceChargeAmount;
+        let discountAmt = 0;
+        if (body.promoCode) {
+            const coupon = await this.prisma.discountCoupon.findUnique({ where: { code: body.promoCode.toUpperCase() } });
+            if (coupon && coupon.isActive) {
+                if (!coupon.expiryDate || new Date(coupon.expiryDate) > new Date()) {
+                    if (!coupon.usageLimit || coupon.usageCount < coupon.usageLimit) {
+                        if (calculatedTotal >= coupon.minimumSpend) {
+                            if (coupon.isPercent) {
+                                discountAmt = (calculatedTotal * coupon.discount) / 100;
+                            } else {
+                                discountAmt = coupon.discount;
+                            }
+                            if (discountAmt > calculatedTotal) {
+                                discountAmt = calculatedTotal;
+                            }
+                            // increment usage count
+                            await this.prisma.discountCoupon.update({
+                                where: { id: coupon.id },
+                                data: { usageCount: { increment: 1 } }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        const deliveryParam = settings?.deliveryFee ?? 15.0;
+        const taxRateParam = settings?.taxRate ?? 5.0;
+
+        const deliveryCharge = body.mode === 'DELIVERY' ? deliveryParam : 0;
+        const taxableAmount = Math.max(0, calculatedTotal - discountAmt);
+        const tax = taxableAmount * (taxRateParam / 100);
+        const finalTotal = calculatedTotal - discountAmt + deliveryCharge + tax + serviceChargeAmount;
 
         let resolvedUserId = body.clerkUserId;
         let isNewGuestAccount = false;
@@ -178,6 +206,11 @@ export class OrdersService {
                 userId: resolvedUserId || null,
                 mode: body.mode || 'DELIVERY',
                 totalAmount: finalTotal,
+                subtotal: calculatedTotal,
+                tax: tax,
+                deliveryFee: deliveryCharge,
+                serviceCharge: serviceChargeAmount,
+                discountAmt: discountAmt,
                 customerName: body.customerName || null,
                 customerEmail: body.customerEmail || null,
                 customerPhone: body.customerPhone || null,

@@ -8,6 +8,8 @@ interface StoreSettings {
     bannerUrl: string;
     serviceCharge: number;
     enableServiceCharge: boolean;
+    deliveryFee: number;
+    taxRate: number;
 }
 
 interface SettingsContextType {
@@ -21,6 +23,8 @@ const defaultSettings: StoreSettings = {
     bannerUrl: '/images/banner-1.png',
     serviceCharge: 0,
     enableServiceCharge: false,
+    deliveryFee: 15.0,
+    taxRate: 5.0,
 };
 
 const SettingsContext = createContext<SettingsContextType>({ settings: defaultSettings, loading: true });
@@ -38,6 +42,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                     bannerUrl: data.bannerUrl || defaultSettings.bannerUrl,
                     serviceCharge: data.serviceCharge ?? defaultSettings.serviceCharge,
                     enableServiceCharge: data.enableServiceCharge ?? defaultSettings.enableServiceCharge,
+                    deliveryFee: data.deliveryFee ?? defaultSettings.deliveryFee,
+                    taxRate: data.taxRate ?? defaultSettings.taxRate,
                 });
             })
             .catch(err => {

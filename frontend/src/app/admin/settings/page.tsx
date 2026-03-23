@@ -21,6 +21,8 @@ export default function AdminSettingsPage() {
     const [serviceCharge, setServiceCharge] = useState(0);
     const [enableServiceCharge, setEnableServiceCharge] = useState(false);
     const [enableServiceChargeTakeaway, setEnableServiceChargeTakeaway] = useState(false);
+    const [deliveryFee, setDeliveryFee] = useState(15.0);
+    const [taxRate, setTaxRate] = useState(5.0);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
@@ -38,6 +40,8 @@ export default function AdminSettingsPage() {
                 setServiceCharge(data.serviceCharge || 0);
                 setEnableServiceCharge(data.enableServiceCharge || false);
                 setEnableServiceChargeTakeaway(data.enableServiceChargeTakeaway || false);
+                if (data.deliveryFee !== undefined) setDeliveryFee(data.deliveryFee);
+                if (data.taxRate !== undefined) setTaxRate(data.taxRate);
             })
             .catch(err => console.error('Failed to load settings', err))
             .finally(() => setLoading(false));
@@ -55,7 +59,9 @@ export default function AdminSettingsPage() {
                     bannerUrl,
                     serviceCharge: Number(serviceCharge),
                     enableServiceCharge,
-                    enableServiceChargeTakeaway
+                    enableServiceChargeTakeaway,
+                    deliveryFee: Number(deliveryFee),
+                    taxRate: Number(taxRate)
                 }),
             });
             if (!res.ok) throw new Error('Failed to save settings');
@@ -296,7 +302,7 @@ export default function AdminSettingsPage() {
 
                         <div style={{ gridColumn: '1 / -1', opacity: (enableServiceCharge || enableServiceChargeTakeaway) ? 1 : 0.4, pointerEvents: (enableServiceCharge || enableServiceChargeTakeaway) ? 'auto' : 'none', transition: 'opacity 0.2s' }}>
                             <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
-                                Charge Amount (%)
+                                Service Charge Amount (%)
                             </label>
                             <div style={{ position: 'relative', maxWidth: '50%' }}>
                                 <input
@@ -304,6 +310,37 @@ export default function AdminSettingsPage() {
                                     value={serviceCharge}
                                     onChange={(e) => setServiceCharge(Number(e.target.value))}
                                     placeholder="0"
+                                    style={inputStyle}
+                                />
+                                <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>%</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+                                Delivery Charge (AED)
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="number"
+                                    value={deliveryFee}
+                                    onChange={(e) => setDeliveryFee(Number(e.target.value))}
+                                    placeholder="15.0"
+                                    style={inputStyle}
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+                                Tax Rate (%)
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                                <input
+                                    type="number"
+                                    value={taxRate}
+                                    onChange={(e) => setTaxRate(Number(e.target.value))}
+                                    placeholder="5.0"
                                     style={inputStyle}
                                 />
                                 <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>%</span>

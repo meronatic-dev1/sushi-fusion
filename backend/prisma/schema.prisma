@@ -101,6 +101,13 @@ model Order {
   mode        OrderMode   @default(DELIVERY)
   totalAmount Float
 
+  // --- Price Breakdown ---
+  subtotal      Float?
+  tax           Float?
+  deliveryFee   Float?
+  serviceCharge Float?
+  discountAmt   Float?
+
   // --- Customer details from checkout form ---
   customerName         String?
   customerEmail        String?
@@ -147,11 +154,27 @@ model OrderItem {
 }
 
 model StoreSettings {
-  id                  String   @id @default("singleton")
+  id                          String   @id @default("singleton")
   logoUrl                     String?
   bannerUrl                   String?
   serviceCharge               Float    @default(0)
   enableServiceCharge         Boolean  @default(true)
   enableServiceChargeTakeaway Boolean  @default(false)
+  deliveryFee                 Float    @default(15.0)
+  taxRate                     Float    @default(5.0)
   updatedAt                   DateTime @updatedAt
+}
+
+model DiscountCoupon {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  discount     Float     // amount to discount
+  isPercent    Boolean   @default(true) // if true, discount is a %, else flat AED
+  isActive     Boolean   @default(true)
+  usageLimit   Int?
+  usageCount   Int       @default(0)
+  expiryDate   DateTime?
+  minimumSpend Float     @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }

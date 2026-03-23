@@ -3,11 +3,14 @@
 import React from 'react';
 import { useCart } from '@/context/CartContext';
 import { usePathname, useRouter } from 'next/navigation';
-import { DELIVERY_FEE } from '@/lib/data';
+import { useLocation } from '@/context/LocationContext';
+import { useSettings } from '@/context/SettingsContext';
 import Link from 'next/link';
 
 export default function GlobalCart({ t }: { t: (key: string) => string }) {
     const { cart, isCartOpen, updateQty, setIsCartOpen } = useCart();
+    const { location } = useLocation();
+    const { settings } = useSettings();
     const pathname = usePathname();
     const router = useRouter();
 
@@ -18,7 +21,20 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
 
     const items = Object.entries(cart).filter(([, v]) => v.qty > 0);
     const subtotal = items.reduce((a, [, v]) => a + (v.price * v.qty), 0);
-    const total = subtotal + DELIVERY_FEE;
+    
+    // Default to delivery unless specifically set to something else
+    const isDelivery = !location || !location.mode || location.mode.toLowerCase() === 'delivery';
+    const isDineIn = location?.mode?.toLowerCase() === 'dinein';
+    const activeDeliveryFee = isDelivery ? settings.deliveryFee : 0;
+    
+    // Service Charge
+    const servicePercent = (settings?.enableServiceCharge && isDineIn) ? (settings?.serviceCharge || 0) : 0;
+    const serviceCharge = (subtotal * servicePercent) / 100;
+    
+    // Tax
+    const tax = subtotal * (settings.taxRate / 100);
+    
+    const total = subtotal + activeDeliveryFee + serviceCharge + tax;
     const onClose = () => setIsCartOpen(false);
 
     const renderHeader = () => (
@@ -71,7 +87,19 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)', marginBottom: 6 }}>
                                 <span>{t('cart.delivery')}</span>
-                                <span style={{ fontWeight: 600 }}>AED {DELIVERY_FEE.toFixed(2)}</span>
+                                <span style={{ fontWeight: 600 }}>
+                                    {activeDeliveryFee > 0 ? `AED ${activeDeliveryFee.toFixed(2)}` : 'Free'}
+                                </span>
+                            </div>
+                            {serviceCharge > 0 && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)', marginBottom: 6 }}>
+                                    <span>Service Charge</span>
+                                    <span>AED {serviceCharge.toFixed(2)}</span>
+                                </div>
+                            )}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--g)', marginBottom: 6 }}>
+                                <span>VAT ({settings.taxRate}%)</span>
+                                <span>AED {tax.toFixed(2)}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 800, marginTop: 4, paddingTop: 8, borderTop: '1px solid var(--b)' }}>
                                 <span>{t('cart.total')}</span>

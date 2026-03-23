@@ -78,4 +78,8 @@ export class CreateOrderDto {
   @IsOptional()
   @IsNumber()
   scheduledFor?: number; // timestamp
+
+  @IsOptional()
+  @IsString()
+  promoCode?: string;
 }

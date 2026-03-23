@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Product, DELIVERY_FEE } from '@/lib/data';
+import { Product } from '@/lib/data';
+import { useLocation } from '@/context/LocationContext';
+import { useSettings } from '@/context/SettingsContext';
 
 export interface CartItem extends Product {
     qty: number;
@@ -18,9 +20,25 @@ interface CartSidebarProps {
 
 export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: CartSidebarProps) {
     const router = useRouter();
+    const { location } = useLocation();
+    const { settings } = useSettings();
+    
+    // Default to delivery unless specifically set to something else
+    const isDelivery = !location || !location.mode || location.mode.toLowerCase() === 'delivery';
+    const isDineIn = location?.mode?.toLowerCase() === 'dinein';
+    const activeDeliveryFee = isDelivery ? settings.deliveryFee : 0;
+
     const items = Object.entries(cart).filter(([, v]) => v.qty > 0);
     const subtotal = items.reduce((a, [, v]) => a + v.price * v.qty, 0);
-    const total = subtotal + DELIVERY_FEE;
+    
+    // Service Charge
+    const servicePercent = (settings?.enableServiceCharge && isDineIn) ? (settings?.serviceCharge || 0) : 0;
+    const serviceCharge = (subtotal * servicePercent) / 100;
+    
+    // Tax
+    const tax = subtotal * (settings.taxRate / 100);
+    
+    const total = subtotal + activeDeliveryFee + serviceCharge + tax;
 
     const renderHeader = () => (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: '1px solid var(--b)', paddingBottom: 10 }}>
@@ -86,7 +104,19 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
                         </div>
                         <div className="cart-row">
                             <span>{t('cart.delivery')}</span>
-                            <span style={{ fontWeight: 600 }}>AED {DELIVERY_FEE.toFixed(2)}</span>
+                            <span style={{ fontWeight: 600 }}>
+                                {activeDeliveryFee > 0 ? `AED ${activeDeliveryFee.toFixed(2)}` : 'Free'}
+                            </span>
+                        </div>
+                        {serviceCharge > 0 && (
+                            <div className="cart-row">
+                                <span>Service Charge</span>
+                                <span>AED {serviceCharge.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="cart-row">
+                            <span>VAT ({settings.taxRate}%)</span>
+                            <span>AED {tax.toFixed(2)}</span>
                         </div>
                         <div className="cart-row total">
                             <span>{t('cart.total')}</span>

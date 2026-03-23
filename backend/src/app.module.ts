@@ -25,6 +25,7 @@ import { LocationsModule } from './locations/locations.module';
 import { GeocodeModule } from './geocode/geocode.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { CartModule } from './cart/cart.module';
+import { CouponsModule } from './coupons/coupons.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { CartModule } from './cart/cart.module';
     AnalyticsModule,
     LocationsModule,
     GeocodeModule,
+    CouponsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
