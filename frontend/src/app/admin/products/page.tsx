@@ -12,7 +12,7 @@ import {
 
 interface Product {
     id: string; name: string; category: string; categoryId: string; price: number;
-    available: boolean; dietary: string[]; allergens: string[]; imgSrc: string; orders: number;
+    available: boolean; dietary: string[]; allergens: string[]; inclusions: string[]; imgSrc: string; orders: number;
 }
 
 interface Category {
@@ -52,6 +52,7 @@ function ProductModal({
     const [price, setPrice] = useState(String(initial?.price ?? ''));
     const [dietary, setDietary] = useState<string[]>(initial?.dietary ?? []);
     const [allergensText, setAllergensText] = useState(initial?.allergens?.join(', ') ?? '');
+    const [inclusionsText, setInclusionsText] = useState(initial?.inclusions?.join(', ') ?? '');
     const [available, setAvailable] = useState(initial?.available ?? true);
     const [imgSrc, setImgSrc] = useState(initial?.imgSrc ?? '/images/31.png');
     const [uploading, setUploading] = useState(false);
@@ -79,7 +80,8 @@ function ProductModal({
         if (!name.trim() || !category || !price) return;
         const cat = categories.find(c => c.name === category);
         const allergens = allergensText.split(',').map(s => s.trim()).filter(Boolean);
-        onSave({ name: name.trim(), category, categoryId: cat?.id ?? '', price: Number(price), dietary, allergens, available, imgSrc });
+        const inclusions = inclusionsText.split(',').map(s => s.trim()).filter(Boolean);
+        onSave({ name: name.trim(), category, categoryId: cat?.id ?? '', price: Number(price), dietary, allergens, inclusions, available, imgSrc });
         onClose();
     };
 
@@ -156,6 +158,17 @@ function ProductModal({
                                 );
                             })}
                         </div>
+                    </div>
+
+                    {/* What's Included */}
+                    <div>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>What&apos;s Included</label>
+                        <input value={inclusionsText} onChange={e => setInclusionsText(e.target.value)} placeholder="e.g. 4x California Roll, 2x Salmon Nigiri, Miso Soup"
+                            style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', padding: '10px 14px', cursor: 'text', borderRadius: 10 }}
+                            onFocus={e => (e.currentTarget.style.borderColor = 'rgba(255,106,12,0.5)')}
+                            onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
+                        />
+                        <p style={{ margin: '5px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>Comma-separated list of items included (for platters, combos, etc.)</p>
                     </div>
 
                     {/* Allergens */}
@@ -342,6 +355,7 @@ export default function AdminProductsPage() {
                 available: m.isAvailable,
                 dietary: m.dietary || [],
                 allergens: m.allergens || [],
+                inclusions: m.inclusions || [],
                 imgSrc: m.imageUrl || '/images/31.png',
                 orders: 0,
             })));
@@ -384,6 +398,7 @@ export default function AdminProductsPage() {
             categoryId: cat.id,
             dietary: data.dietary,
             allergens: data.allergens,
+            inclusions: data.inclusions,
         });
         await loadData();
     };
@@ -399,6 +414,7 @@ export default function AdminProductsPage() {
             categoryId: cat?.id,
             dietary: data.dietary,
             allergens: data.allergens,
+            inclusions: data.inclusions,
         });
         setEditProd(null);
         await loadData();
@@ -728,7 +744,7 @@ export default function AdminProductsPage() {
             {(showAddProd || editProd) && (
                 <ProductModal
                     categories={categories}
-                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, categoryId: '', price: 0, available: true, dietary: [], allergens: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
+                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, categoryId: '', price: 0, available: true, dietary: [], allergens: [], inclusions: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
                     onClose={() => { setShowAddProd(false); setEditProd(null); setAddToCat(null); }}
                     onSave={editProd ? saveProduct : addProduct}
                 />

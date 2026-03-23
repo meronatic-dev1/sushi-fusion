@@ -31,6 +31,7 @@ export interface ApiMenuItem {
     category?: ApiCategory;
     dietary: string[];
     allergens: string[];
+    inclusions: string[];
     createdAt: string;
     updatedAt: string;
 }
@@ -137,6 +138,7 @@ export const createMenuItem = (data: {
     categoryId: string;
     dietary?: string[];
     allergens?: string[];
+    inclusions?: string[];
 }) =>
     apiFetch<ApiMenuItem>('/menu-items', { method: 'POST', body: JSON.stringify(data) });
 
@@ -149,6 +151,7 @@ export const updateMenuItem = (id: string, data: {
     categoryId?: string;
     dietary?: string[];
     allergens?: string[];
+    inclusions?: string[];
 }) =>
     apiFetch<ApiMenuItem>(`/menu-items/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 

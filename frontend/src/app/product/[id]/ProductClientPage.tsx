@@ -50,6 +50,7 @@ export default function ProductClientPage({ id }: { id: string }) {
                         imgSrc: apiItem.imageUrl || undefined,
                         dietary: apiItem.dietary || [],
                         allergens: apiItem.allergens || [],
+                        inclusions: apiItem.inclusions || [],
                     });
                     setLoading(false);
                     return;
@@ -149,6 +150,20 @@ export default function ProductClientPage({ id }: { id: string }) {
                                         <div style={{ fontSize: 32, fontWeight: 900, color: 'var(--o)', letterSpacing: '-0.02em' }}>AED {product.price}</div>
                                     </div>
                                 </div>
+
+                                {product.inclusions && product.inclusions.length > 0 && (
+                                    <div style={{ marginBottom: 24, padding: '16px 20px', background: 'rgba(96,165,250,0.04)', borderRadius: 12, border: '1px solid rgba(96,165,250,0.12)' }}>
+                                        <h4 style={{ margin: '0 0 12px 0', fontSize: 14, fontWeight: 800, color: 'var(--d)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>What&apos;s Included</h4>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                            {product.inclusions.map((item, i) => (
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--o)', flexShrink: 0 }} />
+                                                    <span style={{ fontSize: 14, color: 'var(--g)', fontWeight: 600 }}>{item}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {product.dietary && product.dietary.length > 0 && (
                                     <div style={{ marginBottom: 24, padding: '16px 20px', background: 'rgba(255,106,12,0.03)', borderRadius: 12, border: '1px solid rgba(255,106,12,0.08)' }}>

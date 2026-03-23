@@ -32,6 +32,7 @@ export class MenuItemsController {
             categoryId: string;
             dietary?: string[];
             allergens?: string[];
+            inclusions?: string[];
         },
     ) {
         return this.menuItemsService.create(body);
@@ -50,6 +51,7 @@ export class MenuItemsController {
             categoryId?: string;
             dietary?: string[];
             allergens?: string[];
+            inclusions?: string[];
         },
     ) {
         return this.menuItemsService.update(id, body);

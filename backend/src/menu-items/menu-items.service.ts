@@ -38,6 +38,7 @@ export class MenuItemsService {
         categoryId: string;
         dietary?: string[];
         allergens?: string[];
+        inclusions?: string[];
     }) {
         return this.prisma.menuItem.create({
             data,
@@ -56,6 +57,7 @@ export class MenuItemsService {
             categoryId?: string;
             dietary?: string[];
             allergens?: string[];
+            inclusions?: string[];
         },
     ) {
         return this.prisma.menuItem.update({

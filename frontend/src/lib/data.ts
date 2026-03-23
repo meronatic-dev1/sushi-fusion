@@ -10,6 +10,7 @@ export interface Product {
     imgSrc?: string;
     dietary?: string[];
     allergens?: string[];
+    inclusions?: string[];
 }
 
 export const MENU: { [key: string]: Product[] } = {};
