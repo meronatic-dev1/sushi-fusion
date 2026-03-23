@@ -272,7 +272,7 @@ export default function AdminOrdersPage() {
     useEffect(() => {
         const interval = setInterval(() => {
             loadData(true);
-        }, 30000); // Poll every 30 seconds
+        }, 8000); // Improved polling for real-time response (8 seconds)
         return () => clearInterval(interval);
     }, [location?.branchId, userBranchId]);
 
