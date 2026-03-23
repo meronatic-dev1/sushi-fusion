@@ -478,7 +478,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 borderRadius: 10, padding: '7px 16px',
                                 fontSize: 12, fontWeight: 700,
                             }}>
-                                <MapPin size={12} /> My Branch
+                                <MapPin size={12} /> {branches.find(b => b.id === (user?.publicMetadata?.branchId as string))?.name || 'My Branch'}
                             </div>
                         )}
 
