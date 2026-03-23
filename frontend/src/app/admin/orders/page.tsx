@@ -253,6 +253,18 @@ export default function AdminOrdersPage() {
     }, []);
 
     useEffect(() => {
+        if (!audioRef.current) return;
+        const hasPending = orders.some(o => o.status === 'Pending');
+        if (hasPending) {
+            audioRef.current.loop = true;
+            audioRef.current.play().catch(e => console.log('Audio blocked:', e));
+        } else {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+    }, [orders]);
+
+    useEffect(() => {
         if (!isLoaded || (userRole === 'branch_manager' && !userBranchId)) return;
         loadData();
     }, [location?.branchId, isLoaded, userRole, userBranchId]);
@@ -315,18 +327,6 @@ export default function AdminOrdersPage() {
                     deliveryInstructions: o.deliveryInstructions || undefined,
                 };
             });
-
-            // If silent update and we have new orders that are Pending, play sound
-            if (isSilent && ordersRef.current.length > 0) {
-                const newOrders = mapped.filter(no => 
-                    !ordersRef.current.some(oo => oo.id === no.id) && 
-                    no.status === 'Pending'
-                );
-                if (newOrders.length > 0) {
-                    audioRef.current?.play().catch(e => console.log('Audio play blocked:', e));
-                }
-            }
-
             setOrders(mapped);
             ordersRef.current = mapped;
         } catch (e) {
