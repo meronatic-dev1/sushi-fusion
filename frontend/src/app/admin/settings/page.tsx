@@ -380,6 +380,63 @@ export default function AdminSettingsPage() {
                 </div>
             </div>
 
+            {/* Danger Zone */}
+            <div style={{
+                background: 'rgba(248, 113, 113, 0.05)',
+                border: '1px solid rgba(248, 113, 113, 0.2)',
+                borderRadius: 16,
+                padding: '24px 28px',
+                marginTop: 40,
+                animation: 'fadeUp 0.4s ease both',
+                animationDelay: '0.3s'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171' }} />
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#f87171' }}>Danger Zone</h3>
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 0 20px', lineHeight: 1.5 }}>
+                    Resetting the application will permanently delete all <strong>Orders</strong>, <strong>Order Items</strong>, and <strong>Customer Accounts</strong>. 
+                    This will zero out your dashboard metrics. This action is <strong>irreversible</strong>.
+                </p>
+                <button
+                    onClick={async () => {
+                        const confirmed = window.confirm("CRITICAL WARNING: This will permanently delete ALL orders, customers and reset your dashboard metrics. This cannot be undone. Are you absolutely sure you want to completely reset the application?");
+                        if (!confirmed) return;
+
+                        setSaving(true);
+                        setMessage(null);
+                        try {
+                            const res = await fetch(`${API}/settings/reset`, { method: 'POST' });
+                            if (!res.ok) throw new Error('Reset failed');
+                            setMessage({ text: 'Application has been reset successfully.', type: 'success' });
+                            // Optional: reload some data or metrics if needed
+                        } catch (err) {
+                            setMessage({ text: 'Failed to reset application.', type: 'error' });
+                        } finally {
+                            setSaving(false);
+                        }
+                    }}
+                    disabled={saving}
+                    style={{
+                        padding: '10px 20px',
+                        background: 'transparent',
+                        border: '1px solid #f87171',
+                        borderRadius: 10,
+                        color: '#f87171',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        fontFamily: 'inherit',
+                        opacity: saving ? 0.5 : 1
+                    }}
+                    onMouseEnter={e => { if (!saving) { e.currentTarget.style.background = '#f87171'; e.currentTarget.style.color = '#fff'; } }}
+                    onMouseLeave={e => { if (!saving) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#f87171'; } }}
+                >
+                    Reset All Application Data
+                </button>
+            </div>
+
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&display=swap');
                 @keyframes fadeUp {
