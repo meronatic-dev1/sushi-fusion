@@ -91,6 +91,7 @@ export class AnalyticsService {
         // ── KPIs ──
         const totalRevenue = orders.reduce((s, o) => s + (o.totalAmount || 0), 0);
         const totalOrders = orders.length;
+        const cancelledOrders = orders.filter(o => o.status === 'CANCELLED').length;
         const uniqueCustomerIds = new Set(orders.filter(o => o.userId).map(o => o.userId));
         const totalCustomers = uniqueCustomerIds.size || customers.length;
         const avgOrder = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -123,7 +124,17 @@ export class AnalyticsService {
         };
         const modeIconMap: Record<string, string> = { DELIVERY: '🛵', PICKUP: '🏠', DINE_IN: '🍽️' };
 
-        const recentOrders = orders.slice(0, 5).map(o => ({
+        const recentOrdersData = orders.slice(0, 5).map(o => ({
+            id: '#' + o.id.split('-')[0].toUpperCase(),
+            name: o.user?.name || 'Guest',
+            branch: o.branch?.name || 'Unknown',
+            mode: modeIconMap[o.mode] || '🛵',
+            total: `AED ${(o.totalAmount || 0).toFixed(0)}`,
+            status: statusLabelMap[o.status] || o.status,
+            dot: statusDotMap[o.status] || '#6b7280',
+        }));
+
+        const recentCanceledOrders = orders.filter(o => o.status === 'CANCELLED').slice(0, 5).map(o => ({
             id: '#' + o.id.split('-')[0].toUpperCase(),
             name: o.user?.name || 'Guest',
             branch: o.branch?.name || 'Unknown',
@@ -247,11 +258,13 @@ export class AnalyticsService {
             kpis: {
                 revenue: totalRevenue,
                 orders: totalOrders,
+                cancelledOrders: cancelledOrders,
                 customers: totalCustomers,
                 avgOrder: Math.round(avgOrder * 10) / 10,
             },
             modeSplit,
-            recentOrders,
+            recentOrders: recentOrdersData,
+            recentCanceledOrders,
             topProducts: topProductsData,
             leastProducts: leastProductsData,
             categoryPerformance: categoryPerfData,

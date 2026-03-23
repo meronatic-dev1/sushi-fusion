@@ -207,9 +207,10 @@ export const updateSettings = (data: { logoUrl?: string; bannerUrl?: string; ser
 
 // ── Analytics ──────────────────────────────────────────────────────────────────
 export interface DashboardData {
-    kpis: { revenue: number; orders: number; customers: number; avgOrder: number };
+    kpis: { revenue: number; orders: number; cancelledOrders: number; customers: number; avgOrder: number };
     modeSplit: { label: string; count: number; pct: number }[];
     recentOrders: { id: string; name: string; branch: string; mode: string; total: string; status: string; dot: string }[];
+    recentCanceledOrders: { id: string; name: string; branch: string; mode: string; total: string; status: string; dot: string }[];
     topProducts: { name: string; orders: number; pct: number; revenue: string }[];
     leastProducts: { name: string; orders: number }[];
     categoryPerformance: { name: string; revenue: number; orders: number }[];
