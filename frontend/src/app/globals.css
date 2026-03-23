@@ -407,9 +407,7 @@ body {
 }
 
 .banner-inner {
-  max-width: 820px;
-  margin: 0 auto;
-  border-radius: 16px;
+  width: 100%;
   overflow: hidden;
   background: #fff5ef;
   box-shadow: 0 4px 18px rgba(0, 0, 0, .08);
