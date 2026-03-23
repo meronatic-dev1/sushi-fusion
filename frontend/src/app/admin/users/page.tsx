@@ -209,9 +209,17 @@ export default function AdminUsersPage() {
     const handleSaveUser = async (data: any) => {
         try {
             if (editUser) {
-                // For editing, just update the DB via NestJS for now 
-                // (Clerk metadata updates would need another API route if role changes)
-                await updateUser(editUser.id, data);
+                // Route through our Next.js API to update Clerk AND the Database
+                const res = await fetch('/api/clerk/users', { 
+                    method: 'PATCH', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...data, id: editUser.id }) 
+                });
+                
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.message || 'Failed to update user via Clerk Sync');
+                }
             } else {
                 // For NEW users, route through our Next.js API to create it in Clerk AND the Database
                 const res = await fetch('/api/clerk/users', { 
