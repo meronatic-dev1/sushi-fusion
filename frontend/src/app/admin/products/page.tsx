@@ -377,13 +377,24 @@ export default function AdminProductsPage() {
     const toggleSel = (id: string) => setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     const toggleCollapse = (catId: string) => setCollapsed(prev => ({ ...prev, [catId]: !prev[catId] }));
 
-    const deleteProduct = async (id: string) => {
-        await deleteMenuItem(id);
-        setProducts(prev => prev.filter(p => p.id !== id));
+    const deleteProduct = async (id: string, name: string) => {
+        if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) return;
+        try {
+            await deleteMenuItem(id);
+            setProducts(prev => prev.filter(p => p.id !== id));
+        } catch (err: any) {
+            alert(err.message || 'Failed to delete product. Please try again.');
+        }
     };
-    const deleteCategoryHandler = async (catId: string) => {
-        await apiDeleteCategory(catId);
-        await loadData();
+
+    const deleteCategoryHandler = async (catId: string, name: string) => {
+        if (!window.confirm(`Are you sure you want to delete the category "${name}"? This will fail if there are products assigned to it.`)) return;
+        try {
+            await apiDeleteCategory(catId);
+            await loadData();
+        } catch (err: any) {
+            alert(err.message || 'Failed to delete category. Make sure it has no products before deleting.');
+        }
     };
 
     const addProduct = async (data: Omit<Product, 'id' | 'orders'>) => {
@@ -510,7 +521,7 @@ export default function AdminProductsPage() {
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                         <Pencil size={12} />
                     </button>
-                    <button onClick={() => deleteProduct(p.id)} style={{ width: 30, height: 30, borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
+                    <button onClick={() => deleteProduct(p.id, p.name)} style={{ width: 30, height: 30, borderRadius: 8, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.2)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                         <Trash2 size={12} />
@@ -662,7 +673,7 @@ export default function AdminProductsPage() {
                                         </button>
 
                                         {/* Delete category */}
-                                        <button onClick={() => deleteCategoryHandler(cat.id)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
+                                        <button onClick={() => deleteCategoryHandler(cat.id, cat.name)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer', transition: 'all 0.15s' }}
                                             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.2)'; }}
                                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                                             <Trash2 size={11} />
@@ -713,7 +724,7 @@ export default function AdminProductsPage() {
                                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; }}>
                                         <Pencil size={11} />
                                     </button>
-                                    <button onClick={() => deleteCategoryHandler(cat.id)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer' }}
+                                    <button onClick={() => deleteCategoryHandler(cat.id, cat.name)} style={{ width: 28, height: 28, borderRadius: 7, background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', cursor: 'pointer' }}
                                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.borderColor = 'rgba(248,113,113,0.2)'; }}
                                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.25)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'; }}>
                                         <Trash2 size={11} />

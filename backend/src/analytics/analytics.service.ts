@@ -30,6 +30,7 @@ export class AnalyticsService {
         const itemAgg: Record<string, { quantity: number; totalPrice: number; menuItemId: string }> = {};
         for (const o of orders) {
             for (const i of o.orderItems) {
+                if (!i.menuItemId) continue;
                 if (!itemAgg[i.menuItemId]) itemAgg[i.menuItemId] = { quantity: 0, totalPrice: 0, menuItemId: i.menuItemId };
                 itemAgg[i.menuItemId].quantity += i.quantity;
                 itemAgg[i.menuItemId].totalPrice += (i.unitPrice * i.quantity);
