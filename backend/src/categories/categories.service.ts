@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -27,7 +27,11 @@ export class CategoriesService {
         return this.prisma.category.update({ where: { id }, data });
     }
 
-    remove(id: string) {
+    async remove(id: string) {
+        const count = await this.prisma.menuItem.count({ where: { categoryId: id } });
+        if (count > 0) {
+            throw new BadRequestException(`Cannot delete category with ${count} items. Please move or delete products first.`);
+        }
         return this.prisma.category.delete({ where: { id } });
     }
 }

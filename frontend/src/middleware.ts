@@ -5,9 +5,23 @@ const isAdminRoute = createRouteMatcher(['/admin(.*)'])
 const isAdminLoginRoute = createRouteMatcher(['/admin/login(.*)'])
 
 export default clerkMiddleware(async (auth, req) => {
+  const { userId } = await auth()
+  const isHome = req.nextUrl.pathname === '/'
+
+  // 1. If user is at home and logged in, handle automatic redirect to admin for staff roles
+  if (isHome && userId) {
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
+    const role = (user.publicMetadata?.role as string | undefined)?.toLowerCase()
+
+    if (role === 'admin' || role === 'branch_manager') {
+      console.log(`[Middleware] Auto-redirecting ${role} from home to /admin`);
+      return NextResponse.redirect(new URL('/admin', req.url))
+    }
+  }
+
+  // 2. Protect admin routes
   if (isAdminRoute(req) && !isAdminLoginRoute(req)) {
-    const { userId } = await auth()
-    
     // Not logged in -> redirect to admin login
     if (!userId) {
       const url = new URL('/admin/login', req.url)
