@@ -12,10 +12,10 @@ interface Order { id: string; displayId: string; customer: string; email: string
 const PIPELINE: OrderStatus[] = ['Routing', 'Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
 const NEXT: Partial<Record<OrderStatus, OrderStatus>> = { Routing: 'Pending', Pending: 'Confirmed', Confirmed: 'Preparing', Preparing: 'Ready', Ready: 'Completed' };
 const NEXT_LABEL: Partial<Record<OrderStatus, string>> = { Routing: 'Accept Manually', Pending: 'Confirm', Confirmed: 'Start Prep', Preparing: 'Mark Ready', Ready: 'Complete' };
-const MODE_ICON: Record<string, React.ReactNode> = { 
-    Delivery: <Bike size={16} />, 
-    Pickup: <Package size={16} />, 
-    'Dine-In': <Utensils size={16} /> 
+const MODE_ICON: Record<string, React.ReactNode> = {
+    Delivery: <Bike size={16} />,
+    Pickup: <Package size={16} />,
+    'Dine-In': <Utensils size={16} />
 };
 
 const STATUS_CFG: Record<OrderStatus, { color: string; bg: string; border: string; icon: React.ReactNode; barColor: string }> = {
@@ -232,7 +232,7 @@ function ExportMenu({ orders, onOpenChange }: { orders: Order[]; onOpenChange?: 
 export default function AdminOrdersPage() {
     const { user, isLoaded } = useUser();
     const { location } = useLocation();
-    
+
     const [orders, setOrders] = useState<Order[]>([]);
     const [search, setSearch] = useState('');
     const [filterStatus, setFilterStatus] = useState<OrderStatus | 'All'>('All');
@@ -372,7 +372,7 @@ export default function AdminOrdersPage() {
                 </head>
                 <body>
                     <div class="center">
-                        <img src="/sushi-fusion-logo.png" class="logo" />
+                        <img src="/logo.png" class="logo" />
                         <div class="bold" style="font-size: 16px;">SUSHI FUSION</div>
                         <div style="font-size: 10px;">${order.branch}</div>
                         <div class="divider"></div>
@@ -402,16 +402,16 @@ export default function AdminOrdersPage() {
                         </thead>
                         <tbody>
                             ${order.items.map(item => {
-                                const parts = item.split(' x');
-                                const name = parts[0];
-                                const qty = parts[1] || '1';
-                                return `
+            const parts = item.split(' x');
+            const name = parts[0];
+            const qty = parts[1] || '1';
+            return `
                                     <tr>
                                         <td style="font-weight: bold;">${name}</td>
                                         <td style="text-align: right;">${qty}</td>
                                     </tr>
                                 `;
-                            }).join('')}
+        }).join('')}
                         </tbody>
                     </table>
 
@@ -586,7 +586,7 @@ export default function AdminOrdersPage() {
                 </div>
 
                 <div style={{ flex: 1 }} />
-                
+
                 <select
                     value={filterMode}
                     onChange={e => setFilterMode(e.target.value)}
