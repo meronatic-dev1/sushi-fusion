@@ -241,19 +241,32 @@ export default function AdminOrdersPage() {
     const [exportOpen, setExportOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const ordersRef = useRef<Order[]>([]);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
     const rawRole = (user?.publicMetadata?.role as string || 'customer');
     const userRole = rawRole.toLowerCase();
     const userBranchId = user?.publicMetadata?.branchId as string | undefined;
 
     useEffect(() => {
-        if (!isLoaded || (userRole === 'branch_manager' && !userBranchId)) return; // Wait until branch manager gets locked in
+        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    }, []);
+
+    useEffect(() => {
+        if (!isLoaded || (userRole === 'branch_manager' && !userBranchId)) return;
         loadData();
     }, [location?.branchId, isLoaded, userRole, userBranchId]);
 
-    const loadData = async () => {
-        setLoading(true);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            loadData(true);
+        }, 30000); // Poll every 30 seconds
+        return () => clearInterval(interval);
+    }, [location?.branchId, userBranchId]);
+
+    const loadData = async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
         try {
-            // The location context holds the active branch id or null for All
             const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? userBranchId : undefined);
             const data = await getOrders(activeBranchId ?? undefined);
             const mapped: Order[] = data.map((o: any) => {
@@ -302,11 +315,24 @@ export default function AdminOrdersPage() {
                     deliveryInstructions: o.deliveryInstructions || undefined,
                 };
             });
+
+            // If silent update and we have new orders that are Pending, play sound
+            if (isSilent && ordersRef.current.length > 0) {
+                const newOrders = mapped.filter(no => 
+                    !ordersRef.current.some(oo => oo.id === no.id) && 
+                    no.status === 'Pending'
+                );
+                if (newOrders.length > 0) {
+                    audioRef.current?.play().catch(e => console.log('Audio play blocked:', e));
+                }
+            }
+
             setOrders(mapped);
+            ordersRef.current = mapped;
         } catch (e) {
             console.error('Failed to load orders', e);
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 

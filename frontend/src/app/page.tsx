@@ -142,8 +142,8 @@ function PromoBanner() {
           <span style={{ color: '#FF8C42' }}>Japanese Sushi</span>
         </h2>
         <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.7)', marginBottom: 32 }}>
-          Free delivery on your first order. Use code{' '}
-          <strong style={{ color: '#fff' }}>SUSHI1</strong> at checkout.
+          25% off on any items. Use code{' '}
+          <strong style={{ color: '#fff' }}>FUSIONFUN</strong> at checkout.
         </p>
         <a
           href="#menu"
