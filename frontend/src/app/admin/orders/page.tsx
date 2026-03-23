@@ -343,84 +343,89 @@ export default function AdminOrdersPage() {
         const html = `
             <html>
                 <head>
-                    <title>Invoice ${order.displayId}</title>
+                    <title>Bill ${order.displayId}</title>
                     <style>
-                        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
-                        body { font-family: 'Inter', sans-serif; padding: 40px; color: #1c1c1c; line-height: 1.5; }
-                        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #FF6A0C; padding-bottom: 20px; margin-bottom: 30px; }
-                        .logo-text { font-size: 24px; font-weight: 800; color: #1c1c1c; }
-                        .logo-highlight { color: #FF6A0C; }
-                        .status { font-weight: 800; color: #FF6A0C; text-transform: uppercase; font-size: 14px; }
-                        .section { margin-bottom: 25px; }
-                        .section-title { font-size: 11px; font-weight: 800; color: #999; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.05em; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-                        th { text-align: left; border-bottom: 2px solid #f0f0f0; padding: 12px 0; font-size: 12px; color: #666; text-transform: uppercase; }
-                        td { padding: 14px 0; border-bottom: 1px solid #f9f9f9; font-size: 14px; color: #333; }
-                        .total-row { font-size: 20px; font-weight: 800; text-align: right; padding-top: 30px; border-top: 2px solid #f0f0f0; margin-top: 20px; }
-                        .footer { margin-top: 60px; text-align: center; color: #aaa; font-size: 12px; border-top: 1px dashed #eee; padding-top: 20px; }
+                        @media print {
+                            @page { size: 80mm auto; margin: 0; }
+                            body { margin: 0; padding: 5mm; width: 70mm; }
+                        }
+                        body { 
+                            font-family: 'Courier New', Courier, monospace; 
+                            width: 70mm; 
+                            margin: 0 auto; 
+                            padding: 10px; 
+                            font-size: 12px; 
+                            line-height: 1.2; 
+                            color: #000;
+                        }
+                        .center { text-align: center; }
+                        .logo { width: 40mm; margin: 0 auto 10px; display: block; filter: grayscale(100%); }
+                        .divider { border-top: 1px dashed #000; margin: 10px 0; }
+                        .bold { font-weight: bold; }
+                        .flex { display: flex; justify-content: space-between; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th { text-align: left; border-bottom: 1px dashed #000; padding: 5px 0; font-size: 11px; }
+                        td { padding: 5px 0; vertical-align: top; }
+                        .total-section { margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
+                        .footer { margin-top: 20px; text-align: center; font-size: 10px; }
                     </style>
                 </head>
                 <body>
-                    <div class="header">
-                        <div>
-                            <div class="logo-text">SUSHI<span class="logo-highlight">FUSION</span></div>
-                            <h1 style="margin: 5px 0 0; font-size: 32px; letter-spacing: -0.02em;">INVOICE</h1>
-                        </div>
-                        <div style="text-align: right;">
-                            <p class="status">${order.status}</p>
-                            <p style="margin: 5px 0; font-size: 18px;"><strong>${order.displayId}</strong></p>
-                            <p style="color: #666; font-size: 13px;">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
-                        </div>
+                    <div class="center">
+                        <img src="/sushi-fusion-logo.png" class="logo" />
+                        <div class="bold" style="font-size: 16px;">SUSHI FUSION</div>
+                        <div style="font-size: 10px;">${order.branch}</div>
+                        <div class="divider"></div>
+                        <div class="bold">ORDER: ${order.displayId}</div>
+                        <div style="font-size: 10px;">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px;">
-                        <div class="section">
-                            <p class="section-title">Customer Details</p>
-                            <p style="font-size: 16px; margin: 0;"><strong>${order.customer}</strong></p>
-                            <p style="margin: 4px 0;">${order.email}</p>
-                            <p style="margin: 4px 0;">${order.userPhone || 'No phone provided'}</p>
-                        </div>
-                        <div class="section">
-                            <p class="section-title">Order Info</p>
-                            <p style="margin: 0;"><strong>Method:</strong> ${order.mode}</p>
-                            <p style="margin: 4px 0;"><strong>Branch:</strong> ${order.branch}</p>
-                            <p style="margin: 4px 0;"><strong>Address:</strong> ${order.address || 'In-store'}</p>
-                        </div>
+                    <div class="divider"></div>
+
+                    <div class="section">
+                        <div class="bold">CUSTOMER:</div>
+                        <div>${order.customer}</div>
+                        <div>${order.userPhone || ''}</div>
+                        <div style="margin-top: 5px;"><span class="bold">MODE:</span> ${order.mode}</div>
+                        ${order.address ? `<div style="margin-top: 5px;"><span class="bold">ADDR:</span> ${order.address}</div>` : ''}
+                        ${order.tableNo ? `<div style="margin-top: 5px;"><span class="bold">TABLE:</span> ${order.tableNo}</div>` : ''}
                     </div>
 
-                    <div class="section" style="margin-top: 20px;">
-                        <p class="section-title">Items Ordered</p>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Item Description</th>
-                                    <th style="text-align: right;">Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${order.items.map(item => {
-                                    const parts = item.split(' x');
-                                    const name = parts[0];
-                                    const qty = parts[1] || '1';
-                                    return `
-                                        <tr>
-                                            <td style="font-weight: 600;">${name}</td>
-                                            <td style="text-align: right;">${qty}</td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-                    </div>
+                    <div class="divider"></div>
 
-                    <div class="total-row">
-                        <span style="font-size: 14px; font-weight: 400; color: #666; margin-right: 15px;">TOTAL AMOUNT</span>
-                        ${order.total}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ITEM</th>
+                                <th style="text-align: right;">QTY</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${order.items.map(item => {
+                                const parts = item.split(' x');
+                                const name = parts[0];
+                                const qty = parts[1] || '1';
+                                return `
+                                    <tr>
+                                        <td style="font-weight: bold;">${name}</td>
+                                        <td style="text-align: right;">${qty}</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+
+                    <div class="total-section">
+                        <div class="flex bold" style="font-size: 14px;">
+                            <span>TOTAL:</span>
+                            <span>${order.total}</span>
+                        </div>
                     </div>
 
                     <div class="footer">
-                        <p>Thank you for choosing Sushi Fusion!</p>
-                        <p style="font-size: 10px; margin-top: 5px;">This is a computer-generated invoice from the Sushi Fusion Admin Panel.</p>
+                        <p>THANK YOU FOR CHOOSING SUSHI FUSION!</p>
+                        <p>Please visit us again soon.</p>
+                        <p style="font-size: 8px; margin-top: 10px;">${order.id}</p>
                     </div>
                     
                     <script>
