@@ -119,6 +119,26 @@ export class OrdersService {
         const deliveryParam = settings?.deliveryFee ?? 15.0;
         const taxRateParam = settings?.taxRate ?? 5.0;
 
+        let selectedBranchId = body.branchId;
+        if (!selectedBranchId) {
+            const fallbackBranch = await this.prisma.location.findFirst({ where: { isActive: true } });
+            selectedBranchId = fallbackBranch?.id;
+        }
+
+        if (!selectedBranchId) {
+            const systemBranch = await this.prisma.location.create({
+                data: {
+                    name: 'System Default Branch',
+                    address: 'Default Address',
+                    latitude: 25.2048,
+                    longitude: 55.2708,
+                    isActive: true,
+                    isClosed: false,
+                }
+            });
+            selectedBranchId = systemBranch.id;
+        }
+
         let deliveryCharge = 0;
         if (body.mode === 'DELIVERY') {
             const branch = await this.prisma.location.findUnique({ where: { id: selectedBranchId } });
@@ -190,26 +210,6 @@ export class OrdersService {
                     }
                 }).catch(err => this.logger.warn(`Failed to create local sync user ${resolvedUserId}: ${err.message}`));
             }
-        }
-
-        let selectedBranchId = body.branchId;
-        if (!selectedBranchId) {
-            const fallbackBranch = await this.prisma.location.findFirst({ where: { isActive: true } });
-            selectedBranchId = fallbackBranch?.id;
-        }
-
-        if (!selectedBranchId) {
-            const systemBranch = await this.prisma.location.create({
-                data: {
-                    name: 'System Default Branch',
-                    address: 'Default Address',
-                    latitude: 25.2048,
-                    longitude: 55.2708,
-                    isActive: true,
-                    isClosed: false,
-                }
-            });
-            selectedBranchId = systemBranch.id;
         }
 
         const order = await this.prisma.order.create({
