@@ -251,14 +251,15 @@ export default function CheckoutPage() {
     }, [isLoaded, isSignedIn, user, step]);
 
     useEffect(() => {
-        if (customerLat && customerLng && selectedBranchId && branches.length > 0) {
-            const branch = branches.find(b => b.id === selectedBranchId);
-            if (branch) {
-                const d = getDistance(customerLat, customerLng, branch.latitude, branch.longitude);
-                setDistanceKm(d);
-            }
+        if (customerLat && customerLng && branches.length > 0) {
+            let minDistance = Infinity;
+            branches.forEach(b => {
+                const d = getDistance(customerLat, customerLng, b.latitude, b.longitude);
+                if (d < minDistance) minDistance = d;
+            });
+            if (minDistance !== Infinity) setDistanceKm(minDistance);
         }
-    }, [customerLat, customerLng, selectedBranchId, branches]);
+    }, [customerLat, customerLng, branches]);
 
     console.log('--- DISTANCE DEBUG ---', { customerLat, customerLng, selectedBranchId, distanceKm });
 

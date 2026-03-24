@@ -141,11 +141,15 @@ export class OrdersService {
 
         let deliveryCharge = 0;
         if (body.mode === 'DELIVERY') {
-            const branch = await this.prisma.location.findUnique({ where: { id: selectedBranchId } });
-            if (branch && body.latitude && body.longitude) {
-                const dist = calculateDistance(body.latitude, body.longitude, branch.latitude, branch.longitude);
-                deliveryCharge = calculateDeliveryFee(dist);
-                this.logger.log(`Calculated delivery charge for ${dist.toFixed(2)}km: ${deliveryCharge} AED`);
+            const allBranches = await this.prisma.location.findMany({ where: { isActive: true } });
+            if (allBranches.length > 0 && body.latitude && body.longitude) {
+                let minDistance = Infinity;
+                for (const b of allBranches) {
+                    const dist = calculateDistance(body.latitude, body.longitude, b.latitude, b.longitude);
+                    if (dist < minDistance) minDistance = dist;
+                }
+                deliveryCharge = calculateDeliveryFee(minDistance);
+                this.logger.log(`Calculated delivery charge for nearest branch (${minDistance.toFixed(2)}km): ${deliveryCharge} AED`);
             } else {
                 deliveryCharge = deliveryParam;
             }
