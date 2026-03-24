@@ -365,6 +365,13 @@ export default function Home() {
 
   const handleBottomTabChange = (tab: string) => {
     setActiveBottomTab(tab);
+    if (tab === 'search') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => {
+        const input = document.getElementById('mobile-search-input');
+        if (input) (input as HTMLInputElement).focus();
+      }, 300);
+    }
   };
 
   const ORANGE = '#FFF8F2';

@@ -178,7 +178,7 @@ export default function ProductClientPage({ id }: { id: string }) {
 
                         {/* Product Details - Ensuring product is not null below this point */}
                         <div style={{ background: 'var(--w)', borderRadius: 24, border: '1px solid var(--b)', overflow: 'hidden', boxShadow: '0 12px 40px rgba(0,0,0,0.04)' }}>
-                            <div style={{ height: 380, background: '#fff5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                            <div style={{ height: 'clamp(240px, 40vh, 380px)', background: '#fff5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                                 {product!.imgSrc ? (
                                     <img src={product!.imgSrc} alt={product!.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (

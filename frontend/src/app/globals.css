@@ -2049,6 +2049,12 @@ body {
     box-shadow: 0 1px 6px rgba(0, 0, 0, .07);
   }
 
+  .banner-inner {
+    height: auto !important;
+    aspect-ratio: 16 / 9;
+    min-height: 180px;
+  }
+
   /* ── Mobile row 1: hamburger · location · lang ─────────────── */
   .mob-row1 {
     display: flex;
@@ -2122,6 +2128,49 @@ body {
     cursor: pointer;
     flex-shrink: 0;
     font-family: inherit;
+  }
+
+  /* ── Mobile row 1.5: Search bar ────────────────────────────── */
+  .mob-row-search {
+    width: 100%;
+    padding: 0 14px 12px;
+    display: none; /* Hidden by default, shown if search active or always? */
+  }
+
+  .mob-row-search.visible {
+    display: block;
+  }
+
+  .mob-search-inner {
+    position: relative;
+    width: 100%;
+  }
+
+  .mob-search-inner input {
+    width: 100%;
+    padding: 10px 42px 10px 16px;
+    background: #f5f5f5;
+    border: 1.5px solid transparent;
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .mob-search-inner input:focus {
+    background: #fff;
+    border-color: var(--o);
+    box-shadow: 0 0 0 4px rgba(255,106,12,0.1);
+  }
+
+  .mob-search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    opacity: 0.5;
   }
 
   /* ── Mobile row 2: circular mode tabs ──────────────────────── */

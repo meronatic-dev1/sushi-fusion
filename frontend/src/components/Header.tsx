@@ -186,6 +186,24 @@ export default function Header({
                         </button>
                     ))}
                 </div>
+
+                {/* Row 3: Search bar — always visible on mobile for "perfect" working search */}
+                <div className="mob-row-search visible">
+                    <div className="mob-search-inner">
+                        <input
+                            id="mobile-search-input"
+                            type="text"
+                            placeholder={t('header.searchPlaceholder')}
+                            value={searchValue}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                        />
+                        <img 
+                            src="/images/icons/search.png" 
+                            alt="" 
+                            className="mob-search-icon"
+                        />
+                    </div>
+                </div>
             </header>
 
             <LocationModal
