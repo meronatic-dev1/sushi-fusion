@@ -204,6 +204,7 @@ export default function CheckoutPage() {
     const [selectedAddress, setSelectedAddress] = useState('');
     const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
     const [branchName, setBranchName] = useState<string | null>(null);
+    const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
     const [branches, setBranches] = useState<ApiLocation[]>([]);
 
@@ -249,11 +250,31 @@ export default function CheckoutPage() {
         }
     }, [isLoaded, isSignedIn, user, step]);
 
+    useEffect(() => {
+        if (customerLat && customerLng && selectedBranchId && branches.length > 0) {
+            const branch = branches.find(b => b.id === selectedBranchId);
+            if (branch) {
+                const d = getDistance(customerLat, customerLng, branch.latitude, branch.longitude);
+                setDistanceKm(d);
+            }
+        }
+    }, [customerLat, customerLng, selectedBranchId, branches]);
+
+    console.log('--- DISTANCE DEBUG ---', { customerLat, customerLng, selectedBranchId, distanceKm });
+
+    const calculateDeliveryFee = (dist: number) => {
+        if (dist <= 10) return 0;
+        if (dist <= 15) return 10;
+        return 15;
+    };
+
     const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
-    const DELIVERY = orderMode === 'Delivery' ? (settings?.deliveryFee ?? 15) : 0;
+    const DELIVERY = orderMode === 'Delivery' 
+        ? (distanceKm !== null ? calculateDeliveryFee(distanceKm) : (settings?.deliveryFee ?? 15)) 
+        : 0;
     
     const servicePercent = (settings?.enableServiceCharge && orderMode === 'DineIn') ? (settings?.serviceCharge || 0) : 0;
     const SERVICE_CHARGE = (SUBTOTAL * servicePercent) / 100;

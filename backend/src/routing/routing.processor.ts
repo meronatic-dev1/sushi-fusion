@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { OrdersGateway } from '../orders/orders.gateway';
 import { Injectable, Logger, forwardRef, Inject } from '@nestjs/common';
 import { RoutingService } from './routing.service';
+import { calculateDistance } from '../utils/distance';
 
 @Processor('order-routing')
 @Injectable()
@@ -19,22 +20,7 @@ export class RoutingProcessor extends WorkerHost {
         super();
     }
 
-    // Basic Haversine distance formula
-    private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-        const R = 6371; // Earth's radius in km
-        const dLat = this.deg2rad(lat2 - lat1);
-        const dLon = this.deg2rad(lon2 - lon1);
-        const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(this.deg2rad(lat1)) * Math.cos(this.deg2rad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c; // Distance in km
-    }
 
-    private deg2rad(deg: number): number {
-        return deg * (Math.PI / 180);
-    }
 
     async process(job: Job<any, any, string>): Promise<any> {
         if (job.name === 'assign-branch') {
@@ -80,7 +66,7 @@ export class RoutingProcessor extends WorkerHost {
 
         let branchesWithDistance = branches.map(b => ({
             ...b,
-            distanceKm: this.calculateDistance(customerLat, customerLng, b.latitude, b.longitude)
+            distanceKm: calculateDistance(customerLat, customerLng, b.latitude, b.longitude)
         })).sort((a, b) => a.distanceKm - b.distanceKm);
 
         let eligible = branchesWithDistance.filter(b => b.distanceKm <= 20);
