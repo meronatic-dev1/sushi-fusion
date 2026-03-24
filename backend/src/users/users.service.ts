@@ -1,12 +1,22 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { createClerkClient } from '@clerk/clerk-sdk-node';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
     private readonly logger = new Logger(UsersService.name);
+    private readonly clerkClient;
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private configService: ConfigService
+    ) {
+        this.clerkClient = createClerkClient({
+            secretKey: this.configService.get<string>('CLERK_SECRET_KEY'),
+        });
+    }
 
     async findAll() {
         return this.prisma.user.findMany({
@@ -64,6 +74,25 @@ export class UsersService {
     }
 
     async remove(id: string) {
+        try {
+            this.logger.log(`Attempting to delete user ${id} from Clerk`);
+            // Delete from Clerk first. If it's a migration/local-only user, it might fail.
+            // We ignore "not found" errors from Clerk to allow local cleanup.
+            await this.clerkClient.users.deleteUser(id).catch(err => {
+                const isNotFound = err.status === 404 || (err.errors?.[0]?.code === 'resource_not_found');
+                if (isNotFound) {
+                    this.logger.warn(`User ${id} not found in Clerk, skipping Clerk deletion`);
+                } else {
+                    this.logger.error(`Failed to delete user ${id} from Clerk: ${err.message}`);
+                    // Optionally rethrow if you want to block DB deletion on real errors (like auth/api issues)
+                    // throw err; 
+                }
+            });
+        } catch (error: any) {
+            this.logger.error(`Clerk deletion error for user ${id}: ${error.message}`);
+        }
+
+        this.logger.log(`Deleting user record ${id} from database`);
         return this.prisma.user.delete({
             where: { id },
         });
