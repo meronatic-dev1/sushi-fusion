@@ -30,10 +30,14 @@ export default function ProductClientPage({ id }: { id: string }) {
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     
-    // New states for drinks and quantity
+    // New states for drinks, addons, starters and quantity
     const [qty, setQty] = useState(1);
     const [drinks, setDrinks] = useState<Product[]>([]);
     const [selectedDrinks, setSelectedDrinks] = useState<Record<string, number>>({});
+    const [addons, setAddons] = useState<Product[]>([]);
+    const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
+    const [starters, setStarters] = useState<Product[]>([]);
+    const [selectedStarters, setSelectedStarters] = useState<Record<string, number>>({});
 
     const t = (key: string) => translate(language, key);
 
@@ -76,6 +80,41 @@ export default function ProductClientPage({ id }: { id: string }) {
                         desc: d.description || '',
                         price: d.price,
                         emoji: '🥤',
+                        imgSrc: d.imageUrl || undefined
+                    })));
+                }
+
+                // 3. Fetch addons
+                const addonCat = cats.find(c => 
+                    c.name.toLowerCase().includes('addon') || 
+                    c.name.toLowerCase().includes('add-on') ||
+                    c.name.toLowerCase().includes('add on')
+                );
+                if (!cancelled && addonCat) {
+                    const addonItems = await getMenuItems(addonCat.id);
+                    setAddons(addonItems.map(d => ({
+                        id: d.id,
+                        name: d.name,
+                        desc: d.description || '',
+                        price: d.price,
+                        emoji: '➕',
+                        imgSrc: d.imageUrl || undefined
+                    })));
+                }
+
+                // 4. Fetch starters
+                const starterCat = cats.find(c => 
+                    c.name.toLowerCase().includes('starter') || 
+                    c.name.toLowerCase().includes('appetizer')
+                );
+                if (!cancelled && starterCat) {
+                    const starterItems = await getMenuItems(starterCat.id);
+                    setStarters(starterItems.map(d => ({
+                        id: d.id,
+                        name: d.name,
+                        desc: d.description || '',
+                        price: d.price,
+                        emoji: '🥣',
                         imgSrc: d.imageUrl || undefined
                     })));
                 }
@@ -129,6 +168,22 @@ export default function ProductClientPage({ id }: { id: string }) {
             }
         });
 
+        // Add selected addons
+        Object.entries(selectedAddons).forEach(([addonName, addonQty]) => {
+            const addon = addons.find(d => d.name === addonName);
+            if (addon) {
+                addToCart(addon, addonQty);
+            }
+        });
+
+        // Add selected starters
+        Object.entries(selectedStarters).forEach(([starterName, starterQty]) => {
+            const starter = starters.find(d => d.name === starterName);
+            if (starter) {
+                addToCart(starter, starterQty);
+            }
+        });
+
         setIsAdded(true);
         setTimeout(() => setIsAdded(false), 1500);
     };
@@ -140,6 +195,30 @@ export default function ProductClientPage({ id }: { id: string }) {
                 delete next[drinkName];
             } else {
                 next[drinkName] = 1;
+            }
+            return next;
+        });
+    };
+
+    const toggleAddon = (addonName: string) => {
+        setSelectedAddons(prev => {
+            const next = { ...prev };
+            if (next[addonName]) {
+                delete next[addonName];
+            } else {
+                next[addonName] = 1;
+            }
+            return next;
+        });
+    };
+
+    const toggleStarter = (starterName: string) => {
+        setSelectedStarters(prev => {
+            const next = { ...prev };
+            if (next[starterName]) {
+                delete next[starterName];
+            } else {
+                next[starterName] = 1;
             }
             return next;
         });
@@ -315,6 +394,126 @@ export default function ProductClientPage({ id }: { id: string }) {
                                     </div>
                                 )}
 
+                                {/* ADDONS SECTION */}
+                                {addons.length > 0 && (
+                                    <div style={{ marginTop: 40, marginBottom: 40 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                            <h3 style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--d)', margin: 0 }}>
+                                                Addons
+                                            </h3>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#a08060', background: '#f5efe8', padding: '4px 10px', borderRadius: 6 }}>Optional</span>
+                                        </div>
+                                        <p style={{ fontSize: 14, color: 'var(--g)', margin: '0 0 20px 0' }}>Choose extra delicious bits</p>
+                                        
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
+                                            gap: 16 
+                                        }}>
+                                            {addons.map(addon => {
+                                                const isSelected = !!selectedAddons[addon.name];
+                                                return (
+                                                    <div 
+                                                        key={addon.name}
+                                                        onClick={() => toggleAddon(addon.name)}
+                                                        style={{ 
+                                                            border: `2px solid ${isSelected ? 'var(--o)' : 'var(--b)'}`,
+                                                            borderRadius: 16,
+                                                            overflow: 'hidden',
+                                                            cursor: 'pointer',
+                                                            background: isSelected ? 'rgba(255,106,12,0.02)' : 'var(--w)',
+                                                            transition: 'all 0.2s',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        <div style={{ height: 140, background: '#fcfaf7', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                                            {addon.imgSrc ? (
+                                                                <img src={addon.imgSrc} alt={addon.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            ) : (
+                                                                <span style={{ fontSize: 40 }}>{addon.emoji}</span>
+                                                            )}
+                                                            <div style={{ 
+                                                                position: 'absolute', top: 10, right: 10, 
+                                                                width: 22, height: 22, borderRadius: 6,
+                                                                background: isSelected ? 'var(--o)' : '#fff',
+                                                                border: `1.5px solid ${isSelected ? 'var(--o)' : '#d0c0b0'}`,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                color: '#fff', fontSize: 14, fontWeight: 900
+                                                            }}>
+                                                                {isSelected && '✓'}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ padding: '12px 14px' }}>
+                                                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--d)', marginBottom: 4, textTransform: 'uppercase' }}>{addon.name}</div>
+                                                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g)' }}>+ AED {addon.price.toFixed(2)}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* STARTERS SECTION */}
+                                {starters.length > 0 && (
+                                    <div style={{ marginTop: 40, marginBottom: 40 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                            <h3 style={{ fontSize: 18, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--d)', margin: 0 }}>
+                                                Choose Starters
+                                            </h3>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#a08060', background: '#f5efe8', padding: '4px 10px', borderRadius: 6 }}>Optional</span>
+                                        </div>
+                                        <p style={{ fontSize: 14, color: 'var(--g)', margin: '0 0 20px 0' }}>Great to share while you wait</p>
+                                        
+                                        <div style={{ 
+                                            display: 'grid', 
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
+                                            gap: 16 
+                                        }}>
+                                            {starters.map(starter => {
+                                                const isSelected = !!selectedStarters[starter.name];
+                                                return (
+                                                    <div 
+                                                        key={starter.name}
+                                                        onClick={() => toggleStarter(starter.name)}
+                                                        style={{ 
+                                                            border: `2px solid ${isSelected ? 'var(--o)' : 'var(--b)'}`,
+                                                            borderRadius: 16,
+                                                            overflow: 'hidden',
+                                                            cursor: 'pointer',
+                                                            background: isSelected ? 'rgba(255,106,12,0.02)' : 'var(--w)',
+                                                            transition: 'all 0.2s',
+                                                            position: 'relative'
+                                                        }}
+                                                    >
+                                                        <div style={{ height: 140, background: '#fcfaf7', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                                            {starter.imgSrc ? (
+                                                                <img src={starter.imgSrc} alt={starter.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            ) : (
+                                                                <span style={{ fontSize: 40 }}>{starter.emoji}</span>
+                                                            )}
+                                                            <div style={{ 
+                                                                position: 'absolute', top: 10, right: 10, 
+                                                                width: 22, height: 22, borderRadius: 6,
+                                                                background: isSelected ? 'var(--o)' : '#fff',
+                                                                border: `1.5px solid ${isSelected ? 'var(--o)' : '#d0c0b0'}`,
+                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                color: '#fff', fontSize: 14, fontWeight: 900
+                                                             }}>
+                                                                {isSelected && '✓'}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ padding: '12px 14px' }}>
+                                                            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--d)', marginBottom: 4, textTransform: 'uppercase' }}>{starter.name}</div>
+                                                            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g)' }}>+ AED {starter.price.toFixed(2)}</div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Footer / Actions */}
                                 <div style={{ 
                                     display: 'flex', gap: 16, alignItems: 'center', 
@@ -356,11 +555,20 @@ export default function ProductClientPage({ id }: { id: string }) {
                                         <div style={{ textAlign: 'right' }}>
                                             {((product?.oldPrice || 0) > 0) && (
                                                 <div style={{ fontSize: 11, opacity: 0.7, textDecoration: 'line-through' }}>
-                                                    AED {(((product?.oldPrice || 0) * qty) + Object.entries(selectedDrinks).reduce((acc, [name, q]) => acc + (drinks.find(d => d.name === name)?.price || 0) * q, 0)).toFixed(2)}
+                                                    AED {(((product?.oldPrice || 0) * qty) + 
+                                                         Object.entries(selectedDrinks).reduce((acc, [name, q]) => acc + (drinks.find(d => d.name === name)?.price || 0) * q, 0) +
+                                                         Object.entries(selectedAddons).reduce((acc, [name, q]) => acc + (addons.find(d => d.name === name)?.price || 0) * q, 0) +
+                                                         Object.entries(selectedStarters).reduce((acc, [name, q]) => acc + (starters.find(d => d.name === name)?.price || 0) * q, 0)
+                                                    ).toFixed(2)}
                                                 </div>
                                             )}
                                             <div style={{ fontSize: 14 }}>
-                                                AED {(((product?.price || 0) * qty) + Object.entries(selectedDrinks).reduce((acc, [name, q]) => acc + (drinks.find(d => d.name === name)?.price || 0) * q, 0)).toFixed(2)}
+                                                AED {(
+                                                    ((product?.price || 0) * qty) + 
+                                                    Object.entries(selectedDrinks).reduce((acc, [name, q]) => acc + (drinks.find(d => d.name === name)?.price || 0) * q, 0) +
+                                                    Object.entries(selectedAddons).reduce((acc, [name, q]) => acc + (addons.find(d => d.name === name)?.price || 0) * q, 0) +
+                                                    Object.entries(selectedStarters).reduce((acc, [name, q]) => acc + (starters.find(d => d.name === name)?.price || 0) * q, 0)
+                                                ).toFixed(2)}
                                             </div>
                                         </div>
                                     </button>

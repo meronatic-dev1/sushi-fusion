@@ -96,21 +96,29 @@ export async function PATCH(req: NextRequest) {
 
         // 2. Parse request body
         const body = await req.json();
-        const { id, name, email, phone, role, branchId } = body;
+        const { id, name, email, password, phone, role, branchId } = body;
 
         if (!id) {
             return NextResponse.json({ message: 'Missing user ID' }, { status: 400 });
         }
 
-        // 3. Update user in Clerk Metadata if role/branch changed
+        // 3. Update user in Clerk
         try {
-            await client.users.updateUser(id, {
+            const updateProps: any = {
                 firstName: name,
                 publicMetadata: {
                     role: role === 'ADMIN' ? 'admin' : role === 'BRANCH_MANAGER' ? 'branch_manager' : null,
                     branchId: role === 'BRANCH_MANAGER' ? branchId : null,
                 },
-            });
+            };
+
+            // Only update password in Clerk if it was provided
+            if (password) {
+                updateProps.password = password;
+                updateProps.skipPasswordChecks = true;
+            }
+
+            await client.users.updateUser(id, updateProps);
         } catch (clerkError: any) {
             console.error('Clerk Update Error:', clerkError.errors || clerkError);
             return NextResponse.json({ 
@@ -123,7 +131,7 @@ export async function PATCH(req: NextRequest) {
         const syncRes = await fetch(`${backendUrl}/users/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, phone, role, branchId }),
+            body: JSON.stringify({ name, email, password, phone, role, branchId }),
         });
 
         if (!syncRes.ok) {
