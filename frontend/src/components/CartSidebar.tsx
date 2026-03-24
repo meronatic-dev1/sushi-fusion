@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/data';
 import { useLocation } from '@/context/LocationContext';
 import { useSettings } from '@/context/SettingsContext';
+import { calculateDeliveryFee } from '@/lib/delivery';
 
 export interface CartItem extends Product {
     qty: number;
@@ -20,13 +21,16 @@ interface CartSidebarProps {
 
 export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: CartSidebarProps) {
     const router = useRouter();
-    const { location } = useLocation();
+    const { location, distanceKm } = useLocation();
     const { settings } = useSettings();
     
     // Default to delivery unless specifically set to something else
     const isDelivery = !location || !location.mode || location.mode.toLowerCase() === 'delivery';
     const isDineIn = location?.mode?.toLowerCase() === 'dinein';
-    const activeDeliveryFee = isDelivery ? settings.deliveryFee : 0;
+    
+    const activeDeliveryFee = isDelivery 
+        ? (distanceKm !== null ? calculateDeliveryFee(distanceKm) : (settings?.deliveryFee ?? 15)) 
+        : 0;
 
     const items = Object.entries(cart).filter(([, v]) => v.qty > 0);
     const subtotal = items.reduce((a, [, v]) => a + v.price * v.qty, 0);

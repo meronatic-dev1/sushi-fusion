@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useLocation } from '@/context/LocationContext';
 import { apiCreateOrder, apiCreatePaymentIntent, getLocations, ApiLocation, validateCoupon } from '@/lib/api';
+import { calculateDeliveryFee, getDistance } from '@/lib/delivery';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -24,17 +25,6 @@ const ALL_STEPS = [
     { num: 4 as Step, label: 'Done', short: 'Done' },
 ];
 
-/* ─── Haversine Distance helper ─── */
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
 
 /* ─── Reusable field wrapper ─── */
 function Field({ label, hint, children }: { label: string; hint?: React.ReactNode; children: React.ReactNode }) {
@@ -169,7 +159,7 @@ function StripePaymentForm({ total, onPaymentSuccess, setProcessing }: { total: 
 export default function CheckoutPage() {
     const { cart, clearCart } = useCart();
     const { settings } = useSettings();
-    const { location } = useLocation();
+    const { location: userLocation, distanceKm } = useLocation();
     const { user, isSignedIn, isLoaded } = useUser();
 
     const [step, setStep] = useState<Step>(1);
@@ -204,7 +194,6 @@ export default function CheckoutPage() {
     const [selectedAddress, setSelectedAddress] = useState('');
     const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
     const [branchName, setBranchName] = useState<string | null>(null);
-    const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
     const [branches, setBranches] = useState<ApiLocation[]>([]);
 
@@ -214,20 +203,20 @@ export default function CheckoutPage() {
 
     // Auto-fill from LocationContext
     useEffect(() => {
-        console.log('CheckoutPage: Received location from context:', location);
-        if (location) {
-            setSelectedBranchId(location.branchId);
-            setStreet(location.address);
-            setCustomerLat(location.lat);
-            setCustomerLng(location.lng);
-            if (location.mode) {
+        console.log('CheckoutPage: Received location from context:', userLocation);
+        if (userLocation) {
+            setSelectedBranchId(userLocation.branchId);
+            setStreet(userLocation.address);
+            setCustomerLat(userLocation.lat);
+            setCustomerLng(userLocation.lng);
+            if (userLocation.mode) {
                 const normalizedMode = 
-                    location.mode.toLowerCase() === 'dinein' ? 'DineIn' :
-                    location.mode.toLowerCase() === 'pickup' ? 'Pickup' : 'Delivery';
+                    userLocation.mode.toLowerCase() === 'dinein' ? 'DineIn' :
+                    userLocation.mode.toLowerCase() === 'pickup' ? 'Pickup' : 'Delivery';
                 setOrderMode(normalizedMode);
             }
         }
-    }, [location]);
+    }, [userLocation]);
 
     // Auto-fill from Clerk User & Auto-skip Step 1
     useEffect(() => {
@@ -250,24 +239,9 @@ export default function CheckoutPage() {
         }
     }, [isLoaded, isSignedIn, user, step]);
 
-    useEffect(() => {
-        if (customerLat && customerLng && branches.length > 0) {
-            let minDistance = Infinity;
-            branches.forEach(b => {
-                const d = getDistance(customerLat, customerLng, b.latitude, b.longitude);
-                if (d < minDistance) minDistance = d;
-            });
-            if (minDistance !== Infinity) setDistanceKm(minDistance);
-        }
-    }, [customerLat, customerLng, branches]);
 
     console.log('--- DISTANCE DEBUG ---', { customerLat, customerLng, selectedBranchId, distanceKm });
 
-    const calculateDeliveryFee = (dist: number) => {
-        if (dist <= 10) return 0;
-        if (dist <= 15) return 10;
-        return 15;
-    };
 
     const [payMethod, setPayMethod] = useState<'card' | 'apple' | 'google'>('card');
 

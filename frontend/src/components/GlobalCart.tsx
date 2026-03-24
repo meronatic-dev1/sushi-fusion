@@ -5,11 +5,12 @@ import { useCart } from '@/context/CartContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocation } from '@/context/LocationContext';
 import { useSettings } from '@/context/SettingsContext';
+import { calculateDeliveryFee } from '@/lib/delivery';
 import Link from 'next/link';
 
 export default function GlobalCart({ t }: { t: (key: string) => string }) {
     const { cart, isCartOpen, updateQty, setIsCartOpen } = useCart();
-    const { location } = useLocation();
+    const { location, distanceKm } = useLocation();
     const { settings } = useSettings();
     const pathname = usePathname();
     const router = useRouter();
@@ -25,7 +26,10 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
     // Default to delivery unless specifically set to something else
     const isDelivery = !location || !location.mode || location.mode.toLowerCase() === 'delivery';
     const isDineIn = location?.mode?.toLowerCase() === 'dinein';
-    const activeDeliveryFee = isDelivery ? settings.deliveryFee : 0;
+    
+    const activeDeliveryFee = isDelivery 
+        ? (distanceKm !== null ? calculateDeliveryFee(distanceKm) : (settings?.deliveryFee ?? 15)) 
+        : 0;
     
     // Service Charge
     const servicePercent = (settings?.enableServiceCharge && isDineIn) ? (settings?.serviceCharge || 0) : 0;
