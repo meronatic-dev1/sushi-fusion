@@ -158,6 +158,7 @@ model StoreSettings {
   id                          String   @id @default("singleton")
   logoUrl                     String?
   bannerUrl                   String?
+  bannerUrls                  String[] @default([])
   serviceCharge               Float    @default(0)
   enableServiceCharge         Boolean  @default(true)
   enableServiceChargeTakeaway Boolean  @default(false)

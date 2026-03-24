@@ -17,7 +17,7 @@ const inputStyle: React.CSSProperties = {
 
 export default function AdminSettingsPage() {
     const [logoUrl, setLogoUrl] = useState('');
-    const [bannerUrl, setBannerUrl] = useState('');
+    const [bannerUrls, setBannerUrls] = useState<string[]>(['', '', '']);
     const [serviceCharge, setServiceCharge] = useState(0);
     const [enableServiceCharge, setEnableServiceCharge] = useState(false);
     const [enableServiceChargeTakeaway, setEnableServiceChargeTakeaway] = useState(false);
@@ -28,7 +28,7 @@ export default function AdminSettingsPage() {
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
 
     const [uploadingLogo, setUploadingLogo] = useState(false);
-    const [uploadingBanner, setUploadingBanner] = useState(false);
+    const [uploadingBanners, setUploadingBanners] = useState<boolean[]>([false, false, false]);
 
     useEffect(() => {
         // Use the same dynamic API URL as the rest of the app
@@ -36,7 +36,14 @@ export default function AdminSettingsPage() {
             .then(res => res.json())
             .then(data => {
                 if (data.logoUrl) setLogoUrl(data.logoUrl);
-                if (data.bannerUrl) setBannerUrl(data.bannerUrl);
+                if (data.bannerUrls && Array.isArray(data.bannerUrls)) {
+                    const urls = [...data.bannerUrls];
+                    while (urls.length < 3) urls.push('');
+                    setBannerUrls(urls.slice(0, 3));
+                } else if (data.bannerUrl) {
+                    // Fallback for migration
+                    setBannerUrls([data.bannerUrl, '', '']);
+                }
                 setServiceCharge(data.serviceCharge || 0);
                 setEnableServiceCharge(data.enableServiceCharge || false);
                 setEnableServiceChargeTakeaway(data.enableServiceChargeTakeaway || false);
@@ -56,7 +63,8 @@ export default function AdminSettingsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     logoUrl,
-                    bannerUrl,
+                    bannerUrls: bannerUrls.filter(u => !!u),
+                    bannerUrl: bannerUrls[0] || '', // Maintain compatibility
                     serviceCharge: Number(serviceCharge),
                     enableServiceCharge,
                     enableServiceChargeTakeaway,
@@ -167,71 +175,85 @@ export default function AdminSettingsPage() {
                     </div>
                 </div>
 
-                {/* Banner */}
+                {/* Banners */}
                 <div style={{ marginBottom: 24 }}>
-                    <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
-                        Banner Image
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 12 }}>
+                        Home Banners (Up to 3 images)
                     </label>
-                    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexDirection: 'column' }}>
-                        {/* File Upload Zone */}
-                        <div style={{ width: '100%', position: 'relative' }}>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                id="banner-upload"
-                                disabled={uploadingBanner}
-                                style={{ display: 'none' }}
-                                onChange={async (e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                        try {
-                                            setUploadingBanner(true);
-                                            const res = await uploadImage(file);
-                                            setBannerUrl(res.url);
-                                        } catch (err) {
-                                            setMessage({ text: 'Failed to upload banner', type: 'error' });
-                                        } finally {
-                                            setUploadingBanner(false);
-                                        }
-                                    }
-                                }}
-                            />
-                            <label
-                                htmlFor="banner-upload"
-                                style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                    background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)',
-                                    borderRadius: 10, padding: '12px', cursor: uploadingBanner ? 'not-allowed' : 'pointer', color: '#fff', fontSize: 13,
-                                    transition: 'background 0.2s', width: '100%', boxSizing: 'border-box',
-                                    opacity: uploadingBanner ? 0.5 : 1
-                                }}
-                                onMouseEnter={e => { if (!uploadingBanner) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
-                                onMouseLeave={e => { if (!uploadingBanner) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-                            >
-                                {uploadingBanner ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-                                {uploadingBanner ? 'Uploading...' : 'Upload New Banner'}
-                            </label>
-                        </div>
-                        {bannerUrl && (
-                            <div style={{ width: '100%', position: 'relative' }}>
-                                <div style={{ width: '100%', height: 160, borderRadius: 10, background: 'rgba(255,255,255,0.05)', overflow: 'hidden' }}>
-                                    <img src={bannerUrl} alt="Banner preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                        {[0, 1, 2].map((idx) => (
+                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        id={`banner-upload-${idx}`}
+                                        disabled={uploadingBanners[idx]}
+                                        style={{ display: 'none' }}
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                try {
+                                                    const nextUploading = [...uploadingBanners];
+                                                    nextUploading[idx] = true;
+                                                    setUploadingBanners(nextUploading);
+                                                    const res = await uploadImage(file);
+                                                    const nextUrls = [...bannerUrls];
+                                                    nextUrls[idx] = res.url;
+                                                    setBannerUrls(nextUrls);
+                                                } catch (err) {
+                                                    setMessage({ text: `Failed to upload banner ${idx + 1}`, type: 'error' });
+                                                } finally {
+                                                    const nextUploading = [...uploadingBanners];
+                                                    nextUploading[idx] = false;
+                                                    setUploadingBanners(nextUploading);
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <label
+                                        htmlFor={`banner-upload-${idx}`}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                            background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)',
+                                            borderRadius: 10, height: 120, cursor: uploadingBanners[idx] ? 'not-allowed' : 'pointer', color: '#fff', fontSize: 12,
+                                            transition: 'background 0.2s', width: '100%', boxSizing: 'border-box',
+                                            opacity: uploadingBanners[idx] ? 0.5 : 1, overflow: 'hidden'
+                                        }}
+                                        onMouseEnter={e => { if (!uploadingBanners[idx]) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                                        onMouseLeave={e => { if (!uploadingBanners[idx]) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                                    >
+                                        {bannerUrls[idx] ? (
+                                            <img src={bannerUrls[idx]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ textAlign: 'center' }}>
+                                                {uploadingBanners[idx] ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                                                <div style={{ marginTop: 4 }}>{uploadingBanners[idx] ? '...' : `Banner ${idx + 1}`}</div>
+                                            </div>
+                                        )}
+                                    </label>
+                                    {bannerUrls[idx] && (
+                                        <button
+                                            onClick={() => {
+                                                const next = [...bannerUrls];
+                                                next[idx] = '';
+                                                setBannerUrls(next);
+                                            }}
+                                            style={{
+                                                position: 'absolute', top: 6, right: 6,
+                                                width: 22, height: 22, borderRadius: '50%',
+                                                background: 'rgba(248, 113, 113, 0.9)', border: 'none',
+                                                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                backdropFilter: 'blur(4px)', zIndex: 10
+                                            }}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
                                 </div>
-                                <button
-                                    onClick={() => setBannerUrl('')}
-                                    style={{
-                                        position: 'absolute', top: 8, right: 8,
-                                        width: 28, height: 28, borderRadius: '50%',
-                                        background: 'rgba(248, 113, 113, 0.9)', border: 'none',
-                                        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                                        backdropFilter: 'blur(4px)'
-                                    }}
-                                >
-                                    <X size={16} />
-                                </button>
                             </div>
-                        )}
+                        ))}
                     </div>
                 </div>
 

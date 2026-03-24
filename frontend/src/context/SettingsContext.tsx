@@ -6,6 +6,7 @@ import { API } from '@/lib/api';
 interface StoreSettings {
     logoUrl: string;
     bannerUrl: string;
+    bannerUrls: string[];
     serviceCharge: number;
     enableServiceCharge: boolean;
     deliveryFee: number;
@@ -21,6 +22,7 @@ const defaultSettings: StoreSettings = {
     // Fallbacks if not configured in DB
     logoUrl: '/logo.png',
     bannerUrl: '/images/banner-1.png',
+    bannerUrls: [],
     serviceCharge: 0,
     enableServiceCharge: false,
     deliveryFee: 15.0,
@@ -40,6 +42,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 setSettings({
                     logoUrl: data.logoUrl || defaultSettings.logoUrl,
                     bannerUrl: data.bannerUrl || defaultSettings.bannerUrl,
+                    bannerUrls: data.bannerUrls || defaultSettings.bannerUrls,
                     serviceCharge: data.serviceCharge ?? defaultSettings.serviceCharge,
                     enableServiceCharge: data.enableServiceCharge ?? defaultSettings.enableServiceCharge,
                     deliveryFee: data.deliveryFee ?? defaultSettings.deliveryFee,

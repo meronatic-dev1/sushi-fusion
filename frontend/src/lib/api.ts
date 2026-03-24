@@ -192,6 +192,7 @@ export interface ApiSettings {
     id: string;
     logoUrl: string | null;
     bannerUrl: string | null;
+    bannerUrls: string[];
     serviceCharge: number;
     enableServiceCharge: boolean;
     deliveryFee: number;
@@ -202,7 +203,7 @@ export interface ApiSettings {
 export const getSettings = () =>
     apiFetch<ApiSettings>('/settings');
 
-export const updateSettings = (data: { logoUrl?: string; bannerUrl?: string; serviceCharge?: number; enableServiceCharge?: boolean; deliveryFee?: number; taxRate?: number }) =>
+export const updateSettings = (data: { logoUrl?: string; bannerUrl?: string; bannerUrls?: string[]; serviceCharge?: number; enableServiceCharge?: boolean; deliveryFee?: number; taxRate?: number }) =>
     apiFetch<ApiSettings>('/settings', { method: 'PATCH', body: JSON.stringify(data) });
 
 // ── Analytics ──────────────────────────────────────────────────────────────────

@@ -11,7 +11,7 @@ export class SettingsController {
     }
 
     @Patch()
-    async updateSettings(@Body() data: { logoUrl?: string; bannerUrl?: string; serviceCharge?: number; enableServiceCharge?: boolean; enableServiceChargeTakeaway?: boolean; deliveryFee?: number; taxRate?: number }) {
+    async updateSettings(@Body() data: { logoUrl?: string; bannerUrl?: string; bannerUrls?: string[]; serviceCharge?: number; enableServiceCharge?: boolean; enableServiceChargeTakeaway?: boolean; deliveryFee?: number; taxRate?: number }) {
         return this.settingsService.updateSettings(data);
     }
 

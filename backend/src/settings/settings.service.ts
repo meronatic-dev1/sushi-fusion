@@ -21,7 +21,7 @@ export class SettingsService {
         return settings;
     }
 
-    async updateSettings(data: { logoUrl?: string; bannerUrl?: string; serviceCharge?: number; enableServiceCharge?: boolean; enableServiceChargeTakeaway?: boolean; deliveryFee?: number; taxRate?: number }) {
+    async updateSettings(data: { logoUrl?: string; bannerUrl?: string; bannerUrls?: string[]; serviceCharge?: number; enableServiceCharge?: boolean; enableServiceChargeTakeaway?: boolean; deliveryFee?: number; taxRate?: number }) {
         return this.prisma.storeSettings.upsert({
             where: { id: 'singleton' },
             update: data,
