@@ -49,7 +49,7 @@ export default function CustomersPage() {
 
     const activeCount = customers.filter(c => c.status === 'Active').length;
     const disabledCount = customers.filter(c => c.status === 'Disabled').length;
-    const totalSpend = customers.reduce((sum, c) => sum + parseInt(c.spend.replace(/\D/g, '') || '0'), 0);
+    const totalSpend = customers.reduce((sum, c) => sum + parseFloat(c.spend.replace(/[^\d.]/g, '') || '0'), 0);
 
     return (
         <div style={{ maxWidth: 1200, fontFamily: '"DM Sans", system-ui, sans-serif' }}>
