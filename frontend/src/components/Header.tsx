@@ -57,11 +57,23 @@ export default function Header({
     onToggleLanguage,
     t,
 }: HeaderProps) {
-    const { isSignedIn, isLoaded } = useUser();
-    const [activeMode, setActiveMode] = useState<'delivery' | 'pickup' | 'dineIn'>('delivery');
-    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const { location, setLocation } = useLocation();
     const { settings } = useSettings();
+    const { isSignedIn, isLoaded } = useUser();
+    const [activeMode, setActiveMode] = useState<'delivery' | 'pickup' | 'dineIn'>(
+        (location?.mode.toLowerCase() as any) || 'delivery'
+    );
+    const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+    
+    // Keep internal activeMode in sync with global location mode when location changes
+    React.useEffect(() => {
+        if (location?.mode) {
+            const mode = location.mode.toLowerCase() as any;
+            if (mode !== activeMode) {
+                setActiveMode(mode);
+            }
+        }
+    }, [location?.mode]);
 
     const modes = ['delivery', 'pickup', 'dineIn'] as const;
 

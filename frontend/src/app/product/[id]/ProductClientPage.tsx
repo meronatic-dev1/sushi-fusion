@@ -48,6 +48,7 @@ export default function ProductClientPage({ id }: { id: string }) {
                 const apiItem = items.find(m => m.name === decodedName);
                 if (!cancelled && apiItem) {
                     setProduct({
+                        id: apiItem.id,
                         name: apiItem.name,
                         desc: apiItem.description || '',
                         price: apiItem.price,
@@ -70,6 +71,7 @@ export default function ProductClientPage({ id }: { id: string }) {
                 if (!cancelled && drinkCat) {
                     const drinkItems = await getMenuItems(drinkCat.id);
                     setDrinks(drinkItems.map(d => ({
+                        id: d.id,
                         name: d.name,
                         desc: d.description || '',
                         price: d.price,
@@ -117,17 +119,13 @@ export default function ProductClientPage({ id }: { id: string }) {
         if (!product) return;
         
         // Add main product with selected quantity
-        for (let i = 0; i < qty; i++) {
-            addToCart(product);
-        }
+        addToCart(product, qty);
 
         // Add selected drinks
         Object.entries(selectedDrinks).forEach(([drinkName, drinkQty]) => {
             const drink = drinks.find(d => d.name === drinkName);
             if (drink) {
-                for (let i = 0; i < drinkQty; i++) {
-                    addToCart(drink);
-                }
+                addToCart(drink, drinkQty);
             }
         });
 
@@ -138,8 +136,11 @@ export default function ProductClientPage({ id }: { id: string }) {
     const toggleDrink = (drinkName: string) => {
         setSelectedDrinks(prev => {
             const next = { ...prev };
-            if (next[drinkName]) delete next[drinkName];
-            else next[drinkName] = 1;
+            if (next[drinkName]) {
+                delete next[drinkName];
+            } else {
+                next[drinkName] = 1;
+            }
             return next;
         });
     };

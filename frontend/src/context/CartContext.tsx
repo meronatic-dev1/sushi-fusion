@@ -10,7 +10,7 @@ export interface CartItem extends Product {
 interface CartContextType {
     cart: { [key: string]: CartItem };
     isCartOpen: boolean;
-    addToCart: (product: Product) => void;
+    addToCart: (product: Product, quantity?: number) => void;
     updateQty: (name: string, delta: number) => void;
     setIsCartOpen: (isOpen: boolean) => void;
     clearCart: () => void;
@@ -25,13 +25,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // No localStorage persistence per user request
 
-    const addToCart = (product: Product) => {
+    const addToCart = (product: Product, quantity: number = 1) => {
         setCart(prev => {
             const existing = prev[product.name];
             if (existing) {
-                return { ...prev, [product.name]: { ...existing, qty: existing.qty + 1 } };
+                return { ...prev, [product.name]: { ...existing, qty: existing.qty + quantity } };
             }
-            return { ...prev, [product.name]: { ...product, qty: 1 } };
+            return { ...prev, [product.name]: { ...product, qty: quantity } };
         });
         setIsCartOpen(true); // Auto-open cart on add
     };

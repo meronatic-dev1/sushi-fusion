@@ -27,7 +27,23 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         getLocations().then(setBranches).catch(console.error);
+        
+        // Load from localStorage on mount
+        const saved = localStorage.getItem('sushi_fusion_location');
+        if (saved) {
+            try {
+                setLocationState(JSON.parse(saved));
+            } catch (e) {
+                console.error('Failed to parse saved location:', e);
+            }
+        }
     }, []);
+
+    useEffect(() => {
+        if (location) {
+            localStorage.setItem('sushi_fusion_location', JSON.stringify(location));
+        }
+    }, [location]);
 
     useEffect(() => {
         if (location && location.lat && location.lng && branches.length > 0) {
