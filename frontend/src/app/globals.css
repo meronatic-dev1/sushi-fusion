@@ -433,8 +433,7 @@ body {
 @media (max-width: 768px) {
   .banner-inner {
     height: auto;
-    aspect-ratio: 2.66 / 1;
-    min-height: 140px;
+    min-height: unset;
   }
 }
 
@@ -448,6 +447,7 @@ body {
 
 @media (max-width: 768px) {
   .banner-image {
+    height: auto;
     object-fit: contain;
   }
 }

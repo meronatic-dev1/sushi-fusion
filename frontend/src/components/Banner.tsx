@@ -17,6 +17,15 @@ export default function Banner() {
     .filter(url => !!url && !url.includes('banner-1.png'))
     .map(url => ({ src: url, alt: 'Store Banner' }));
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   useEffect(() => {
     if (slides.length <= 1) return;
     
@@ -54,7 +63,9 @@ export default function Banner() {
             style={{
               width: '100%',
               display: 'block',
-              position: index === 0 ? 'relative' : 'absolute',
+              position: isMobile
+                ? (index === activeIndex ? 'relative' : 'absolute')
+                : (index === 0 ? 'relative' : 'absolute'),
               top: 0,
               left: 0,
               opacity: index === activeIndex ? 1 : 0,
