@@ -410,7 +410,7 @@ export default function Home() {
             <div className="main-content" style={{ padding: '28px 24px 56px' }}>
               <div
                 className="product-grid"
-                style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 20 }}
+                style={{ gap: 20 }}
               >
                 {products.map((item, i) => (
                   <ProductCard key={i} product={item} onAdd={addToCart} />

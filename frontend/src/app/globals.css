@@ -377,6 +377,21 @@ body {
   transition: color .2s
 }
 
+@media (max-width: 768px) {
+  .cat-img {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+  .cat-name {
+    font-size: 13px;
+  }
+  .cat-item {
+    padding: 8px 12px;
+    gap: 4px;
+  }
+}
+
 .cat-item.active .cat-name {
   color: var(--o);
   font-weight: 700
@@ -415,12 +430,26 @@ body {
   height: 360px;
 }
 
+@media (max-width: 768px) {
+  .banner-inner {
+    height: auto;
+    aspect-ratio: 2.66 / 1;
+    min-height: 140px;
+  }
+}
+
 .banner-image {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
   animation: banner-fade .6s ease-out;
+}
+
+@media (max-width: 768px) {
+  .banner-image {
+    object-fit: contain;
+  }
 }
 
 .banner-dots {
@@ -471,6 +500,13 @@ body {
   gap: 20px
 }
 
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
 /* ─── PRODUCT CARD ─── */
 .pcard {
   background: var(--w);
@@ -493,6 +529,38 @@ body {
   font-size: 22px;
   font-weight: 800;
   margin-bottom: 3px
+}
+
+@media (max-width: 768px) {
+  .pcard-name {
+    font-size: 15px;
+    height: 40px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+  }
+  .pcard-desc {
+    display: none;
+  }
+  .pcard-img {
+    height: 130px;
+  }
+  .pcard-price {
+    font-size: 15px;
+  }
+  .pcard-header {
+    padding: 10px 10px 0;
+  }
+  .pcard-bottom {
+    padding: 8px 10px;
+  }
+  .add-simple, .added-btn {
+    padding: 0 12px;
+    font-size: 12px;
+    height: 32px;
+  }
 }
 
 .pcard-desc {
@@ -2516,5 +2584,105 @@ body {
 
   .mob-cat-card {
     padding: 10px 4px 8px;
+  }
+}
+
+/* ─── DISCOUNT POPUP ─── */
+.discount-popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: discountOverlayIn 0.3s ease-out;
+}
+
+@keyframes discountOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.discount-popup-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 44px 32px 32px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+  animation: discountCardIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes discountCardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.discount-popup-badge {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.discount-popup-title {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1c1c1c;
+  margin-bottom: 8px;
+}
+
+.discount-popup-text {
+  font-size: 15px;
+  color: #666;
+  margin-bottom: 32px;
+  line-height: 1.5;
+}
+
+.discount-popup-btn {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: #FF6A0C;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.discount-popup-btn:hover {
+  background: #e55a00;
+}
+
+.discount-popup-btn:active {
+  transform: scale(0.97);
+}
+
+@media (max-width: 420px) {
+  .discount-popup-card {
+    padding: 36px 24px 24px;
+    border-radius: 20px;
+  }
+
+  .discount-popup-title {
+    font-size: 21px;
+  }
+
+  .discount-popup-badge svg {
+    width: 56px;
+    height: 56px;
   }
 }
