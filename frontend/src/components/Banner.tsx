@@ -7,36 +7,25 @@ export default function Banner() {
   const { settings } = useSettings();
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // Normalize slides: Use bannerUrls if available, fallback to bannerUrl
+  // Normalize slides
   const rawUrls = settings.bannerUrls && settings.bannerUrls.length > 0
     ? settings.bannerUrls
     : settings.bannerUrl ? [settings.bannerUrl] : [];
     
-  // Filter out empty strings and potential default placeholders
   const slides = rawUrls
     .filter(url => !!url && !url.includes('banner-1.png'))
     .map(url => ({ src: url, alt: 'Store Banner' }));
-
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth <= 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
 
   useEffect(() => {
     if (slides.length <= 1) return;
     
     const id = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % slides.length);
-    }, 5000); // 5 seconds per slide
+    }, 5000);
     return () => clearInterval(id);
   }, [slides.length]);
 
   if (slides.length === 0) {
-    // Fallback if no banners are set yet
     return (
       <section className="banner">
         <div className="banner-inner">
@@ -44,7 +33,6 @@ export default function Banner() {
             src="/images/banner-1.png"
             alt="Sushi Fusion"
             className="banner-image"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         </div>
       </section>
@@ -53,7 +41,7 @@ export default function Banner() {
 
   return (
     <section className="banner">
-      <div className="banner-inner" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div className="banner-inner">
         {slides.map((slide, index) => (
           <img
             key={slide.src + index}
@@ -61,15 +49,7 @@ export default function Banner() {
             alt={slide.alt}
             className="banner-image"
             style={{
-              width: '100%',
-              display: 'block',
-              position: isMobile
-                ? (index === activeIndex ? 'relative' : 'absolute')
-                : (index === 0 ? 'relative' : 'absolute'),
-              top: 0,
-              left: 0,
               opacity: index === activeIndex ? 1 : 0,
-              transition: 'opacity 1s ease-in-out',
               zIndex: index === activeIndex ? 2 : 1
             }}
           />
@@ -91,4 +71,4 @@ export default function Banner() {
       </div>
     </section>
   );
-}
+}
