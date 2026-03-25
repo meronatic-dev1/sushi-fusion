@@ -53,7 +53,6 @@ export default function Banner() {
             className="banner-image"
             style={{
               width: '100%',
-              objectFit: 'inherit', // Let the CSS class handle object-fit via media queries
               display: 'block',
               position: index === 0 ? 'relative' : 'absolute',
               top: 0,
