@@ -443,20 +443,32 @@ body {
 }
 
 @media (max-width: 768px) {
+@media (max-width: 768px) {
   .banner-inner {
-    display: grid;
-    grid-template-columns: 1fr;
     height: auto;
     min-height: unset;
-  }
-  .banner-image {
-    grid-area: 1 / 1;
-    position: relative;
-    height: auto;
-    object-fit: contain;
+    background: transparent;
   }
 }
-
+  .banner-image {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    top: 0;
+    left: 0;
+  }
+  .banner-spacer {
+    display: block;
+    width: 100%;
+    height: auto;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+.banner-spacer {
+  display: none;
+}
 .banner-dots {
   position: absolute;
   left: 50%;

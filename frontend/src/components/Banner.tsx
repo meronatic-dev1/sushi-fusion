@@ -42,6 +42,15 @@ export default function Banner() {
   return (
     <section className="banner">
       <div className="banner-inner">
+        {/* Spacer image to define natural height on mobile */}
+        {slides[0] && (
+          <img
+            src={slides[0].src}
+            alt=""
+            className="banner-spacer"
+            aria-hidden="true"
+          />
+        )}
         {slides.map((slide, index) => (
           <img
             key={slide.src + index}
