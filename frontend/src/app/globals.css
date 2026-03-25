@@ -443,13 +443,11 @@ body {
 }
 
 @media (max-width: 768px) {
-@media (max-width: 768px) {
   .banner-inner {
     height: auto;
     min-height: unset;
     background: transparent;
   }
-}
   .banner-image {
     position: absolute;
     width: 100%;
