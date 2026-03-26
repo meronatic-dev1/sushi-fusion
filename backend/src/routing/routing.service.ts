@@ -23,4 +23,15 @@ export class RoutingService {
 
         return { status: 'ROUTING', orderId };
     }
+
+    async queueAcceptanceCheck(orderId: string, delayMs = 480000) {
+        await this.routingQueue.add('check-acceptance', {
+            orderId,
+        }, {
+            delay: delayMs,
+            attempts: 1,
+            // Tag it so we can remove it if order is accepted early
+            jobId: `acceptance-${orderId}-${Date.now()}`
+        });
+    }
 }

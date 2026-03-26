@@ -6,6 +6,11 @@
     "dist",
     "**/*spec.ts",
     "prisma.config.ts",
-    "prisma.config.js"
+    "prisma.config.js",
+    "test-groupby.ts",
+    "test-groupby.js",
+    "update_admin.ts",
+    "check_users.ts",
+    "set-admin.js"
   ]
 }
