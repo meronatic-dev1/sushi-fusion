@@ -38,6 +38,9 @@ export default function ProductClientPage({ id }: { id: string }) {
     const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
     const [starters, setStarters] = useState<Product[]>([]);
     const [selectedStarters, setSelectedStarters] = useState<Record<string, number>>({});
+    const [customBoxItems, setCustomBoxItems] = useState<Product[]>([]);
+    const [selectedCustomBoxItems, setSelectedCustomBoxItems] = useState<Record<string, number>>({});
+    const [allCategoriesWithItems, setAllCategoriesWithItems] = useState<{name: string, items: Product[]}[]>([]);
 
     const t = (key: string) => translate(language, key);
 
@@ -119,6 +122,38 @@ export default function ProductClientPage({ id }: { id: string }) {
                     })));
                 }
 
+                // 5. Fetch custom sushi box items (Show ALL products grouped by category if category exists)
+                const customBoxCat = cats.find(c => 
+                    c.name.toLowerCase().includes('yours custom sushi box')
+                );
+                if (!cancelled && customBoxCat) {
+                    // Group all items by category
+                    const groupings = cats.map(cat => {
+                        const catItems = items.filter(m => m.categoryId === cat.id && m.name !== decodedName);
+                        return {
+                            name: cat.name,
+                            items: catItems.map(d => ({
+                                id: d.id,
+                                name: d.name,
+                                desc: d.description || '',
+                                price: d.price,
+                                emoji: '🍱',
+                                imgSrc: d.imageUrl || undefined
+                            }))
+                        };
+                    }).filter(g => g.items.length > 0);
+
+                    setAllCategoriesWithItems(groupings);
+                    setCustomBoxItems(items.map(d => ({
+                        id: d.id,
+                        name: d.name,
+                        desc: d.description || '',
+                        price: d.price,
+                        emoji: '🍱',
+                        imgSrc: d.imageUrl || undefined
+                    })));
+                }
+
                 setLoading(false);
             } catch (err) {
                 console.error('Error loading product details:', err);
@@ -184,6 +219,14 @@ export default function ProductClientPage({ id }: { id: string }) {
             }
         });
 
+        // Add selected custom box items
+        Object.entries(selectedCustomBoxItems).forEach(([itemName, itemQty]) => {
+            const item = customBoxItems.find(d => d.name === itemName);
+            if (item) {
+                addToCart(item, itemQty);
+            }
+        });
+
         setIsAdded(true);
         setTimeout(() => setIsAdded(false), 1500);
     };
@@ -219,6 +262,18 @@ export default function ProductClientPage({ id }: { id: string }) {
                 delete next[starterName];
             } else {
                 next[starterName] = 1;
+            }
+            return next;
+        });
+    };
+
+    const toggleCustomBoxItem = (itemName: string) => {
+        setSelectedCustomBoxItems(prev => {
+            const next = { ...prev };
+            if (next[itemName]) {
+                delete next[itemName];
+            } else {
+                next[itemName] = 1;
             }
             return next;
         });
@@ -514,6 +569,72 @@ export default function ProductClientPage({ id }: { id: string }) {
                                     </div>
                                 )}
 
+                                {/* CUSTOM SUSHI BOX SECTION (Grouped by Category) */}
+                                {allCategoriesWithItems.length > 0 && (
+                                    <div style={{ marginTop: 40, marginBottom: 40 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                                            <h3 style={{ fontSize: 22, fontWeight: 900, color: 'var(--d)', margin: 0 }}>
+                                                Yours Custom Sushi Box
+                                            </h3>
+                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#a08060', background: '#f5efe8', padding: '4px 10px', borderRadius: 6 }}>Optional</span>
+                                        </div>
+                                        
+                                        {allCategoriesWithItems.map(group => (
+                                            <div key={group.name} style={{ marginBottom: 30 }}>
+                                                <h4 style={{ fontSize: 16, fontWeight: 800, color: 'var(--d)', marginBottom: 16, borderBottom: '1px solid var(--b)', paddingBottom: 8 }}>
+                                                    {group.name}
+                                                </h4>
+                                                <div style={{ 
+                                                    display: 'grid', 
+                                                    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', 
+                                                    gap: 16 
+                                                }}>
+                                                    {group.items.map(item => {
+                                                        const isSelected = !!selectedCustomBoxItems[item.name];
+                                                        return (
+                                                            <div 
+                                                                key={item.name}
+                                                                onClick={() => toggleCustomBoxItem(item.name)}
+                                                                style={{ 
+                                                                    borderRadius: 16,
+                                                                    overflow: 'hidden',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.2s',
+                                                                    position: 'relative'
+                                                                }}
+                                                            >
+                                                                <div style={{ position: 'relative', borderRadius: 16, overflow: 'hidden', height: 140, background: '#f5f5f5' }}>
+                                                                    {item.imgSrc ? (
+                                                                        <img src={item.imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                                    ) : (
+                                                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🍱</div>
+                                                                    )}
+                                                                    {/* Yellow Plus Button from Screenshot */}
+                                                                    <div style={{ 
+                                                                        position: 'absolute', bottom: 10, right: 10, 
+                                                                        width: 32, height: 32, borderRadius: '50%',
+                                                                        background: isSelected ? '#22c55e' : '#f59e0b',
+                                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                        color: '#fff', fontSize: 20, fontWeight: 900,
+                                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                                        transition: 'all 0.2s'
+                                                                    }}>
+                                                                        {isSelected ? '✓' : '+'}
+                                                                    </div>
+                                                                </div>
+                                                                <div style={{ padding: '10px 0' }}>
+                                                                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--d)', marginBottom: 2 }}>{item.name}</div>
+                                                                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--g)' }}>AED {item.price.toFixed(2)}</div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
                                 {/* Footer / Actions */}
                                 <div style={{ 
                                     display: 'flex', gap: 16, alignItems: 'center', 
@@ -558,7 +679,8 @@ export default function ProductClientPage({ id }: { id: string }) {
                                                     AED {(((product?.oldPrice || 0) * qty) + 
                                                          Object.entries(selectedDrinks).reduce((acc, [name, q]) => acc + (drinks.find(d => d.name === name)?.price || 0) * q, 0) +
                                                          Object.entries(selectedAddons).reduce((acc, [name, q]) => acc + (addons.find(d => d.name === name)?.price || 0) * q, 0) +
-                                                         Object.entries(selectedStarters).reduce((acc, [name, q]) => acc + (starters.find(d => d.name === name)?.price || 0) * q, 0)
+                                                         Object.entries(selectedStarters).reduce((acc, [name, q]) => acc + (starters.find(d => d.name === name)?.price || 0) * q, 0) +
+                                                         Object.entries(selectedCustomBoxItems).reduce((acc, [name, q]) => acc + (customBoxItems.find(d => d.name === name)?.price || 0) * q, 0)
                                                     ).toFixed(2)}
                                                 </div>
                                             )}
@@ -567,7 +689,8 @@ export default function ProductClientPage({ id }: { id: string }) {
                                                     ((product?.price || 0) * qty) + 
                                                     Object.entries(selectedDrinks).reduce((acc, [name, q]) => acc + (drinks.find(d => d.name === name)?.price || 0) * q, 0) +
                                                     Object.entries(selectedAddons).reduce((acc, [name, q]) => acc + (addons.find(d => d.name === name)?.price || 0) * q, 0) +
-                                                    Object.entries(selectedStarters).reduce((acc, [name, q]) => acc + (starters.find(d => d.name === name)?.price || 0) * q, 0)
+                                                    Object.entries(selectedStarters).reduce((acc, [name, q]) => acc + (starters.find(d => d.name === name)?.price || 0) * q, 0) +
+                                                    Object.entries(selectedCustomBoxItems).reduce((acc, [name, q]) => acc + (customBoxItems.find(d => d.name === name)?.price || 0) * q, 0)
                                                 ).toFixed(2)}
                                             </div>
                                         </div>
