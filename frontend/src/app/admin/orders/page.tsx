@@ -7,7 +7,7 @@ import { getOrders, updateOrderStatus, getLocations, ApiLocation } from '@/lib/a
 import { useLocation } from '@/context/LocationContext';
 
 type OrderStatus = 'Routing' | 'Pending' | 'Confirmed' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
-interface Order { id: string; displayId: string; customer: string; email: string; userPhone?: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; status: OrderStatus; rawStatus: string; time: string; tableNo?: number; address?: string; customerStreet?: string; customerCity?: string; customerPostcode?: string; deliveryInstructions?: string; }
+interface Order { id: string; displayId: string; customer: string; email: string; userPhone?: string; branch: string; mode: 'Delivery' | 'Pickup' | 'Dine-In'; items: string[]; total: string; subtotal?: number; tax?: number; deliveryFee?: number; serviceCharge?: number; discountAmt?: number; status: OrderStatus; rawStatus: string; time: string; tableNo?: number; address?: string; customerStreet?: string; customerCity?: string; customerPostcode?: string; deliveryInstructions?: string; }
 
 const PIPELINE: OrderStatus[] = ['Routing', 'Pending', 'Confirmed', 'Preparing', 'Ready', 'Completed'];
 const NEXT: Partial<Record<OrderStatus, OrderStatus>> = { Routing: 'Pending', Pending: 'Confirmed', Confirmed: 'Preparing', Preparing: 'Ready', Ready: 'Completed' };
@@ -317,6 +317,11 @@ export default function AdminOrdersPage() {
                     mode,
                     items,
                     total: `AED ${(o.totalAmount || 0).toFixed(2)}`,
+                    subtotal: o.subtotal,
+                    tax: o.tax,
+                    deliveryFee: o.deliveryFee,
+                    serviceCharge: o.serviceCharge,
+                    discountAmt: o.discountAmt,
                     status,
                     rawStatus: o.status,
                     time: timeStr,
@@ -416,6 +421,12 @@ export default function AdminOrdersPage() {
                     </table>
 
                     <div class="total-section">
+                        ${order.subtotal ? `<div class="flex"><span>Subtotal:</span><span>AED ${order.subtotal.toFixed(2)}</span></div>` : ''}
+                        ${order.discountAmt ? `<div class="flex" style="font-weight: bold;"><span>Discount:</span><span>- AED ${order.discountAmt.toFixed(2)}</span></div>` : ''}
+                        ${order.deliveryFee ? `<div class="flex"><span>Delivery Fee:</span><span>AED ${order.deliveryFee.toFixed(2)}</span></div>` : ''}
+                        ${order.serviceCharge ? `<div class="flex"><span>Service Charge:</span><span>AED ${order.serviceCharge.toFixed(2)}</span></div>` : ''}
+                        ${order.tax ? `<div class="flex"><span>VAT:</span><span>AED ${order.tax.toFixed(2)}</span></div>` : ''}
+                        <div style="border-top: 1px dashed #ccc; margin: 4px 0;"></div>
                         <div class="flex bold" style="font-size: 14px;">
                             <span>TOTAL:</span>
                             <span>${order.total}</span>

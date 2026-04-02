@@ -444,24 +444,20 @@ body {
 
 @media (max-width: 768px) {
   .banner-inner {
-    height: auto;
+    height: 300px;
     min-height: unset;
-    background: transparent;
+    background: #fff5ef;
   }
   .banner-image {
     position: absolute;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     top: 0;
     left: 0;
   }
   .banner-spacer {
-    display: block;
-    width: 100%;
-    height: auto;
-    visibility: hidden;
-    pointer-events: none;
+    display: none !important;
   }
 }
 .banner-spacer {

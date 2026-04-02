@@ -8,6 +8,7 @@ import { LocationProvider } from '@/context/LocationContext';
 import GlobalCart from '@/components/GlobalCart';
 import DiscountPopup from '@/components/DiscountPopup';
 import { t as translate, type Language } from '@/lib/i18n';
+import InAppBrowserPopup from '@/components/InAppBrowserPopup';
 import UserSync from '@/components/UserSync';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
@@ -25,6 +26,7 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
                 ) : (
                     <CartProvider>
                         <DiscountPopup />
+                        <InAppBrowserPopup />
                         <GlobalCart t={t} />
                         {children}
                     </CartProvider>

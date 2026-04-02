@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/data';
 import { useLocation } from '@/context/LocationContext';
 import { useSettings } from '@/context/SettingsContext';
-import { calculateDeliveryFee } from '@/lib/delivery';
+
 
 export interface CartItem extends Product {
     qty: number;
@@ -29,7 +29,7 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
     const isDineIn = location?.mode?.toLowerCase() === 'dinein';
     
     const activeDeliveryFee = isDelivery 
-        ? (distanceKm !== null ? calculateDeliveryFee(distanceKm) : (settings?.deliveryFee ?? 15)) 
+        ? (settings?.deliveryFee ?? 15) 
         : 0;
 
     const items = Object.entries(cart).filter(([, v]) => v.qty > 0);

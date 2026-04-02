@@ -162,9 +162,15 @@ function MapInner({
         }
         setIsLocating(false);
       },
-      () => {
-        alert('Unable to get your location. Please allow location access.');
+      (err) => {
         setIsLocating(false);
+        const ua = navigator.userAgent || navigator.vendor;
+        const isInApp = ua.includes('Instagram') || ua.includes('FBAN') || ua.includes('FBAV');
+        if (isInApp) {
+          alert('In-app browsers (like Instagram/Facebook) often block location auto-detection. Please search for your location manually or open this website in Safari/Chrome.');
+        } else {
+          alert('Unable to get your location. Please allow location access or check your connection.');
+        }
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );

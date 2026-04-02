@@ -93,7 +93,16 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
                 }
                 setIsLocating(false);
             },
-            () => { setIsLocating(false); },
+            (err) => { 
+                setIsLocating(false); 
+                const ua = navigator.userAgent || navigator.vendor;
+                const isInApp = ua.includes('Instagram') || ua.includes('FBAN') || ua.includes('FBAV');
+                if (isInApp) {
+                    alert('In-app browsers (like Instagram/Facebook) often block location auto-detection. Please select your location manually or open this website in Safari/Chrome.');
+                } else {
+                    alert('Unable to retrieve your location. Please allow location access and try again.');
+                }
+            },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
     };
@@ -111,6 +120,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
             address: pickedLocation.address,
             lat: pickedLocation.lat,
             lng: pickedLocation.lng,
+            branchId: store || null,
         });
     };
 
@@ -121,6 +131,7 @@ export default function LocationModal({ isOpen, onClose, mode, onProceed, t }: L
             mode: activeTab === 'Pickup' ? 'Pickup' : 'DineIn',
             city,
             store,
+            branchId: store || null,
             lat: selectedBranch?.latitude || pickedLocation?.lat || 0,
             lng: selectedBranch?.longitude || pickedLocation?.lng || 0,
             address: selectedBranch?.address || '',

@@ -7,7 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useLocation } from '@/context/LocationContext';
 import { apiCreateOrder, apiCreatePaymentIntent, getLocations, ApiLocation, validateCoupon } from '@/lib/api';
-import { calculateDeliveryFee, getDistance } from '@/lib/delivery';
+import { getDistance } from '@/lib/delivery';
 import { useUser } from '@clerk/nextjs';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -248,7 +248,7 @@ export default function CheckoutPage() {
     const cartItems = Object.values(cart);
     const SUBTOTAL = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
     const DELIVERY = orderMode === 'Delivery' 
-        ? (distanceKm !== null ? calculateDeliveryFee(distanceKm) : (settings?.deliveryFee ?? 15)) 
+        ? (settings?.deliveryFee ?? 15) 
         : 0;
     
     const servicePercent = (settings?.enableServiceCharge && orderMode === 'DineIn') ? (settings?.serviceCharge || 0) : 0;
@@ -292,6 +292,53 @@ export default function CheckoutPage() {
         else setStep(s => Math.max(s - 1, 1) as Step);
     };
 
+    const assignNearestBranch = (lat: number, lng: number) => {
+        setCustomerLat(lat);
+        setCustomerLng(lng);
+        if (!branches || branches.length === 0) return;
+
+        const distances = branches.map(b => ({
+            b, dist: getDistance(lat, lng, b.latitude, b.longitude)
+        })).sort((a, b) => a.dist - b.dist);
+
+        const openBranches = distances.filter(d => !d.b.isClosed);
+        let assigned = openBranches.find(d => d.dist <= 20) || openBranches.find(d => d.dist <= 35) || openBranches[0] || distances[0];
+
+        if (assigned) {
+            setSelectedBranchId(assigned.b.id);
+            setBranchName(assigned.b.name);
+            console.log(`Assigned nearest branch: ${assigned.b.name} (${assigned.dist.toFixed(1)}km away)`);
+        }
+    };
+
+    const handleManualAddressBlur = async () => {
+        if (!street) return;
+        const fullAddress = `${street}${city ? `, ${city}` : ''}, UAE`;
+        try {
+            if (typeof google !== 'undefined' && google.maps) {
+                const geocoder = new google.maps.Geocoder();
+                const res = await geocoder.geocode({ address: fullAddress });
+                if (res.results?.[0]) {
+                    const lat = res.results[0].geometry.location.lat();
+                    const lng = res.results[0].geometry.location.lng();
+                    assignNearestBranch(lat, lng);
+                }
+            } else {
+                const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+                if (apiKey) {
+                    const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${apiKey}`);
+                    const data = await res.json();
+                    if (data.status === 'OK' && data.results?.[0]) {
+                        const { lat, lng } = data.results[0].geometry.location;
+                        assignNearestBranch(lat, lng);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Failed to geocode manual address:', err);
+        }
+    };
+
     const handleUseMyLocation = () => {
         if (!navigator.geolocation) return alert('Geolocation is not supported by your browser.');
         setIsLocating(true);
@@ -311,37 +358,7 @@ export default function CheckoutPage() {
                         if (postComp) setPostcode(postComp.long_name);
                         setSelectedAddress(addr.formatted_address || '');
                     }
-                    findNearestBranch(latitude, longitude);
-                };
-
-                const findNearestBranch = (lat: number, lng: number) => {
-                    if (!branches || branches.length === 0) return;
-
-                    const distances = branches.map(b => ({
-                        b, dist: getDistance(lat, lng, b.latitude, b.longitude)
-                    })).sort((a, b) => a.dist - b.dist);
-
-                    const openBranches = distances.filter(d => !d.b.isClosed);
-                    // 1. First check within 20km
-                    let assigned = openBranches.find(d => d.dist <= 20);
-                    // 2. Fallback to 35km
-                    if (!assigned) {
-                        assigned = openBranches.find(d => d.dist <= 35);
-                    }
-                    // 3. Fallback to nearest open, regardless of distance
-                    if (!assigned && openBranches.length > 0) {
-                        assigned = openBranches[0];
-                    }
-                    // 4. Fallback to any nearest
-                    if (!assigned && distances.length > 0) {
-                        assigned = distances[0];
-                    }
-
-                    if (assigned) {
-                        setSelectedBranchId(assigned.b.id);
-                        setBranchName(assigned.b.name);
-                        console.log(`Assigned to ${assigned.b.name} (${assigned.dist.toFixed(1)}km away)`);
-                    }
+                    assignNearestBranch(latitude, longitude);
                 };
 
                 // Attempt reverse geocoding via Google Maps library
@@ -370,17 +387,20 @@ export default function CheckoutPage() {
                     setStreet(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
                     setSelectedAddress('Current Location (Coordinates)');
                     // Still attempt to attach a branch using literal coords
-                    if (branches.length > 0) {
-                        const distances = branches.map(b => ({
-                            b, dist: getDistance(latitude, longitude, b.latitude, b.longitude)
-                        })).sort((a, b) => a.dist - b.dist);
-                        setSelectedBranchId(distances[0].b.id);
-                        setBranchName(distances[0].b.name);
-                    }
+                    assignNearestBranch(latitude, longitude);
                 }
                 setIsLocating(false);
             },
-            () => { alert('Unable to retrieve your location.'); setIsLocating(false); },
+            (err) => { 
+                setIsLocating(false); 
+                const ua = navigator.userAgent || navigator.vendor;
+                const isInApp = ua.includes('Instagram') || ua.includes('FBAN') || ua.includes('FBAV');
+                if (isInApp) {
+                    alert('In-app browsers (like Instagram/Facebook) often block location auto-detection. Please enter your address manually or open this page in Safari/Chrome.');
+                } else {
+                    alert('Unable to retrieve your location. Please allow location access and try again.');
+                }
+            },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
         );
     };
@@ -714,6 +734,7 @@ export default function CheckoutPage() {
                                                 placeholder="12 Al Wasl Rd, Apt 4B"
                                                 value={street}
                                                 onChange={e => setStreet(e.target.value)}
+                                                onBlur={handleManualAddressBlur}
                                             />
                                         </Field>
                                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -722,6 +743,7 @@ export default function CheckoutPage() {
                                                     placeholder="Dubai"
                                                     value={city}
                                                     onChange={e => setCity(e.target.value)}
+                                                    onBlur={handleManualAddressBlur}
                                                 />
                                             </Field>
                                             <Field label="Postcode">

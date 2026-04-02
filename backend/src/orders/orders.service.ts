@@ -6,7 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { createClerkClient } from '@clerk/clerk-sdk-node';
 import { OrdersGateway } from './orders.gateway';
 import { SessionsService } from '../sessions/sessions.service';
-import { calculateDistance, calculateDeliveryFee } from '../utils/distance';
+import { calculateDistance } from '../utils/distance';
 
 @Injectable()
 export class OrdersService {
@@ -141,18 +141,8 @@ export class OrdersService {
 
         let deliveryCharge = 0;
         if (body.mode === 'DELIVERY') {
-            const allBranches = await this.prisma.location.findMany({ where: { isActive: true } });
-            if (allBranches.length > 0 && body.latitude && body.longitude) {
-                let minDistance = Infinity;
-                for (const b of allBranches) {
-                    const dist = calculateDistance(body.latitude, body.longitude, b.latitude, b.longitude);
-                    if (dist < minDistance) minDistance = dist;
-                }
-                deliveryCharge = calculateDeliveryFee(minDistance);
-                this.logger.log(`Calculated delivery charge for nearest branch (${minDistance.toFixed(2)}km): ${deliveryCharge} AED`);
-            } else {
-                deliveryCharge = deliveryParam;
-            }
+            deliveryCharge = deliveryParam;
+            this.logger.log(`Applied fixed delivery charge: ${deliveryCharge} AED`);
         }
         const taxableAmount = Math.max(0, calculatedTotal - discountAmt);
         const tax = taxableAmount * (taxRateParam / 100);
