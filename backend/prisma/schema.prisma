@@ -61,8 +61,12 @@ model MenuItem {
   price       Float
   imageUrl    String?
   isAvailable Boolean     @default(true)
+  salesCount  Int         @default(0)
   categoryId  String
   category    Category    @relation(fields: [categoryId], references: [id])
+  dietary     String[]    @default([])
+  allergens   String[]    @default([])
+  inclusions  String[]    @default([])
   orderItems  OrderItem[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -97,6 +101,13 @@ model Order {
   status      OrderStatus @default(ROUTING)
   mode        OrderMode   @default(DELIVERY)
   totalAmount Float
+
+  // --- Price Breakdown ---
+  subtotal      Float?
+  tax           Float?
+  deliveryFee   Float?
+  serviceCharge Float?
+  discountAmt   Float?
 
   // --- Customer details from checkout form ---
   customerName         String?
@@ -134,8 +145,8 @@ model OrderItem {
   id         String   @id @default(uuid())
   orderId    String
   order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId String?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
   quantity   Int
   unitPrice  Float
   totalPrice Float
@@ -144,8 +155,28 @@ model OrderItem {
 }
 
 model StoreSettings {
-  id        String   @id @default("singleton")
-  logoUrl   String?
-  bannerUrl String?
-  updatedAt DateTime @updatedAt
+  id                          String   @id @default("singleton")
+  logoUrl                     String?
+  bannerUrl                   String?
+  bannerUrls                  String[] @default([])
+  serviceCharge               Float    @default(0)
+  enableServiceCharge         Boolean  @default(true)
+  enableServiceChargeTakeaway Boolean  @default(false)
+  deliveryFee                 Float    @default(15.0)
+  taxRate                     Float    @default(5.0)
+  updatedAt                   DateTime @updatedAt
+}
+
+model DiscountCoupon {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  discount     Float     // amount to discount
+  isPercent    Boolean   @default(true) // if true, discount is a %, else flat AED
+  isActive     Boolean   @default(true)
+  usageLimit   Int?
+  usageCount   Int       @default(0)
+  expiryDate   DateTime?
+  minimumSpend Float     @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
