@@ -27,9 +27,21 @@ export class OrdersService {
         }
     }
 
-    async findAll(branchId?: string) {
+    async findAll(branchId?: string, startDate?: string, endDate?: string) {
+        const where: any = {};
+        if (branchId) where.branchId = branchId;
+        if (startDate || endDate) {
+            where.createdAt = {};
+            if (startDate) where.createdAt.gte = new Date(startDate);
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
+        }
+
         return this.prisma.order.findMany({
-            where: branchId ? { branchId } : undefined,
+            where,
             include: {
                 orderItems: {
                     include: { menuItem: true }

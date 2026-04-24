@@ -81,8 +81,12 @@ export const uploadImage = async (file: File): Promise<{ url: string; public_id:
 };
 
 // ── Orders ─────────────────────────────────────────────────────────────────────
-export const getOrders = (branchId?: string) => {
-    const query = branchId ? `?branchId=${branchId}` : '';
+export const getOrders = (branchId?: string, startDate?: string, endDate?: string) => {
+    const params = new URLSearchParams();
+    if (branchId) params.append('branchId', branchId);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    const query = params.toString() ? `?${params.toString()}` : '';
     return apiFetch<any[]>(`/orders${query}`);
 };
 

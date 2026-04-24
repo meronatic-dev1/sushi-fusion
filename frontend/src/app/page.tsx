@@ -12,7 +12,7 @@ import Footer from '@/components/Footer';
 import { MENU, CATEGORIES as STATIC_CATEGORIES, type Product } from '@/lib/data';
 import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
-import { getCategories, getMenuItems, getBestSellers } from '@/lib/api';
+import { getCategories, getMenuItems, getBestSellers, getCoupons, type ApiCoupon } from '@/lib/api';
 
 /* ─── Static content ────────────────────────────────────────────── */
 
@@ -173,119 +173,25 @@ function OurStory() {
   return (
     <section
       style={{
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: 520,
+        width: '100%',
+        background: '#ffffff',
         display: 'flex',
-        alignItems: 'center',
         justifyContent: 'center',
-        padding: '72px 24px',
       }}
     >
-      {/* Full-bleed background image */}
       <img
-        src="/images/our-story-bg.png"
-        alt=""
-        aria-hidden
+        src="/images/about-us.jpeg"
+        alt="About Sushi Fusion - Our Story"
         style={{
-          position: 'absolute',
-          inset: 0,
           width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          objectPosition: 'center',
+          height: 'auto',
           display: 'block',
-          zIndex: 0,
-        }}
-        onError={(e) => {
-          /* fallback: soft cream bg if image missing */
-          (e.target as HTMLImageElement).style.display = 'none';
         }}
       />
-
-      {/* Soft overlay so text stays readable */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(255,250,245,0.55)',
-          zIndex: 1,
-        }}
-      />
-
-      {/* Content card */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          maxWidth: 560,
-          width: '100%',
-          textAlign: 'center',
-        }}
-      >
-        {/* Logo badge */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-          <div style={{
-            width: 90, height: 90, borderRadius: '50%', overflow: 'hidden',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            border: '3px solid rgba(255,106,12,0.25)',
-            background: '#fff',
-          }}>
-            <img
-              src="/sushi-fusion-logo.png"
-              alt="Sushi Fusion"
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
-          </div>
-        </div>
-
-        {/* Heading */}
-        <h2 style={{
-          fontFamily: 'Mashiro, sans-serif',
-          fontSize: 'clamp(26px, 3vw, 38px)',
-          fontWeight: 800,
-          color: '#1c1c1c',
-          marginBottom: 20,
-          lineHeight: 1.15,
-        }}>
-          Our Story
-        </h2>
-
-        {/* Body text */}
-        <p style={{
-          fontSize: 15,
-          color: '#2a2a2a',
-          lineHeight: 1.8,
-          marginBottom: 16,
-        }}>
-          With over 18 years of experience perfecting Japanese cuisine across Japan, Malaysia,
-          Singapore, Thailand, India, and Nepal, Chef Gyanendra Jang Thapa — the heart and soul
-          behind Sushi Fusion — brings his lifelong passion to Dubai.
-        </p>
-        <p style={{
-          fontSize: 15,
-          color: '#2a2a2a',
-          lineHeight: 1.8,
-          marginBottom: 16,
-        }}>
-          In 2023, he turned his dream into reality by creating Sushi Fusion, a place where
-          tradition meets creativity. Inspired by Dubai's rich mix of cultures, his vision was
-          to craft sushi that speaks to everyone — familiar yet exciting, authentic yet
-          refreshingly new.
-        </p>
-        <p style={{
-          fontSize: 15,
-          color: '#2a2a2a',
-          lineHeight: 1.8,
-        }}>
-          At Sushi Fusion, every roll carries a story — of a chef's journey across borders,
-          of flavors from around the world, and of a love for food that connects people beyond
-          culture and language.
-        </p>
-      </div>
     </section>
   );
 }
+
 
 /* ─── Page ──────────────────────────────────────────────────────── */
 
@@ -301,6 +207,8 @@ export default function Home() {
   const [bestSellers, setBestSellers] = useState<Product[]>([]);
   const [usingApi, setUsingApi] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [coupons, setCoupons] = useState<ApiCoupon[]>([]);
+  const [showCoupons, setShowCoupons] = useState(false);
 
   const t = (key: string) => translate(language, key);
 
@@ -347,6 +255,10 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    getCoupons().then(data => setCoupons(data.filter(c => c.isActive))).catch(console.error);
+  }, []);
+
   const q = searchValue.trim().toLowerCase();
   let products: Product[] = [];
   if (usingApi) {
@@ -371,13 +283,15 @@ export default function Home() {
         const input = document.getElementById('mobile-search-input');
         if (input) (input as HTMLInputElement).focus();
       }, 300);
+    } else if (tab === 'offers') {
+      setShowCoupons(true);
     }
   };
 
   const ORANGE = '#FFF8F2';
   const WHITE = '#ffffff';
   const DARK = '#1c1c1c';
-  const STORY_BG = '#fdf6ee'; /* warm cream — matches the illustration's paper tone */
+  const STORY_BG = '#ffffff'; /* white — matches the new banner background */
 
   return (
     <>
@@ -487,6 +401,100 @@ export default function Home() {
         cartCount={cartCount}
         onCartClick={() => setIsCartOpen(true)}
       />
+
+      {/* Coupons Modal */}
+      {showCoupons && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }} onClick={() => setShowCoupons(false)}>
+          <div style={{
+            background: '#fff', borderRadius: 24, padding: '32px 24px',
+            maxWidth: 400, width: '100%', position: 'relative',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            animation: 'modalIn 0.3s ease-out'
+          }} onClick={e => e.stopPropagation()}>
+            <style>{`
+              @keyframes modalIn {
+                from { opacity: 0; transform: translateY(20px) scale(0.95); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+              }
+            `}</style>
+            <button 
+              onClick={() => setShowCoupons(false)}
+              style={{
+                position: 'absolute', top: 16, right: 16,
+                background: '#f5f5f5', border: 'none', width: 32, height: 32,
+                borderRadius: '50%', fontSize: 18, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#666'
+              }}
+            >
+              ×
+            </button>
+            <h3 style={{ 
+              color: '#1c1c1c', fontSize: 20, fontWeight: 800, 
+              marginBottom: 8, textAlign: 'center' 
+            }}>
+              Active Coupons
+            </h3>
+            <p style={{ 
+              color: '#666', fontSize: 14, marginBottom: 24, textAlign: 'center' 
+            }}>
+              Copy a code and apply it at checkout
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: '60vh', overflowY: 'auto', padding: '4px' }}>
+              {coupons.length > 0 ? (
+                coupons.map(c => (
+                  <div key={c.id} style={{
+                    border: '2px dashed rgba(255,106,12,0.3)', 
+                    padding: 16, borderRadius: 16,
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    background: '#FFF8F2'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#FF6A0C', fontSize: 16, letterSpacing: '0.05em' }}>
+                        {c.code}
+                      </div>
+                      <div style={{ fontSize: 13, color: '#1c1c1c', marginTop: 2, fontWeight: 600 }}>
+                        {c.isPercent ? `${c.discount}%` : `${c.discount} AED`} OFF
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(c.code);
+                        const btn = document.activeElement as HTMLButtonElement;
+                        if (btn) {
+                          const originalText = btn.innerText;
+                          btn.innerText = 'Copied!';
+                          btn.style.background = '#00C853';
+                          setTimeout(() => {
+                            btn.innerText = originalText;
+                            btn.style.background = '#FF6A0C';
+                          }, 2000);
+                        }
+                      }}
+                      style={{
+                        background: '#FF6A0C', color: '#fff', border: 'none',
+                        padding: '8px 16px', borderRadius: 10, fontSize: 13, 
+                        fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+                      }}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: 20, color: '#999' }}>
+                  No active coupons at the moment.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

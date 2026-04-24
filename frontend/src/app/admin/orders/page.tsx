@@ -240,6 +240,8 @@ export default function AdminOrdersPage() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [exportOpen, setExportOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
 
     const ordersRef = useRef<Order[]>([]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -267,7 +269,7 @@ export default function AdminOrdersPage() {
     useEffect(() => {
         if (!isLoaded || (userRole === 'branch_manager' && !userBranchId)) return;
         loadData();
-    }, [location?.branchId, isLoaded, userRole, userBranchId]);
+    }, [location?.branchId, isLoaded, userRole, userBranchId, startDate, endDate]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -280,7 +282,7 @@ export default function AdminOrdersPage() {
         if (!isSilent) setLoading(true);
         try {
             const activeBranchId = location?.branchId !== undefined ? location.branchId : (userRole === 'branch_manager' ? userBranchId : undefined);
-            const data = await getOrders(activeBranchId ?? undefined);
+            const data = await getOrders(activeBranchId ?? undefined, startDate, endDate);
             const mapped: Order[] = data.map((o: any) => {
                 const modeMap: any = { DELIVERY: 'Delivery', PICKUP: 'Pickup', DINE_IN: 'Dine-In' };
                 const mode = modeMap[o.mode] || 'Delivery';
@@ -302,8 +304,7 @@ export default function AdminOrdersPage() {
                 const status = statusMap[o.status] || 'Pending';
 
                 const date = new Date(o.createdAt);
-                const diffMins = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
-                const timeStr = diffMins === 0 ? 'Just now' : diffMins < 60 ? `${diffMins} min ago` : `${Math.floor(diffMins / 60)} hr ago`;
+                const timeStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
 
                 const items = o.orderItems?.map((i: any) => `${i.menuItem?.name || 'Item'} x${i.quantity}`) || [];
 
@@ -616,6 +617,40 @@ export default function AdminOrdersPage() {
                     <option value="Pickup">Pickup</option>
                     <option value="Dine-In">Dine-In</option>
                 </select>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, padding: '4px 10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>From</span>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            style={{
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', cursor: 'pointer'
+                            }}
+                        />
+                    </div>
+                    <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontWeight: 700, textTransform: 'uppercase' }}>To</span>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            style={{
+                                background: 'transparent', border: 'none', color: '#fff', fontSize: 12, outline: 'none', fontFamily: 'inherit', cursor: 'pointer'
+                            }}
+                        />
+                    </div>
+                    {(startDate || endDate) && (
+                        <button
+                            onClick={() => { setStartDate(''); setEndDate(''); }}
+                            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+                        >
+                            <XCircle size={14} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* ── Order rows ── */}

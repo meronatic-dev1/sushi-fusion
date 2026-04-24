@@ -10,8 +10,12 @@ export class OrdersController {
     constructor(private readonly ordersService: OrdersService) { }
 
     @Get()
-    async getOrders(@Query('branchId') branchId?: string) {
-        return this.ordersService.findAll(branchId);
+    async getOrders(
+        @Query('branchId') branchId?: string,
+        @Query('startDate') startDate?: string,
+        @Query('endDate') endDate?: string
+    ) {
+        return this.ordersService.findAll(branchId, startDate, endDate);
     }
 
     @Get(':id')
