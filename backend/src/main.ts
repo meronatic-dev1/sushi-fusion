@@ -15,9 +15,11 @@ async function bootstrap() {
   }));
 
   // Enable CORS with reliable origin array
-  const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  const frontendUrls = (process.env.FRONTEND_URL || 'http://localhost:3000').split(',').map(url => url.trim().replace(/\/$/, ''));
+  const allowedOrigins = [...frontendUrls, ...frontendUrls.map(url => `${url}/`)];
+  
   app.enableCors({
-    origin: [frontendUrl, `${frontendUrl}/`],
+    origin: allowedOrigins,
     credentials: true,
   });
 
