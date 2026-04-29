@@ -7,6 +7,7 @@ interface StoreSettings {
     logoUrl: string;
     bannerUrl: string;
     bannerUrls: string[];
+    mobileBannerUrls: string[];
     serviceCharge: number;
     enableServiceCharge: boolean;
     deliveryFee: number;
@@ -23,6 +24,7 @@ const defaultSettings: StoreSettings = {
     logoUrl: '/logo.png',
     bannerUrl: '/images/banner-1.png',
     bannerUrls: [],
+    mobileBannerUrls: [],
     serviceCharge: 0,
     enableServiceCharge: false,
     deliveryFee: 15.0,
@@ -43,6 +45,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                     logoUrl: data.logoUrl || defaultSettings.logoUrl,
                     bannerUrl: data.bannerUrl || defaultSettings.bannerUrl,
                     bannerUrls: data.bannerUrls || defaultSettings.bannerUrls,
+                    mobileBannerUrls: data.mobileBannerUrls || defaultSettings.mobileBannerUrls,
                     serviceCharge: data.serviceCharge ?? defaultSettings.serviceCharge,
                     enableServiceCharge: data.enableServiceCharge ?? defaultSettings.enableServiceCharge,
                     deliveryFee: data.deliveryFee ?? defaultSettings.deliveryFee,

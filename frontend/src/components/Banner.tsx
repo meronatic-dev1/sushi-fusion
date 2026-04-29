@@ -6,11 +6,23 @@ import { useSettings } from '@/context/SettingsContext';
 export default function Banner() {
   const { settings } = useSettings();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Normalize slides
-  const rawUrls = settings.bannerUrls && settings.bannerUrls.length > 0
-    ? settings.bannerUrls
-    : settings.bannerUrl ? [settings.bannerUrl] : [];
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Determine which banners to use
+  const hasMobileBanners = settings.mobileBannerUrls && settings.mobileBannerUrls.length > 0;
+  
+  const rawUrls = (isMobile && hasMobileBanners)
+    ? settings.mobileBannerUrls
+    : (settings.bannerUrls && settings.bannerUrls.length > 0
+      ? settings.bannerUrls
+      : settings.bannerUrl ? [settings.bannerUrl] : []);
     
   const slides = rawUrls
     .filter(url => !!url && !url.includes('banner-1.png'))

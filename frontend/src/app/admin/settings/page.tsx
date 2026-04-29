@@ -18,6 +18,7 @@ const inputStyle: React.CSSProperties = {
 export default function AdminSettingsPage() {
     const [logoUrl, setLogoUrl] = useState('');
     const [bannerUrls, setBannerUrls] = useState<string[]>(['', '', '']);
+    const [mobileBannerUrls, setMobileBannerUrls] = useState<string[]>(['', '', '']);
     const [serviceCharge, setServiceCharge] = useState(0);
     const [enableServiceCharge, setEnableServiceCharge] = useState(false);
     const [enableServiceChargeTakeaway, setEnableServiceChargeTakeaway] = useState(false);
@@ -29,6 +30,7 @@ export default function AdminSettingsPage() {
 
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [uploadingBanners, setUploadingBanners] = useState<boolean[]>([false, false, false]);
+    const [uploadingMobileBanners, setUploadingMobileBanners] = useState<boolean[]>([false, false, false]);
 
     useEffect(() => {
         // Use the same dynamic API URL as the rest of the app
@@ -43,6 +45,11 @@ export default function AdminSettingsPage() {
                 } else if (data.bannerUrl) {
                     // Fallback for migration
                     setBannerUrls([data.bannerUrl, '', '']);
+                }
+                if (data.mobileBannerUrls && Array.isArray(data.mobileBannerUrls)) {
+                    const mUrls = [...data.mobileBannerUrls];
+                    while (mUrls.length < 3) mUrls.push('');
+                    setMobileBannerUrls(mUrls.slice(0, 3));
                 }
                 setServiceCharge(data.serviceCharge || 0);
                 setEnableServiceCharge(data.enableServiceCharge || false);
@@ -64,6 +71,7 @@ export default function AdminSettingsPage() {
                 body: JSON.stringify({
                     logoUrl,
                     bannerUrls: bannerUrls.filter(u => !!u),
+                    mobileBannerUrls: mobileBannerUrls.filter(u => !!u),
                     bannerUrl: bannerUrls[0] || '', // Maintain compatibility
                     serviceCharge: Number(serviceCharge),
                     enableServiceCharge,
@@ -238,6 +246,88 @@ export default function AdminSettingsPage() {
                                                 const next = [...bannerUrls];
                                                 next[idx] = '';
                                                 setBannerUrls(next);
+                                            }}
+                                            style={{
+                                                position: 'absolute', top: 6, right: 6,
+                                                width: 22, height: 22, borderRadius: '50%',
+                                                background: 'rgba(248, 113, 113, 0.9)', border: 'none',
+                                                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                                                backdropFilter: 'blur(4px)', zIndex: 10
+                                            }}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Mobile Banners */}
+                <div style={{ marginBottom: 24 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 12 }}>
+                        Mobile Banners (Portrait/Small Screen - Up to 3 images)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                        {[0, 1, 2].map((idx) => (
+                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div style={{ position: 'relative', width: '100%' }}>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        id={`mobile-banner-upload-${idx}`}
+                                        disabled={uploadingMobileBanners[idx]}
+                                        style={{ display: 'none' }}
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                try {
+                                                    const nextUploading = [...uploadingMobileBanners];
+                                                    nextUploading[idx] = true;
+                                                    setUploadingMobileBanners(nextUploading);
+                                                    const res = await uploadImage(file);
+                                                    const nextUrls = [...mobileBannerUrls];
+                                                    nextUrls[idx] = res.url;
+                                                    setMobileBannerUrls(nextUrls);
+                                                } catch (err) {
+                                                    setMessage({ text: `Failed to upload mobile banner ${idx + 1}`, type: 'error' });
+                                                } finally {
+                                                    const nextUploading = [...uploadingMobileBanners];
+                                                    nextUploading[idx] = false;
+                                                    setUploadingMobileBanners(nextUploading);
+                                                }
+                                            }
+                                        }}
+                                    />
+                                    <label
+                                        htmlFor={`mobile-banner-upload-${idx}`}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                            background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.15)',
+                                            borderRadius: 10, height: 120, cursor: uploadingMobileBanners[idx] ? 'not-allowed' : 'pointer', color: '#fff', fontSize: 12,
+                                            transition: 'background 0.2s', width: '100%', boxSizing: 'border-box',
+                                            opacity: uploadingMobileBanners[idx] ? 0.5 : 1, overflow: 'hidden'
+                                        }}
+                                        onMouseEnter={e => { if (!uploadingMobileBanners[idx]) e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
+                                        onMouseLeave={e => { if (!uploadingMobileBanners[idx]) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                                    >
+                                        {mobileBannerUrls[idx] ? (
+                                            <img src={mobileBannerUrls[idx]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <div style={{ textAlign: 'center' }}>
+                                                {uploadingMobileBanners[idx] ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+                                                <div style={{ marginTop: 4 }}>{uploadingMobileBanners[idx] ? '...' : `Mobile Banner ${idx + 1}`}</div>
+                                            </div>
+                                        )}
+                                    </label>
+                                    {mobileBannerUrls[idx] && (
+                                        <button
+                                            onClick={() => {
+                                                const next = [...mobileBannerUrls];
+                                                next[idx] = '';
+                                                setMobileBannerUrls(next);
                                             }}
                                             style={{
                                                 position: 'absolute', top: 6, right: 6,

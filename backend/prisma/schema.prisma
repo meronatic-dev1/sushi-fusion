@@ -159,6 +159,7 @@ model StoreSettings {
   logoUrl                     String?
   bannerUrl                   String?
   bannerUrls                  String[] @default([])
+  mobileBannerUrls            String[] @default([])
   serviceCharge               Float    @default(0)
   enableServiceCharge         Boolean  @default(true)
   enableServiceChargeTakeaway Boolean  @default(false)
