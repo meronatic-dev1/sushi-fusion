@@ -13,6 +13,26 @@ export class MenuItemsService {
         });
     }
 
+    getBestSellers() {
+        return this.prisma.menuItem.findMany({
+            where: {
+                isAvailable: true,
+                salesCount: { gt: 0 },
+                NOT: [
+                    { category: { name: { contains: 'drink', mode: 'insensitive' } } },
+                    { category: { name: { contains: 'beverage', mode: 'insensitive' } } },
+                    { category: { name: { contains: 'addon', mode: 'insensitive' } } },
+                    { category: { name: { contains: 'add-on', mode: 'insensitive' } } },
+                    { category: { name: { contains: 'add on', mode: 'insensitive' } } },
+                ],
+            },
+            orderBy: { salesCount: 'desc' },
+            take: 10,
+            include: { category: true },
+        });
+    }
+
+
     findOne(id: string) {
         return this.prisma.menuItem.findUnique({
             where: { id },
@@ -27,6 +47,9 @@ export class MenuItemsService {
         imageUrl?: string;
         isAvailable?: boolean;
         categoryId: string;
+        dietary?: string[];
+        allergens?: string[];
+        inclusions?: string[];
     }) {
         return this.prisma.menuItem.create({
             data,
@@ -43,6 +66,9 @@ export class MenuItemsService {
             imageUrl?: string;
             isAvailable?: boolean;
             categoryId?: string;
+            dietary?: string[];
+            allergens?: string[];
+            inclusions?: string[];
         },
     ) {
         return this.prisma.menuItem.update({

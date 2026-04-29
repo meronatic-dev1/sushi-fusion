@@ -20,6 +20,11 @@ export class UsersController {
         return this.usersService.create(createUserDto);
     }
 
+    @Post('sync')
+    async sync(@Body() data: any) {
+        return this.usersService.syncUser(data);
+    }
+
     @Patch(':id')
     async update(@Param('id') id: string, @Body() updateUserDto: any) {
         return this.usersService.update(id, updateUserDto);

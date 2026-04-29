@@ -10,6 +10,11 @@ export class MenuItemsController {
         return this.menuItemsService.findAll(categoryId);
     }
 
+    @Get('best-sellers')
+    getBestSellers() {
+        return this.menuItemsService.getBestSellers();
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.menuItemsService.findOne(id);
@@ -25,6 +30,9 @@ export class MenuItemsController {
             imageUrl?: string;
             isAvailable?: boolean;
             categoryId: string;
+            dietary?: string[];
+            allergens?: string[];
+            inclusions?: string[];
         },
     ) {
         return this.menuItemsService.create(body);
@@ -41,6 +49,9 @@ export class MenuItemsController {
             imageUrl?: string;
             isAvailable?: boolean;
             categoryId?: string;
+            dietary?: string[];
+            allergens?: string[];
+            inclusions?: string[];
         },
     ) {
         return this.menuItemsService.update(id, body);

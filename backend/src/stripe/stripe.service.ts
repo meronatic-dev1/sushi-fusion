@@ -12,7 +12,7 @@ export class StripeService {
         private configService: ConfigService,
         private prisma: PrismaService
     ) {
-        this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || '', {
+        this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || 'sk_test_dummy_key_prevents_crash', {
             apiVersion: '2023-10-16' as any, // Use standard casting in Nestjs
         });
     }
@@ -23,7 +23,7 @@ export class StripeService {
             line_items: [
                 {
                     price_data: {
-                        currency: 'usd',
+                        currency: 'aed',
                         product_data: {
                             name: `Order #${orderId}`,
                         },
@@ -37,6 +37,22 @@ export class StripeService {
             cancel_url: `http://localhost:3000/checkout/cancel`,
             metadata: { orderId, orderMode: mode },
         });
+    }
+
+    async createPaymentIntent(amount: number) {
+        const paymentIntent = await this.stripe.paymentIntents.create({
+            amount: Math.round(amount * 100), // Stripe expects minor units (cents/fils)
+            currency: 'aed',
+            // In the latest version of the API, specifying the `automatic_payment_methods`
+            // parameter is optional because Stripe enables its functionality by default.
+            automatic_payment_methods: {
+                enabled: true,
+            },
+        });
+
+        return {
+            clientSecret: paymentIntent.client_secret,
+        };
     }
 
     async constructEventFromPayload(signature: string, payload: Buffer) {
