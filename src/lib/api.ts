@@ -7,6 +7,28 @@ if (typeof window !== 'undefined') {
         API = API.replace('localhost', hostname);
     }
 }
+export function getApiBaseUrl(): string {
+    return API.replace(/\/api\/?$/, '');
+}
+
+export function resolveImageUrl(url?: string | null): string | undefined {
+    if (!url) return undefined;
+
+    // Handle relative backend upload paths
+    if (url.startsWith('/uploads/')) {
+        return `${getApiBaseUrl()}${url}`;
+    }
+
+    // Adapt legacy hardcoded localhost:3001 URLs dynamically for local network testing
+    if (typeof window !== 'undefined' && url.includes('localhost:3001')) {
+        const hostname = window.location.hostname;
+        if (hostname !== 'localhost') {
+            return url.replace('localhost', hostname);
+        }
+    }
+
+    return url;
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 export interface ApiCategory {

@@ -23,9 +23,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/estree": "^1.0.9",
+    "@types/json-schema": "^7.0.15",
+    "@types/node": "^20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/statuses": "^2.0.6",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "shadcn": "^3.8.5",
@@ -34,6 +37,6 @@
     "typescript": "^5"
   },
   "overrides": {
-  "node-domexception": "npm:noop-package@1.0.0"
-}
+    "node-domexception": "npm:noop-package@1.0.0"
+  }
 }

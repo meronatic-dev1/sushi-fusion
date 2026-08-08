@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
-import { apiCreateOrder } from '@/lib/api';
+import { apiCreateOrder, resolveImageUrl } from '@/lib/api';
 import { Check, ChevronRight, Lock, MapPin, Clock, CreditCard, Apple, Smartphone, Tag, ArrowLeft, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 
 type Step = 1 | 2 | 3 | 4;
@@ -524,8 +524,8 @@ export default function CheckoutPage() {
                                         background: '#f2ede6', border: '1px solid #e8ddd2',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     }}>
-                                        {item.imgSrc
-                                            ? <img src={item.imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        {resolveImageUrl(item.imgSrc)
+                                            ? <img src={resolveImageUrl(item.imgSrc)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             : <span style={{ fontSize: 20 }}>{item.emoji || '🍣'}</span>
                                         }
                                     </div>

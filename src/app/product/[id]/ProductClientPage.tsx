@@ -9,7 +9,7 @@ import Footer from '@/components/Footer';
 import { MENU, type Product } from '@/lib/data';
 import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
-import { getMenuItems } from '@/lib/api';
+import { getMenuItems, resolveImageUrl } from '@/lib/api';
 
 export default function ProductClientPage({ id }: { id: string }) {
     const router = useRouter();
@@ -39,7 +39,7 @@ export default function ProductClientPage({ id }: { id: string }) {
                         desc: apiItem.description || '',
                         price: apiItem.price,
                         emoji: '🍣',
-                        imgSrc: apiItem.imageUrl || undefined,
+                        imgSrc: resolveImageUrl(apiItem.imageUrl),
                     });
                     setLoading(false);
                     return;
@@ -113,8 +113,8 @@ export default function ProductClientPage({ id }: { id: string }) {
                         {/* Product Details */}
                         <div style={{ background: 'var(--w)', borderRadius: 20, border: '1px solid var(--b)', overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.03)' }}>
                             <div style={{ height: 340, background: '#fff5ef', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                                {product.imgSrc ? (
-                                    <img src={product.imgSrc} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {resolveImageUrl(product.imgSrc) ? (
+                                    <img src={resolveImageUrl(product.imgSrc)} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                     <span style={{ fontSize: 120 }}>{product.emoji}</span>
                                 )}

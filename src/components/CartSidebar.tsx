@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Product } from '@/lib/data';
+import { resolveImageUrl } from '@/lib/api';
 
 export interface CartItem extends Product {
     qty: number;
@@ -51,8 +52,8 @@ export default function CartSidebar({ cart, onUpdateQty, isOpen, onClose, t }: C
                         {items.map(([name, item]) => (
                             <div key={name} className="cart-item">
                                 <div className="cart-item-emoji">
-                                    {item.imgSrc ? (
-                                        <img src={item.imgSrc} alt={item.name} />
+                                    {resolveImageUrl(item.imgSrc) ? (
+                                        <img src={resolveImageUrl(item.imgSrc)} alt={item.name} />
                                     ) : (
                                         <span role="img" aria-label={item.name}>
                                             {item.emoji}

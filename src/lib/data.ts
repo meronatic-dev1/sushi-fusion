@@ -157,7 +157,7 @@ export const MENU: { [key: string]: Product[] } = {
     ]
 };
 
-export const CATEGORIES = [
+export const CATEGORIES: { id: string; name: string; icon?: string; emoji?: string; imgSrc?: string }[] = [
     { id: 'special', name: 'Special Offers', icon: '🌟' },
     { id: 'starters', name: 'Starters', icon: '🥟' },
     { id: 'lovers', name: 'Lovers Box', icon: '🍣' },

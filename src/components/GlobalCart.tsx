@@ -3,6 +3,7 @@
 import React from 'react';
 import { useCart } from '@/context/CartContext';
 import { usePathname } from 'next/navigation';
+import { resolveImageUrl } from '@/lib/api';
 
 export default function GlobalCart({ t }: { t: (key: string) => string }) {
     const { cart, isCartOpen, updateQty, setIsCartOpen } = useCart();
@@ -43,7 +44,7 @@ export default function GlobalCart({ t }: { t: (key: string) => string }) {
                             {items.map(([name, item]) => (
                                 <div key={name} style={{ display: 'flex', gap: 10, padding: 10, border: '1px solid var(--b)', borderRadius: 8 }}>
                                     <div style={{ fontSize: 30, width: 48, height: 48, background: '#fff5ef', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                        {item.imgSrc ? <img src={item.imgSrc} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} /> : item.emoji}
+                                        {resolveImageUrl(item.imgSrc) ? <img src={resolveImageUrl(item.imgSrc)} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} /> : item.emoji}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{name}</div>

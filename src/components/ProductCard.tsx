@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Product } from '@/lib/data';
+import { resolveImageUrl } from '@/lib/api';
 
 interface ProductCardProps {
     product: Product;
@@ -22,6 +23,8 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
         setTimeout(() => setIsAdded(false), 1500);
     };
 
+    const imgSrc = resolveImageUrl(product.imgSrc);
+
     return (
         <div className="pcard" style={{ cursor: 'pointer' }} onClick={() => router.push(`/product/${encodeURIComponent(product.name)}`)}>
             <div className="pcard-header">
@@ -31,8 +34,8 @@ export default function ProductCard({ product, onAdd }: ProductCardProps) {
 
             <div className="pcard-img-wrap">
                 <div className="pcard-img">
-                    {product.imgSrc ? (
-                        <img src={product.imgSrc} alt={product.name} />
+                    {imgSrc ? (
+                        <img src={imgSrc} alt={product.name} />
                     ) : (
                         <span className="emoji-fallback">{product.emoji}</span>
                     )}

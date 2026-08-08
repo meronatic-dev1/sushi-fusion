@@ -79,7 +79,7 @@ let CloudinaryController = class CloudinaryController {
             const filePath = path.join(uploadDir, filename);
             fs.writeFileSync(filePath, file.buffer);
             return {
-                url: `http://localhost:3001/uploads/${filename}`,
+                url: `/uploads/${filename}`,
                 public_id: filename,
             };
         }

@@ -38,9 +38,9 @@ export class CloudinaryController {
 
             fs.writeFileSync(filePath, file.buffer);
 
-            // Return local URL
+            // Return relative URL for portability across hosts
             return {
-                url: `http://localhost:3001/uploads/${filename}`,
+                url: `/uploads/${filename}`,
                 public_id: filename,
             };
         }

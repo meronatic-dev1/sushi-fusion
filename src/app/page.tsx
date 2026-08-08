@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 import { MENU, CATEGORIES as STATIC_CATEGORIES, type Product } from '@/lib/data';
 import { t as translate, type Language } from '@/lib/i18n';
 import { useCart } from '@/context/CartContext';
-import { getCategories, getMenuItems, type ApiCategory, type ApiMenuItem } from '@/lib/api';
+import { getCategories, getMenuItems, resolveImageUrl, type ApiCategory, type ApiMenuItem } from '@/lib/api';
 
 export default function Home() {
   const { cartCount, addToCart, setIsCartOpen } = useCart();
@@ -35,7 +35,7 @@ export default function Home() {
         const [cats, items] = await Promise.all([getCategories(), getMenuItems()]);
         if (cancelled) return;
         if (cats.length > 0) {
-          setApiCategories(cats.map(c => ({ id: c.id, name: c.name, imgSrc: c.imageUrl || undefined })));
+          setApiCategories(cats.map(c => ({ id: c.id, name: c.name, imgSrc: resolveImageUrl(c.imageUrl) })));
           setApiProducts(items
             .filter(m => m.isAvailable)
             .map(m => ({
@@ -43,7 +43,7 @@ export default function Home() {
               desc: m.description || '',
               price: m.price,
               emoji: '🍣',
-              imgSrc: m.imageUrl || undefined,
+              imgSrc: resolveImageUrl(m.imageUrl),
               _categoryId: m.categoryId,
               _categoryName: m.category?.name || '',
             } as Product & { _categoryId: string; _categoryName: string }))

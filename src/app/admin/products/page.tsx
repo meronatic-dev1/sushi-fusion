@@ -6,7 +6,7 @@ import Image from 'next/image';
 import {
     getCategories, getMenuItems, createCategory as apiCreateCategory,
     updateCategory as apiUpdateCategory, deleteCategory as apiDeleteCategory,
-    createMenuItem, updateMenuItem, deleteMenuItem, uploadImage,
+    createMenuItem, updateMenuItem, deleteMenuItem, uploadImage, resolveImageUrl,
     type ApiCategory, type ApiMenuItem,
 } from '@/lib/api';
 
@@ -76,7 +76,8 @@ function ProductModal({
 
     const save = () => {
         if (!name.trim() || !category || !price) return;
-        onSave({ name: name.trim(), category, price: Number(price), dietary, available, imgSrc });
+        const catObj = categories.find(c => c.name === category);
+        onSave({ name: name.trim(), category, categoryId: catObj?.id ?? '', price: Number(price), dietary, available, imgSrc });
         onClose();
     };
 
@@ -96,7 +97,7 @@ function ProductModal({
                     {/* Image Upload */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', position: 'relative', flexShrink: 0 }}>
-                            <Image src={imgSrc} alt="Preview" fill style={{ objectFit: 'cover', opacity: uploading ? 0.5 : 1 }} />
+                            <Image src={resolveImageUrl(imgSrc) || '/images/31.png'} alt="Preview" fill style={{ objectFit: 'cover', opacity: uploading ? 0.5 : 1 }} />
                         </div>
                         <div>
                             <input type="file" ref={fileRef} accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
@@ -235,7 +236,7 @@ function CategoryModal({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                         <div style={{ width: 64, height: 64, borderRadius: 12, overflow: 'hidden', background: 'rgba(255,255,255,0.05)', border: '1px dashed rgba(255,255,255,0.2)', position: 'relative', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             {imgSrc ? (
-                                <Image src={imgSrc} alt="Preview" fill style={{ objectFit: 'cover', opacity: uploading ? 0.5 : 1 }} />
+                                <Image src={resolveImageUrl(imgSrc)!} alt="Preview" fill style={{ objectFit: 'cover', opacity: uploading ? 0.5 : 1 }} />
                             ) : (
                                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', textAlign: 'center' }}>No<br />Image</span>
                             )}
@@ -432,7 +433,7 @@ export default function AdminProductsPage() {
             <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 42, height: 42, position: 'relative', borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <Image src={p.imgSrc} alt={p.name} fill style={{ objectFit: 'cover' }} />
+                        <Image src={resolveImageUrl(p.imgSrc) || '/images/31.png'} alt={p.name} fill style={{ objectFit: 'cover' }} />
                     </div>
                     <span style={{ fontWeight: 600, color: '#fff', fontSize: 13, letterSpacing: '-0.01em' }}>{p.name}</span>
                 </div>
@@ -710,7 +711,7 @@ export default function AdminProductsPage() {
             {(showAddProd || editProd) && (
                 <ProductModal
                     categories={categories}
-                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, price: 0, available: true, dietary: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
+                    initial={editProd ?? (addToCat ? { id: '', name: '', category: addToCat, categoryId: categories.find(c => c.name === addToCat)?.id ?? '', price: 0, available: true, dietary: [], imgSrc: '/images/31.png', orders: 0 } : undefined)}
                     onClose={() => { setShowAddProd(false); setEditProd(null); setAddToCat(null); }}
                     onSave={editProd ? saveProduct : addProduct}
                 />
