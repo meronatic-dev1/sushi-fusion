@@ -19,11 +19,18 @@ export function resolveImageUrl(url?: string | null): string | undefined {
         return `${getApiBaseUrl()}${url}`;
     }
 
-    // Adapt legacy hardcoded localhost:3001 URLs dynamically for local network testing
-    if (typeof window !== 'undefined' && url.includes('localhost:3001')) {
-        const hostname = window.location.hostname;
-        if (hostname !== 'localhost') {
-            return url.replace('localhost', hostname);
+    // Replace legacy hardcoded localhost:3001 backend domain with active API base URL
+    if (url.includes('localhost:3001')) {
+        const backendBase = getApiBaseUrl();
+        if (backendBase && !backendBase.includes('localhost:3001')) {
+            return url.replace(/http:\/\/localhost:3001/g, backendBase);
+        }
+
+        if (typeof window !== 'undefined') {
+            const hostname = window.location.hostname;
+            if (hostname !== 'localhost') {
+                return url.replace('localhost', hostname);
+            }
         }
     }
 

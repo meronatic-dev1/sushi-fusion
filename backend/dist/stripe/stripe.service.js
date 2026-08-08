@@ -26,11 +26,18 @@ let StripeService = StripeService_1 = class StripeService {
     constructor(configService, prisma) {
         this.configService = configService;
         this.prisma = prisma;
-        this.stripe = new stripe_1.default(this.configService.get('STRIPE_SECRET_KEY') || '', {
-            apiVersion: '2023-10-16',
-        });
+        const secretKey = this.configService.get('STRIPE_SECRET_KEY');
+        if (secretKey) {
+            this.stripe = new stripe_1.default(secretKey, {
+                apiVersion: '2023-10-16',
+            });
+        }
     }
     async createCheckoutSession(orderId, amount, mode) {
+        if (!this.stripe) {
+            this.logger.warn('Stripe secret key is not configured.');
+            throw new Error('Stripe payment service is not configured');
+        }
         return this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [

@@ -12,12 +12,19 @@ export class StripeService {
         private configService: ConfigService,
         private prisma: PrismaService
     ) {
-        this.stripe = new Stripe(this.configService.get<string>('STRIPE_SECRET_KEY') || '', {
-            apiVersion: '2023-10-16' as any, // Use standard casting in Nestjs
-        });
+        const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY');
+        if (secretKey) {
+            this.stripe = new Stripe(secretKey, {
+                apiVersion: '2023-10-16' as any,
+            });
+        }
     }
 
     async createCheckoutSession(orderId: string, amount: number, mode: string) {
+        if (!this.stripe) {
+            this.logger.warn('Stripe secret key is not configured.');
+            throw new Error('Stripe payment service is not configured');
+        }
         return this.stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [

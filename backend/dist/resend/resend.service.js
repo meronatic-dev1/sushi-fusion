@@ -20,9 +20,16 @@ let ResendService = ResendService_1 = class ResendService {
     logger = new common_1.Logger(ResendService_1.name);
     constructor(configService) {
         this.configService = configService;
-        this.resend = new resend_1.Resend(this.configService.get('RESEND_API_KEY'));
+        const apiKey = this.configService.get('RESEND_API_KEY');
+        if (apiKey) {
+            this.resend = new resend_1.Resend(apiKey);
+        }
     }
     async sendOrderConfirmationEmail(email, orderId, amount) {
+        if (!this.resend) {
+            this.logger.warn('Resend API key is not configured. Skipping email send.');
+            return;
+        }
         try {
             await this.resend.emails.send({
                 from: this.configService.get('EMAIL_FROM') || 'orders@sushifusion.com',
