@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sushi Fusion Monorepo
 
-## Getting Started
+Welcome to the **Sushi Fusion** application! This repository is organized into a clean twin-folder architecture:
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+sushi-fusion/
+├── frontend/     # Next.js 16 Frontend Web Application
+├── backend/      # NestJS API & Database Backend Service
+└── package.json  # Root helper scripts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🚀 Quick Start
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 1. Install Dependencies
+Run from the root directory:
+```bash
+npm run install:all
+```
 
-## Learn More
+### 2. Environment Setup
+- Copy `frontend/.env.example` to `frontend/.env.local`
+- Copy `backend/.env.example` to `backend/.env`
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Run Development Servers
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Frontend (Next.js - Port 3000):**
+```bash
+npm run dev:frontend
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Backend (NestJS - Port 3001):**
+```bash
+npm run dev:backend
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🛠️ Building for Production
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+To build both the frontend and backend:
+```bash
+npm run build
+```
+
+Individual builds:
+```bash
+npm run build:frontend
+npm run build:backend
+```
